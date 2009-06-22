@@ -1,0 +1,52 @@
+
+;;; Installation:
+
+;; 1. Copy vimpulse.el to somewhere in your load-path, e.g. your
+;;    site-lisp directory.
+;; 
+;; 2. Add the following block of code to your ~/.emacs file.  (If the
+;;    file does not exist, create it.  If you use Windows, see
+;;    http://www.gnu.org/software/emacs/windows/faq3.html#TOC33 to
+;;    learn where to save the file.  If you use a Mac, email the
+;;    maintainer for help.)  Leave out the semicolons at the beginning
+;;    of each line.
+;; 
+;(setq viper-mode t)                ; enable Viper at load time
+;(setq viper-ex-style-editing nil)  ; can backspace past start of insert / line
+;(require 'viper)                   ; load Viper
+;(setq vimpulse-experimental nil)   ; don't load bleeding edge code (see 6. installation instruction)
+;(require 'vimpulse)                ; load Vimpulse
+;(setq woman-use-own-frame nil)     ; don't create new frame for manpages
+;(setq woman-use-topic-at-point t)  ; don't prompt upon K key (manpage display)
+;; 
+;; 3. (Optional) If you will be using C-r (the redo key) and you use
+;;    GNU Emacs, also install http://wonderworks.com/download/redo.el
+;;    and add (require 'redo) to your .emacs file.  (XEmacs and
+;;    Aquamacs come with redo.el included.)
+;; 
+;; 4. (Optional) If you want a nice-looking block visual mode (i.e.
+;;    rectangle selection), download and install
+;;    http://emacswiki.org/elisp/download/rect-mark.el 
+;;    in your load-path and add the Lisp expression (require
+;;    'rect-mark) to your .emacs file. Block mode will work
+;;    without rect-mark but you won't see the nice rectangle.
+;; 5. (Optional) If you don't want to use the enhanced paren-matching 
+;;    algorithm, add 
+;;         (setq vimpulse-enhanced-paren-matching nil)
+;;    to your .emacs _before_ (require 'vimpulse)
+;; 6. (Optional) remove (setq vimpulse-experimental nil) from your .emacs 
+;;    before loading vimpulse if you want to use ,alpha' features.
+;;    This may annoy your cat, kill your dog, make vimpulse suck
+;;    more and whatever, but you'll be on the bleeding edge, and with your 
+;;    feedback you'll help vimpulse get better.
+;;    Experimental features are (and must be, if you want to contribute)
+;;    marked with an ;;EXPERIMENTAL comment, and wrapped in a 
+;;    (when vimpulse-experimental ... ) block. Please describe what
+;;    they try to acheive. If your new pre-alpha feature is likely to
+;;    break everything, define your own variable and wrap your definitions
+;;    in a (when myexperimental-code ... ) block.
+;;    To know what's experimental, try searching EXPERIMENTAL in this file.
+;; 
+;; We would love it if you sent an email to the maintainer saying
+;; whether you liked or disliked vimpulse and why, and which
+;; additional Vim features you would like implemented soonest.

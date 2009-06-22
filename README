@@ -1,0 +1,40 @@
+;;; Usage:
+
+;; The only feature of vimpulse with documentation available is visual
+;; mode.
+;; 
+;; Visual mode:
+;; 
+;; To use visual mode, press v in normal mode.  Then use the motion
+;; commands to select the region.  Then press d to delete, c to
+;; change, r to replace, or y to copy.  You can use p to paste.  For
+;; linewise visual mode, press V instead of v.  Then you can copy and
+;; paste whole lines. If you want go to block visual mode, press C-v.
+;; Here you can copy and paste the selected rectangle[*].
+;; In block and linewise visual mode you may use I or A the insert or append
+;; text before or after the selection in each selected line.
+;;
+;; [*] Old documentation follows: 
+;; ", but you have ;; to use C-p. C-p is used because it was a simple 
+;; way to add visual block mode in a way *close* to Vim without having 
+;; to hack viper mode to use the normal 'p' key.  In the future, it 
+;; would be nice to see vimpulse provide this the "right" way, but at 
+;; this point I'm too inexperienced with elisp to make that happen."
+;;      -I just made it work with the normal 'p' key, this is sort of 
+;;       a hack, as it pushes a non printable string in the kill-ring
+;;       and when pasting checks if the current-kill is `equal' to 
+;;       the special string, and if it is pastes the rectangle instead.
+;;
+;; Other features:
+;; 
+;; This documentation is not written yet.  For now, see the definition
+;; of viper-vi-global-user-map right near the beginning of the code.
+;; You'll see a list of keys and what function each one calls.  The
+;; documentation that comes with Vim -- which is also online at
+;; http://vimdoc.sf.net -- may also be helpful.
+;;
+;; Tips:
+;;
+;; - Vimpulse makes C-r run "redo" in command mode but you can 
+;;   still get reverse i-search by pressing C-s then C-r.
+

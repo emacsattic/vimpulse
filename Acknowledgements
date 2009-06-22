@@ -1,0 +1,14 @@
+
+;;; Acknowledgements:
+
+;; Thanks to <cppjavaperl@yahoo.com>, John <jn at ngedit.com>, Samuel
+;; Padgett, Ryoichi Kanetaka <ryoichi.kanetaka at gmail.com>,
+;; Mieszko <sillyfox at yahoo.com>, Stian S., Toby Cubitt, Wang Xin,
+;; Weihua JIANG <weihua.jiang at gmail.com>, Frank Fischer
+;; <frank.fischer@s2001.tu-chemnitz.de> and all the other people who
+;; have sent in bug reports or feedback.  Also, thanks to Michael
+;; Kifer and all those who have contributed to viper-mode.
+;; 
+;; We love patches.  Would you like to see your name here?  Please
+;; send code and/or documentation patches to the maintainer.  Ideas,
+;; comments, and test results are appreciated too.
