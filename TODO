@@ -1,0 +1,185 @@
+
+;;; Development and documentation TODOs:
+
+;; - make sure I have added all stuff in Brad's viper additions and
+;;   from my collection, then start documenting already.  Once there
+;;   are even the simplest of docs (a nice key map) people will have a
+;;   far easier time using vimpulse and so I bet more will contribute.
+;; 
+;; - the / key should allow isearch that works like Vim's, or until
+;;   that's implemented, it should at least remap / to isearch-forward
+;;   or viper-isearch-forward.  This should be an option that should
+;;   be disabled by default.  For now, have viper load .vimrc and
+;;   check for vim-specific option strings like "set incsearch".  If
+;;   anyone complains, rethink that plan.
+;; 
+;; - Folding.  This should be implemented as a separate lisp library
+;;   usable for even non-viper users.  Which foldmethods to do first?
+;;   I personally only use foldmethod=marker, and even that only rarely.
+;; 
+;; - i_C-(I forgot the letter) should do (copy-from-above-command 1)
+;;   from misc.el
+;; 
+;; - add advanced C-w commands; they can can use windmove.el
+;;   (directional window-selection routines)
+;; 
+;; - add :set spell / :set nospell that uses flyspell-mode
+;; 
+;; - add support for tabs.el, a tabs mode that works sensibly (get it
+;;   from Emacs Lisp List)
+;;     - minimum needed: :tabedit, :tabnext, :tabprevious 
+;;     - since I'm emulating Vim, emulate its tab pages feature.  So a
+;;       tab page should be able to hold one or more buffers.
+;; 
+;; - add Customize option to let users stop C-r from being redo?
+;; 
+;; - email and try to get redo.el included with GNU Emacs (since I
+;;   won't include redo.el here since nobody else includes it in their
+;;   Lisp files either)
+;; 
+;; - copy more features from Brad's work in darcs and from vimpact
+;;   into vimpulse
+;; 
+;; - doc: look in google chat log, find description of one-char-off
+;;   bug, see if it applies to this or to the not-yet-released
+;;   viper-x, and if to this, mention under Bugs
+;; 
+;; - doc: fix ref to "your home directory": Windows users don't have
+;;   one
+;; 
+;; - doc: list all new keys (and maybe all differences from viper) in
+;;   Usage section
+;; 
+;; - doc: describe all new keys in Usage section; can look at Vim
+;;   manual for ideas
+;; 
+;; - modify how tramp works so it also automatically handles URLs
+;;   typed in the netrw syntax, i.e. http:// etc.  But first ask tramp
+;;   upstream if they could please make those changes themselves.
+;; 
+;; - add CTRL-O for jumping back in the jumplist and CTRL-I for
+;;   jumping forwards (for undoing one CTRL-O).  I wonder if emacs'
+;;   tags functionality allows a jumplist.  I wonder if viper does
+;;   tags like nvi does.
+;;     - The global mark ring is not what I want.
+;;     - Try code.google.com/p/ejumplist/source/browse/trunk/jumplist.el
+;; 
+;; - on my PC (I run Ubuntu), if you start plain Vim then press CTRL-O
+;;   many times, it starts opening recently opened files.  Is that
+;;   useful?  Should vimpulse have persistent jump table functionality
+;;   like that, and if so, should it use recentf or vim's .viminfo
+;;   file or some tag functionality in emacs?  How will it interact
+;;   with the fact that in emacs it's not traditional to suddenly
+;;   close files without warning?
+;; 
+;; - make sentence movement work like in Vim.  I wonder if this can be
+;;   done by setting viper options.
+;;     - In Vim, according to :help sentence, end of sentence is:
+;;         - '.', '?', or '!'
+;;         - then (optionally) one or more '"', ''', ')', and ']'
+;;           characters
+;;         - then a newline, space, or tab.
+;;         - A paragraph or section boundary is also a sentence
+;;           boundary, but I bet viper handles that, and if it doesn't,
+;;           it should.
+;;             - A paragraph begins after each truly empty line (no
+;;               whitespace chars on it) or after certain col-1 nroff
+;;               macros.  A sentence begins after a form feed (^L), or
+;;               certain nroff macros, in column 1.
+;;             - The characters '{' and '}' sometimes affect paragraph
+;;               definitions.  See :help paragraph.
+;;     - In Viper, on the other hand, I bet sentences are like in vi,
+;;       where Tabs aren't whitespace, and you need at least two spaces
+;;       after the punctuation mark.
+;; 
+;; - try to get vimpulse included with upstream viper; also, ideally,
+;;   if you pressed "v" in viper, viper would offer to load vimpulse.
+;;   (likely to happen?  Consider that Michael Kifer, the viper
+;;   maintainer, told me he doesn't need vim keys.  Then again, maybe
+;;   I could convince him that it's worth it to ship vim keys, for
+;;   other people's benefit.)
+;; 
+;; - email ridip <rdp@inthefaith.net> and ask him for his vimpulse
+;;   contribs and his dvorak stuff
+;; 
+;; - email to Tromey for upload into ELPA?  we'd have to redo this
+;;   when a new major version comes out.  Or maybe we should just
+;;   contribute some auto-ELPA-management code.  By the way, should we
+;;   move vimpulse into CVS somewhere?
+;; 
+;; - maybe merge all feature requests that anyone has ever sent into a
+;;   "Feature requests" section here
+
+;;; Development plans:
+
+;; The design plan for Vimpulse is for it to only emulate features
+;; that are in Vim.  Unfortunately, other new features do not belong
+;; in Vimpulse unless you can get the Vim people to implement those
+;; features too.
+
+;;; Undecided development questions:
+
+;; - In vimpulse, like in real vim, C-r only does redo in command
+;;   mode; in insert mode it does something else.  (In vimpulse that
+;;   "something else" is reverse i-search.)  Should it do reverse
+;;   i-search in insert mode too?
+;; 
+;; - When you press "v" for visual mode, Vimpulse modifies the mode
+;;   section of the modeline, so it reads e.g. "(Emacs-Lisp visual)".
+;;   Shouldn't it do something to the <V> indicator instead?
+;; 
+;; - In Vim, when a line starts with a "// " or ";; " comment and I
+;;   press enter, Vim extends the comment onto the next line.  What
+;;   Vim function is it that does this?  Is the function enabled in
+;;   plain vanilla Vim 7 as shipped by vim.org?  (Check by seeing how
+;;   it works on Vim for Windows running on either Windows or Wine.)
+;;   Is it mostly useful or mostly annoying?  Is it worth implementing
+;;   in Emacs considering there are other easy ways to create
+;;   comments?
+;; 
+;; - In v / V mode, Vim makes sure there is always at least 1 char /
+;;   line selected.  IMO it provides nice feedback as to whether
+;;   visual mode is on or not.  Is this worth implementing?  This is
+;;   especially important for the block mode because currently it's
+;;   impossible to select the last character in a line.
+;;       19/06/2009: we only need to fix block mode.
+;; 
+;; - Sometimes when you use C (viper-change-to-eol) or other change
+;;   commands, Jason's new viper-exec-change function shows a message
+;;   like "Deleted 50 characters" as a side effect.  Is that annoying?
+;;     - Update 1 month later:  I hardly notice the message.
+;;     - Dear users:  Do you think I should disable the message?
+;; 
+;; - I want to allow buffer-switching without using the C-x key, since
+;;   C-x b RET an extremely large amount of times per day is
+;;   uncomfortable for my right pinky which presses RET.  There's
+;;   already :b which seems to just invoke switch-to-buffer.  Is this
+;;   right?  Is it bad if I make vimpulse emulate set autowrite=on
+;;   then write new multi-buffer code?  What should the code's user
+;;   interface be like?  I really should switch back to Vim for a day,
+;;   learn more about how it deals with multiple buffers at once (and
+;;   maybe also with tab pages) and emulate whatever of Vim's is most
+;;   convenient.  What do you think of all the above?\
+;;     - update: IIRC :set hidden lets you switch buffers w/o saving
+;;     - update from Sebastien Rocca Serra: :set wildmenu plus 
+;;       tab-completion makes :b very pleasant to use when you have 
+;;       50+ buffers open.  Wildmenu is almost like iswitchb or ido.
+;;     - I wonder how well that stuff works with just a few buffers open.
+;; 
+;; - simulate Vim's set virtualedit=onemore option to make C-x C-e
+;;   possible w/o first advancing to next line?
+;; 
+;; - Would it be bad to edit users' .viminfo files without asking
+;;   permission, or should some variable have to be customized on to do
+;;   such a thing?
+;; 
+;; - should gj and gk do longlines-style movement like in Vim?  I
+;;   really must resolve my Windows vs. Unix line-length hangups by
+;;   Googling or asking before I even think about this.
+;; 
+;; - is there any need to implement Vim's new
+;;   [count]dk-can-go-past-top-of-file-without-error functionality (to
+;;   me, no need) or any related functionality?
+;; 
+;; - What to do about xemacs?  It doesn't ship with woman.  I wonder
+;;   if woman is in some xemacs package?
