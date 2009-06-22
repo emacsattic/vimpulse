@@ -1,0 +1,34 @@
+
+;;; Bugs:
+
+;; (We would appreciate very much if you report bugs.)
+;; 
+;; Known bugs:
+;; 
+;; - (class of bugs) In visual or line visual mode, pressing things
+;;   like C-g or C-SPC tends to confuse Vimpulse and do weird things.
+;; 
+;; - In visual mode, repeatedly pressing H, M, or L acts weirdly.  (I
+;;   wonder if there are other keys that act weirdly in that mode too.)
+;;      -in which way? it seems normal (at least with the current version
+;;       19/06/2009
+;; 
+;; - One user who uses an ancient emacs-snapshot (from 2005) mentions
+;;   that this mode causes all the keys on his keyboard to stop
+;;   working unless he deletes the line that reads 'viper--key-maps
+;;   from the macro my-get-emulation-keymap in this file.
+;;         -Wasn't this already fixed? I think it is, as there's
+;;          the conditional for the emacs version.
+;; 
+;; - cw with a count doesn't work the same as Vim when the point
+;;   is just before a space between words
+;;     - Fix plan: try cw with a count, then try dwi with a count; or,
+;;       ask on a relevant forum how the commands differ; or, check
+;;       how it works in Vi / Vim then check the Vim manual for more
+;;       info; then, decide how to best fix.
+;;         - Vim's behavior seems unconsistent in this case.
+;;           I think making the fix optional would be best, as I (at least)
+;;           like more vimpulse behavior in this case (defaulting to 
+;;           standard vim behavior though)
+;; 
+;; - Undo has problems in XEmacs.
