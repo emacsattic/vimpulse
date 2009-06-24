@@ -852,6 +852,7 @@ matching paren, or mismatched paren." ;;FIXME: this description sucks.
 ;;;; and consistent behavior to the commands.
 ;;;; Alessandro Piras
 ;;; Begin Text Objects code{{{
+
 (when vimpulse-experimental
   (defun vimpulse-get-syntaxes-bounds (pos syntaxes)
     "Returns the bounds of contiguous character that match `syntaxes', 
@@ -964,10 +965,10 @@ lower bound of the position, lime is the upper bound to the position."
     (let ((result))
       (save-excursion 
 	(goto-char pos)
-	(re-search-forward "[?\n?\r[:space:]]")
+	(re-search-forward "[\n\r[:space:]]")
 	(push (- (point) 2) result)
 	(backward-char)
-	(re-search-backward "[?\n?\r[:space:]]")
+	(re-search-backward "[\n\r[:space:]]")
 	(cons (1+ (point)) result))))
 
   (defun vimpulse-get-sentence-bounds (pos)
@@ -1019,9 +1020,9 @@ lower bound of the position, lime is the upper bound to the position."
   (defvar vimpulse-paired-expression-delimiters (list ?\" ?\')
     "Quotes supported by the text-object system.")
 
-  (defun vimpulse-get-text-object-bounds-i (pos char)
+  (defun vimpulse-get-text-object-bounds-i (pos motion)
     "Returns the inner boundaries of a text object at point `pos'.
-`char' identifies the text object:
+`motion' identifies the text object:
   - w -> word
   - W -> Word
   - s -> sentence
@@ -1031,23 +1032,20 @@ lower bound of the position, lime is the upper bound to the position."
   - <quote> -> quoted expression (see variable `paired-expression-delimiter'
                to see the type of quotes supported."
     (cond
-     ((= char ?w) (vimpulse-get-vword-bounds pos))
-     ((= char ?W) (vimpulse-get-vWord-bounds pos))
-     ((= char ?s) (vimpulse-get-sentence-bounds pos))
-     ((= char ?p) (vimpulse-get-paragraph-bounds pos))
-     ((memq char vimpulse-paired-expression-delimiters)
-      (let ((bounds (vimpulse-get-paired-bounds pos char)))
-	(message "Bounds: %s" bounds)
-	(if bounds 
+     ((= motion ?w) (vimpulse-get-vword-bounds pos))
+     ((= motion ?W) (vimpulse-get-vWord-bounds pos))
+     ((= motion ?s) (vimpulse-get-sentence-bounds pos))
+     ((= motion ?p) (vimpulse-get-paragraph-bounds pos))
+     ((memq motion vimpulse-paired-expression-delimiters)
+      (let ((bounds (vimpulse-get-paired-bounds pos motion)))
+	(when bounds 
 	    (destructuring-bind (s e) bounds
-	      (list (1+ s) (1- e)))
-	  nil)))
-     ((memq char vimpulse-balanced-bounds-char-list) 
-      (let ((bounds (vimpulse-get-balanced-bounds pos char)))
-	(if bounds 
+	      (list (1+ s) (1- e))))))
+     ((memq motion vimpulse-balanced-bounds-char-list) 
+      (let ((bounds (vimpulse-get-balanced-bounds pos motion)))
+	(when bounds 
 	    (destructuring-bind (s e) bounds
-	      (list (1+ s) (1- e)))
-	  nil)))
+	      (list (1+ s) (1- e))))))
      (t nil)))
 
   (defun vimpulse-get-bounds-with-whitespace (func pos &optional trailing-newlines)
@@ -1059,6 +1057,7 @@ followed is the same:
   - include trailing whitespace
   - if trailing-newlines is t, include also the trailing newlines"
     (save-excursion
+      (goto-char pos)
       (let ((start (point))
 	    (end nil))
 	
@@ -1072,20 +1071,27 @@ followed is the same:
 	   (t nil))))))
 
   
-  (defun vimpulse-get-text-object-bounds-a (pos char)
+  (defun vimpulse-get-text-object-bounds-a (pos motion)
     "Returns the boundaries of `a' text object, whitespace to be killed included."
     (cond
-     ((= char ?w) 
+     ((= motion ?w) 
       (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vword-bounds pos))
-     ((= char ?W) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vWord-bounds pos))
-     ((= char ?s) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-sentence-bounds pos))
-     ((= char ?p) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-paragraph-bounds pos t))
-     ((memq char vimpulse-paired-expression-delimiters)
-      (vimpulse-get-paired-bounds pos char))
-     ((memq char vimpulse-balanced-bounds-char-list) 
-      (vimpulse-get-balanced-bounds pos char))
+     ((= motion ?W) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vWord-bounds pos))
+     ((= motion ?s) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-sentence-bounds pos))
+     ((= motion ?p) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-paragraph-bounds pos t))
+     ((memq motion vimpulse-paired-expression-delimiters)
+      (vimpulse-get-paired-bounds pos motion))
+     ((memq motion vimpulse-balanced-bounds-char-list) 
+      (vimpulse-get-balanced-bounds pos motion))
      (t nil)))
-
+  
+  (defun vimpulse-get-text-object-bounds (pos char motion)
+    "Returns the boundaries of a text object. 'pos' indicates the start position,
+char indicates 'inner' (?i) or 'a' (?a) behavior, 'motion' indicates the text-object."
+    (cond 
+     ((= char ?a) (vimpulse-get-text-object-bounds-a pos motion))
+     ((= char ?i) (vimpulse-get-text-object-bounds-i pos motion))
+     (t (error "called with wrong arguments"))))
   ;;
   ;; Thanks to the anonymous poster for the idea on how to modify the viper 
   ;; function to add the di da ci and ca partial commands.
@@ -1192,10 +1198,10 @@ followed is the same:
 	   ;; than normal.  We decided to not use replacement mode here and
 	   ;; follow Vi, since replacement mode on n full lines can be achieved
 	   ;; with nC.
-	   ((equal com '(?a . ?d)) (vimpulse-da)) ; da<x>
-	   ((equal com '(?a . ?c)) (vimpulse-da)) ; ca<x>
-	   ((equal com '(?i . ?d)) (vimpulse-di)) ; di<x>
-	   ((equal com '(?i . ?c)) (vimpulse-ci)) ; ci<x>
+	   ((equal com '(?a . ?d)) (vimpulse-delete-text-objects-command value ?a)) ; da<x>
+	   ((equal com '(?a . ?c)) (vimpulse-change-text-objects-command value ?a)) ; ca<x>
+	   ((equal com '(?i . ?d)) (vimpulse-delete-text-objects-command value ?i)) ; di<x>
+	   ((equal com '(?i . ?c)) (vimpulse-change-text-objects-command value ?i)) ; ci<x>
 	   ((equal com '(?c . ?c)) (viper-line (cons value ?C)))
 	   ((equal com '(?d . ?d)) (viper-line (cons value ?D)))
 	   ((equal com '(?d . ?y)) (viper-yank-defun))
@@ -1218,128 +1224,54 @@ followed is the same:
 	      (error
 	       (error "%s" (error-message-string err))))))
       ))
-  
+
 ;;;;;;;;;;;;;;;;;;;;
 ;;;   Commands   ;;;
 ;;;;;;;;;;;;;;;;;;;;
-  (defun vimpulse-da ()
-    "Deletes `a' text object."
+  (defun vimpulse-unify-multiple-bounds (pos char count motion)
+    "Returns the boundaries of a multiple text object motion. 
+POS is the starting position,
+CHAR indicates 'inner' or 'a' behavior,
+COUNT indicates how many text objects to include,
+MOTION indicates the kind of text object."
+    (let* ((bounds-1 (vimpulse-get-text-object-bounds pos char motion))
+	   (start (when bounds-1 (car bounds-1)))
+	   (end (when bounds-1 (cadr bounds-1))))
+      (dotimes (i (1- count))
+	(setq end (cadr (vimpulse-get-text-object-bounds (1+ end) char motion))))
+      (if end (list start end) nil)))
+
+  (defun vimpulse-delete-text-objects-function (arg)
+    "Deletes COUNT text objects of MOTION kind starting from `point', following the 
+behavior indicated by CHAR: ?i stands for 'inner', ?a stands for 'a'. 
+ARG has the form ((COUNT CHAR MOTION) . ?d)"
+    (destructuring-bind (count char motion) (car arg)
+      (let ((bounds (vimpulse-unify-multiple-bounds (point) char count motion)))
+	(when bounds
+	  (goto-char (car bounds))
+	  (set-mark (1+ (cadr bounds)))
+	  (call-interactively 'kill-region)))))
+
+  (defun vimpulse-delete-text-objects-command (count char)
+    "Deletes COUNT text objects following the behavior CHAR ('inner' or 'a').
+The kind of text object is asked interactively to the user using `read-char'."
     (interactive)
-    (let ((bounds (vimpulse-get-text-object-bounds-a (point) (read-char))))
-      (message "Bounds : %s" bounds)
-      (when bounds
-	(goto-char (car bounds))
-	(set-mark (1+ (cadr bounds)))
-	(call-interactively 'kill-region)
-	)))
-  
-  (defun vimpulse-di ()
-    "Deletes `inner' text object."
+    (let ((motion (read-char)))
+      (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function (list count char motion) ?d nil nil nil))
+      (vimpulse-delete-text-objects-function (cons (list count char motion) ?d))))
+
+  (defun vimpulse-change-text-objects-function (arg)
+    "Executes `vimpulse-delete-text-objects-function' passing ARG to it and yanks the last insertion."
+    (vimpulse-delete-text-objects-function arg)
+    (viper-yank-last-insertion))
+
+  (defun vimpulse-change-text-objects-command (count char)
+    "Changes COUNT text objects following the behavior CHAR ('inner' or 'a').
+The kind of text object is asked interactively to the user using `read-char'."
     (interactive)
-    (let ((bounds (vimpulse-get-text-object-bounds-i (point) (read-char))))
-      (message "Bounds : %s" bounds)
-      (when bounds
-	(goto-char (car bounds))
-	(set-mark (1+ (cadr bounds)))
-	(call-interactively 'kill-region))))
-
-  (defun vimpulse-ci ()
-    "Changes `inner' text object."
-    (interactive) ; if you want to bind it yourself ... feel free to
-    (vimpulse-di)
-    (call-interactively 'viper-insert))
-
-  (defun vimpulse-ca ()
-    "Changes `a' text object."
-    (interactive) ; if you want to bind it yourself ... feel free to
-    (vimpulse-da)
-    (call-interactively 'viper-insert))
-
-  (when nil ;; TODO: check if this is necessary for old emacsen, maybe they don't support featurep
-    (defun viper-prefix-arg-com (char value com)
-      (let ((cont t)
-	    cmd-info
-	    cmd-to-exec-at-end)
-	(while (and cont
-		    (viper-memq-char char
-				     (list ?i ?c ?d ?y ?! ?< ?> ?= ?# ?r ?R ?\"
-					   viper-buffer-search-char)))
-	  (if com
-	      (progn
-		(if (viper-memq-char char '(?# ?\")) (error ""))
-		(setq com (cons char com))
-		(setq cont nil))
-	    (cond ((viper-memq-char char '(?! ?=))
-		   (setq com char)
-		   (setq char (read-char))
-		   (setq cont nil))
-		  ((viper= char ?#)
-		   (setq com (+ 128 (read-char)))
-		   (setq char (read-char)))
-		  ((viper= char ?\")
-		   (let ((reg (read-char)))
-		     (if (viper-valid-register reg)
-			 (setq viper-use-register reg)
-		       (error ""))
-		     (setq char (read-char))))
-		  (t
-		   (setq com char)
-		   (setq char (read-char))))))
-
-	(if (atom com)
-	    (progn
-	      (setq cmd-info (cons value com))
-	      (while (viper= char ?U)
-		(viper-describe-arg cmd-info)
-		(setq char (read-char)))
-	      (or (viper-movement-command-p char)
-		  (viper-digit-command-p char)
-		  (viper-regsuffix-command-p char)
-		  (viper= char ?!)
-		  (viper= char ?g)
-		  (error ""))
-	      (setq cmd-to-exec-at-end
-		    (viper-exec-form-in-vi
-		     `(key-binding (char-to-string ,char)))))
-
-	  (if (viper-memq-char (car com) '(?r ?R))
-	      (let ((char (car com)) (com (cdr com)))
-		(setq prefix-arg (cons value com))
-		(if (viper= char ?r)
-		    (viper-region prefix-arg)
-		  (viper-Region prefix-arg))
-		(setq prefix-arg nil))
-	    (setq value (if (null value)
-			    1
-			  value))
-	    (setq prefix-arg nil)
-	    (cond
-	     ;; MODIFICATION: `di' and `ci' added to list
-	     ((equal com '(?a . ?d)) (vimpulse-da)) ; da<x>
-	     ((equal com '(?a . ?c)) (vimpulse-da)) ; ca<x>
-	     ((equal com '(?i . ?d)) (vimpulse-di)) ; di<x>
-	     ((equal com '(?i . ?c)) (vimpulse-ci)) ; ci<x>
-	     ((equal com '(?c . ?c)) (viper-line (cons value ?C)))
-	     ((equal com '(?d . ?d)) (viper-line (cons value ?D)))
-	     ((equal com '(?d . ?y)) (viper-yank-defun))
-	     ((equal com '(?y . ?y)) (viper-line (cons value ?Y)))
-	     ((equal com '(?< . ?<)) (viper-line (cons value ?<)))
-	     ((equal com '(?> . ?>)) (viper-line (cons value ?>)))
-	     ((equal com '(?! . ?!)) (viper-line (cons value ?!)))
-	     ((equal com '(?= . ?=)) (viper-line (cons value ?=)))
-	     ((equal (car com) ?g)   (viper-goto-line 0))
-	     (t (error "")))))
-
-	(if cmd-to-exec-at-end
-	    (progn
-	      (setq last-command-char char)
-	      (setq last-command-event
-		    (viper-copy-event
-		     (if viper-xemacs-p (character-to-event char) char)))
-	      (condition-case nil
-		  (funcall cmd-to-exec-at-end cmd-info)
-		(error
-		 (error "")))))))
-    )
+    (let ((motion (read-char)))
+      (viper-set-destructive-command (list 'vimpulse-change-text-objects-function (list count char motion) ?c nil nil nil))
+      (vimpulse-delete-text-objects-function (cons (list count char motion) ?c))
+      (viper-change-state-to-insert)))
   )
 ;;; }}} End Text Objects code
