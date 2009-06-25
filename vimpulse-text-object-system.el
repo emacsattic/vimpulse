@@ -249,148 +249,22 @@ followed is the same:
      ((memq motion vimpulse-balanced-bounds-char-list) 
       (vimpulse-get-balanced-bounds pos motion))
      (t nil)))
-  
+ 
   (defun vimpulse-get-text-object-bounds (pos char motion)
     "Returns the boundaries of a text object. 'pos' indicates the start position,
 char indicates 'inner' (?i) or 'a' (?a) behavior, 'motion' indicates the text-object."
     (cond 
      ((= char ?a) (vimpulse-get-text-object-bounds-a pos motion))
      ((= char ?i) (vimpulse-get-text-object-bounds-i pos motion))
+     ((= char ?r) (list pos (+ pos (- (cadr motion) (car motion) 1))))
+     ((= char ?l) (vimpulse-get-line-margins pos))
      (t (error "called with wrong arguments"))))
-  ;;
-  ;; Thanks to the anonymous poster for the idea on how to modify the viper 
-  ;; function to add the di da ci and ca partial commands.
-  ;;
-
-
-  ;; REDEFINITION OF VIPER FUNCTION
-  ;;
-  ;; `viper-prefix-arg-com', originally defined in viper-cmd.el, does
-  ;; much of the work of reading keyboard input and chosing the
-  ;; appropriate command. As an ugly way of getting basic "delete inner
-  ;; parentheses" functionality, we extend it here with entries for our
-  ;; custom `vimpulse-di' and `vimpulse-ci' functions (defined below).
-  ;;
-  ;; This should be done in a cleaner way. Michael Kifer gives some
-  ;; hints in viper.el:
-  ;;
-  ;;     Some of the code that is inherited from VIP-3.5 is rather
-  ;;     convoluted. Instead of viper-command-argument, keymaps should
-  ;;     bind the actual commands. E.g., "dw" should be bound to a
-  ;;     generic command viper-delete that will delete things based on
-  ;;     the value of last-command-char. This would greatly simplify the
-  ;;     logic and the code.
-  ;;
-  ;; For (some) brewity, Kifer's comments are removed. The added lines
-  ;; are annotated with ";; MODIFICATION".
-
-  (defun viper-prefix-arg-com (char value com)
-    (let ((cont t)
-	  cmd-info
-	  cmd-to-exec-at-end)
-      (while (and cont
-		  (viper-memq-char char
-				   (list ?i ?a ?c ?d ?y ?! ?< ?> ?= ?# ?r ?R ?\" ;;modified ?i ?a
-					 viper-buffer-search-char)))
-	(if com
-	    ;; this means that we already have a command character, so we
-	    ;; construct a com list and exit while.  however, if char is "
-	    ;; it is an error.
-	    (progn
-	      ;; new com is (CHAR . OLDCOM)
-	      (if (viper-memq-char char '(?# ?\")) (error "Viper bell"))
-	      (setq com (cons char com))
-	      (setq cont nil))
-	  ;; If com is nil we set com as char, and read more.  Again, if char is
-	  ;; ", we read the name of register and store it in viper-use-register.
-	  ;; if char is !, =, or #, a complete com is formed so we exit the while
-	  ;; loop.
-	  (cond ((viper-memq-char char '(?! ?=))
-		 (setq com char)
-		 (setq char (read-char))
-		 (setq cont nil))
-		((viper= char ?#)
-		 ;; read a char and encode it as com
-		 (setq com (+ 128 (read-char)))
-		 (setq char (read-char)))
-		((viper= char ?\")
-		 (let ((reg (read-char)))
-		   (if (viper-valid-register reg)
-		       (setq viper-use-register reg)
-		     (error "Viper bell"))
-		   (setq char (read-char))))
-		(t
-		 (setq com char)
-		 (setq char (read-char))))))
-
-      (if (atom com)
-	  ;; `com' is a single char, so we construct the command argument
-	  ;; and if `char' is `?', we describe the arg; otherwise
-	  ;; we prepare the command that will be executed at the end.
-	  (progn
-	    (setq cmd-info (cons value com))
-	    (while (viper= char ?U)
-	      (viper-describe-arg cmd-info)
-	      (setq char (read-char)))
-	    ;; `char' is a movement cmd, a digit arg cmd, or a register cmd---so
-	    ;; we execute it at the very end
-	    (or (viper-movement-command-p char)
-		(viper-digit-command-p char)
-		(viper-regsuffix-command-p char)
-		(viper= char ?!) ; bang command
-		(viper= char ?g) ; the gg command (like G0)
-		(error "Viper bell"))
-	    (message "debug1")
-	    (setq cmd-to-exec-at-end
-		  (viper-exec-form-in-vi
-		   `(key-binding (char-to-string ,char)))))
-
-	;; as com is non-nil, this means that we have a command to execute
-	(if (viper-memq-char (car com) '(?r ?R))
-	    ;; execute apropriate region command.
-	    (let ((char (car com)) (com (cdr com)))
-	      (setq prefix-arg (cons value com))
-	      (if (viper= char ?r)
-		  (viper-region prefix-arg)
-		(viper-Region prefix-arg))
-	      ;; reset prefix-arg
-	      (setq prefix-arg nil))
-	  ;; otherwise, reset prefix arg and call appropriate command
-	  (setq value (if (null value) 1 value))
-	  (setq prefix-arg nil)
-	  (cond
-	   ;; If we change ?C to ?c here, then cc will enter replacement mode
-	   ;; rather than deleting lines.  However, it will affect 1 less line
-	   ;; than normal.  We decided to not use replacement mode here and
-	   ;; follow Vi, since replacement mode on n full lines can be achieved
-	   ;; with nC.
-	   ((equal com '(?a . ?d)) (vimpulse-delete-text-objects-command value ?a)) ; da<x>
-	   ((equal com '(?a . ?c)) (vimpulse-change-text-objects-command value ?a)) ; ca<x>
-	   ((equal com '(?i . ?d)) (vimpulse-delete-text-objects-command value ?i)) ; di<x>
-	   ((equal com '(?i . ?c)) (vimpulse-change-text-objects-command value ?i)) ; ci<x>
-	   ((equal com '(?c . ?c)) (viper-line (cons value ?C)))
-	   ((equal com '(?d . ?d)) (viper-line (cons value ?D)))
-	   ((equal com '(?d . ?y)) (viper-yank-defun))
-	   ((equal com '(?y . ?y)) (viper-line (cons value ?Y)))
-	   ((equal com '(?< . ?<)) (viper-line (cons value ?<)))
-	   ((equal com '(?> . ?>)) (viper-line (cons value ?>)))
-	   ((equal com '(?! . ?!)) (viper-line (cons value ?!)))
-	   ((equal com '(?= . ?=)) (viper-line (cons value ?=)))
-	   ;; gg  acts as G0
-	   ((equal (car com) ?g)   (viper-goto-line 0))
-	   (t (error "Viper bell")))))
-      
-      (if cmd-to-exec-at-end
-	  (progn
-	    (setq last-command-event
-		  (viper-copy-event
-		   (if (featurep 'xemacs) (character-to-event char) char)))
-	    (condition-case err
-		(funcall cmd-to-exec-at-end cmd-info)
-	      (error
-	       (error "%s" (error-message-string err))))))
-      ))
-
+  (defun vimpulse-message-all-args (&rest args)
+    "Helper function that prints all its arguments, plus some other values."
+    (message "ARGS: %s, reg: %s" args (string viper-use-register)))
+  (defun vimpulse-test-function (value)
+    "This function is only defined for developing purposes."
+    (viper-set-destructive-command (list 'vimpulse-message-all-args 'first-argument ?d viper-use-register "cane" nil)))
 ;;;;;;;;;;;;;;;;;;;;
 ;;;   Commands   ;;;
 ;;;;;;;;;;;;;;;;;;;;
@@ -414,6 +288,19 @@ ARG has the form ((COUNT CHAR MOTION) . ?d)"
     (destructuring-bind (count char motion) (car arg)
       (let ((bounds (vimpulse-unify-multiple-bounds (point) char count motion)))
 	(when bounds
+	  (when viper-use-register ;; copy stuff to registers
+	    ;; This code is take from viper-exec-delete
+	    (cond 
+	     ((viper-valid-register viper-use-register '(letter digit))
+	      (copy-to-register
+	       viper-use-register (car bounds) (1+ (cadr bounds)) nil))
+	     ((viper-valid-register viper-use-register '(Letter))
+	      (viper-append-to-register
+	       (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
+	     (t (setq viper-use-register nil)
+		(error viper-InvalidRegister viper-use-register)))
+	    (setq viper-use-register nil))
+	  ;;end of viper-exec-delete code
 	  (goto-char (car bounds))
 	  (set-mark (1+ (cadr bounds)))
 	  (call-interactively 'kill-region)))))
@@ -423,7 +310,8 @@ ARG has the form ((COUNT CHAR MOTION) . ?d)"
 The kind of text object is asked interactively to the user using `read-char'."
     (interactive)
     (let ((motion (read-char)))
-      (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function (list count char motion) ?d nil nil nil))
+      (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function 
+					   (list count char motion) ?d viper-use-register nil nil))
       (vimpulse-delete-text-objects-function (cons (list count char motion) ?d))))
 
   (defun vimpulse-change-text-objects-function (arg)
@@ -436,9 +324,48 @@ The kind of text object is asked interactively to the user using `read-char'."
 The kind of text object is asked interactively to the user using `read-char'."
     (interactive)
     (let ((motion (read-char)))
-      (viper-set-destructive-command (list 'vimpulse-change-text-objects-function (list count char motion) ?c nil nil nil))
+      (viper-set-destructive-command (list 'vimpulse-change-text-objects-function (list count char motion) 
+					   ?c viper-use-register nil nil))
       (vimpulse-delete-text-objects-function (cons (list count char motion) ?c))
       (viper-change-state-to-insert)))
+  
+  (defun vimpulse-yank-text-objects-function (arg)
+    "Yanks COUNT text objects of MOTION kind starting from `point', following the 
+behavior indicated by CHAR: ?i stands for 'inner', ?a stands for 'a'. 
+ARG has the form ((COUNT CHAR MOTION) . ?d)"
+    (destructuring-bind (count char motion) (car arg)
+      (let ((bounds (vimpulse-unify-multiple-bounds (point) char count motion)))
+	(when bounds
+	  (when viper-use-register ;; copy stuff to registers
+	    ;; This code is take from viper-exec-delete
+	    (cond 
+	     ((viper-valid-register viper-use-register '(letter digit))
+	      (copy-to-register
+	       viper-use-register (car bounds) (1+ (cadr bounds)) nil))
+	     ((viper-valid-register viper-use-register '(Letter))
+	      (viper-append-to-register
+	       (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
+	     (t (setq viper-use-register nil)
+		(error viper-InvalidRegister viper-use-register)))
+	    (setq viper-use-register nil))
+	  ;;end of viper-exec-delete code
+	  (copy-region-as-kill (car bounds) (1+ (cadr bounds)))
+	  (goto-char (car bounds))))))
+
+  (defun vimpulse-yank-text-objects-command (count char)
+    "Yanks COUNT text objects following the behavior CHAR ('inner' or 'a').
+The kind of text object is asked interactively to the user using `read-char'."
+    (interactive)
+    (let ((motion (read-char)))
+      (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))))
   )
+;; This is for silencing viper when he checks if the insertion must be repeated, never true for 
+;; this kind of commands.
+(defvar vimpulse-text-objects-command (list 'vimpulse-delete-text-objects-function 
+					    'vimpulse-change-text-objects-function 
+					    'vimpulse-yank-text-objects-function))
+(defadvice viper-repeat-insert-command (around vimpulse-text-objects-repeat-insert-command-fix activate)
+  (when (not (memq (car viper-d-com) vimpulse-text-objects-command))
+    ad-do-it))
 ;;; }}} End Text Objects code
 (provide 'vimpulse-text-object-system)

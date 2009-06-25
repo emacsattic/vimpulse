@@ -4,6 +4,15 @@
 ;;;; - I changed the prefix of the custom functions to vimpulse 
 ;;;;   to avoid multiple prefixes
 ;;;;
+(defvar vimpulse-fold-level 0)
+(when (boundp 'hs-minor-mode)
+  (add-hook hs-minor-mode-hook (lambda () 
+				 (call-interactively 'hs-hide-all)
+				 (define-key viper-vi-global-user-map "za"   'hs-toggle-hiding)
+				 (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
+				 (define-key viper-vi-global-user-map "zR"   'hs-show-all)
+				 (define-key viper-vi-global-user-map "zo"   'hs-show-block)
+				 (define-key viper-vi-global-user-map "zc"   'hs-hide-block))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;; VISUAL MODE BINDINGS ;;;;;;;;;;;;;;;;
@@ -26,8 +35,7 @@
 (define-key viper-vi-global-user-map "o"    'vimpulse-open-new-line-below)
 (define-key viper-vi-global-user-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-global-user-map "\C-t" 'pop-tag-mark)
-
-; Map undo and redo from XEmacs' redo.el
+;; Map undo and redo from XEmacs' redo.el
 (define-key viper-vi-global-user-map "u"    'undo)
 (define-key viper-vi-global-user-map "\C-r" 'redo)
 
@@ -55,6 +63,11 @@
 (define-key viper-insert-global-user-map (kbd "ESC") 'viper-exit-insert-state)
 
 ;;; My code (Alessandro)
+(defun vimpulse-indent-lines (count)
+  (save-excursion
+    (dotimes (i count)
+      (indent-according-to-mode)
+      (next-line))))
 (defun vimpulse-open-new-line-above (&optional arg)
   "Opens a line above the cursor, enters insert mode and indents."
   (interactive)

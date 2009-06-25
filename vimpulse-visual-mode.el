@@ -30,6 +30,7 @@
   "If non nil visual mode will operate linewise")
 (defvar vimpulse-visual-mode-block nil
   "If non nil visual mode will operate blockwise")
+(defvar vimpulse-visual-current-register nil)
 (defcustom vimpulse-visual-load-hook nil
   "Hooks to run after loading vimpulse-visual-mode."
   :type 'hook
@@ -87,6 +88,7 @@ mode of operation to line-wise if Visual selection is already started."
       (delete-overlay vimpulse-visual-overlay)
       (overlay-put vimpulse-visual-overlay 'face (cons 'background-color "blue")))
   (unless vimpulse-visual-mode
+    (setq vimpulse-visual-current-register nil)
     (vimpulse-deactivate-mark)
     (delete-overlay vimpulse-visual-overlay)
     (viper-change-state-to-vi))
@@ -134,8 +136,11 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "s" 'vimpulse-visual-change-command)
 (define-key vimpulse-visual-mode-map "S" 'vimpulse-visual-change-command)
 (define-key vimpulse-visual-mode-map "r" 'vimpulse-visual-replace-region)
+(define-key vimpulse-visual-mode-map "\"" 'vimpulse-visual-set-current-register)
 ;;(define-key vimpulse-visual-mode-map "o" 'exchange-point-and-mark) ;TODO: fix this for the new visual selection code
 ;;(define-key vimpulse-visual-mode-map "O" 'exchange-point-and-mark) ;      as it doesn't use point and mark
+(define-key vimpulse-visual-mode-map "o" 'vimpulse-invert-origin-and-cursor)
+(define-key vimpulse-visual-mode-map "O" 'vimpulse-invert-origin-and-cursor)
 (define-key vimpulse-visual-mode-map "I" 'vimpulse-visual-insert)
 (define-key vimpulse-visual-mode-map "A" 'vimpulse-visual-append)
 (define-key vimpulse-visual-mode-map "=" 'vimpulse-visual-indent-command)
@@ -187,18 +192,25 @@ mode of operation to line-wise if Visual selection is already started."
 If `p' is nil, (point-marker) is used instead. The information can be retrieved using `vimpulse-get-bol' and `vimpulse-get-eol'."
   (save-excursion
     (if p (goto-char p)) 
-    (cons (+ 1 (point-at-eol)) (point-at-bol))))
+    (list (point-at-bol) (point-at-eol))))
 (defun vimpulse-get-bol (line-margins)
   "Retrieves the beginning-of-line marker from the structure returned by vimpulse-get-line-margins."
-    (cdr line-margins))
+    (car line-margins))
 (defun vimpulse-get-eol (line-margins)
   "Retrieves the end-of-line marker from the structure returned by vimpulse-get-line-margins."
-    (car line-margins))
+    (cadr line-margins))
 
 (defun vimpulse-set-visual-overlay ()
   (setq vimpulse-visual-overlay-origin (point-marker))
   (vimpulse-update-overlay))
       
+(defun vimpulse-get-vs-bounds ()
+  (list (overlay-start vimpulse-visual-overlay) (overlay-end vimpulse-visual-overlay)))
+(defun vimpulse-get-vs-start ()
+  (overlay-start vimpulse-visual-overlay))
+(defun vimpulse-get-vs-end ()
+  (overlay-end vimpulse-visual-overlay))
+
 (defun vimpulse-update-visual-overlay-mode-normal ()
   (let ((pt (point)))
     (if (< pt vimpulse-visual-overlay-origin) 
@@ -217,11 +229,11 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
        ((< pt vimpulse-visual-overlay-origin)
 	(move-overlay vimpulse-visual-overlay 
 		      (vimpulse-get-bol lm-point) 
-		      (vimpulse-get-eol lm-origin)))
+		      (1+ (vimpulse-get-eol lm-origin))))
        (t
 	(move-overlay vimpulse-visual-overlay 
 		      (vimpulse-get-bol lm-origin) 
-		      (vimpulse-get-eol lm-point)))))))
+		      (1+ (vimpulse-get-eol lm-point))))))))
 
 (defun vimpulse-update-overlay ()
   (save-excursion
@@ -251,18 +263,19 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
     (kill-rectangle (region-beginning) (region-end))
     (goto-char (region-beginning)))
    (t
-    (save-excursion
-      (goto-char (overlay-start vimpulse-visual-overlay))
-      (vimpulse-set-mark (overlay-end vimpulse-visual-overlay))
-      (vimpulse-visual-mode nil)
-      (viper-prefix-arg-com ?r 1 ?d)))))
-
+    (goto-char (vimpulse-get-vs-start))
+    (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
+	  (char (if vimpulse-visual-mode-linewise ?l ?r))
+	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
+      (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function 
+					   (list count char motion) ?d nil nil nil))
+      (vimpulse-delete-text-objects-function (cons (list count char motion) ?d))))))
 (defun vimpulse-visual-indent-command ()
   "Indents the visual selection."
   (interactive)
   (unless vimpulse-visual-mode-block
     (save-excursion
-     (indent-region (overlay-start vimpulse-visual-overlay) (overlay-end vimpulse-visual-overlay))
+     (indent-region (vimpulse-get-vs-start) (vimpulse-get-vs-end))
      (vimpulse-visual-mode nil))))
 
 
@@ -280,15 +293,21 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
       (vimpulse-visual-mode nil) 
       (viper-insert nil)))
    (t
-    (goto-char (overlay-start vimpulse-visual-overlay))
-    (vimpulse-set-mark (overlay-end vimpulse-visual-overlay))
-    (vimpulse-visual-mode nil)
-    (viper-prefix-arg-com ?r 1 ?c))))
+    (goto-char (vimpulse-get-vs-start))
+    (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
+	  (char (if vimpulse-visual-mode-linewise ?l ?r))
+	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
+      (viper-set-destructive-command (list 'vimpulse-change-text-objects-function 
+					   (list count char motion) ?d viper-use-register nil nil))
+      (vimpulse-delete-text-objects-function (cons (list count char motion) ?c))
+      (vimpulse-visual-mode nil)
+      (open-line 1)
+      (viper-change-state-to-insert)))))
 
 (defun vimpulse-visual-replace-region (&optional arg)
   (interactive "P")
-  (goto-char (overlay-start vimpulse-visual-overlay))
-  (vimpulse-set-mark (overlay-end vimpulse-visual-overlay))
+  (goto-char (vimpulse-get-vs-start))
+  (vimpulse-set-mark (vimpulse-get-vs-end))
   (vimpulse-visual-mode 'toggle)
   (cond
    ((= (mark) (point)) nil)
@@ -303,6 +322,12 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
 	  (t (delete-char 1)
 	     (insert c))))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;  Intermediate  commands  ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun vimpulse-visual-set-current-register ()
+  (interactive)
+  (setq viper-use-register (read-char)))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Non destructive commands ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -320,11 +345,22 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
     (yank-rectangle)
     (goto-char (region-beginning)))
    (t
-      (goto-char (overlay-start vimpulse-visual-overlay))
-      (vimpulse-set-mark (overlay-end vimpulse-visual-overlay))
-      (vimpulse-visual-mode nil)
-      (viper-prefix-arg-com ?r 1 ?y))))
+    (goto-char (vimpulse-get-vs-start))
+    (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
+	  (char (if vimpulse-visual-mode-linewise ?l ?r))
+	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
+      (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))))))
 
+(defun vimpulse-invert-origin-and-cursor ()
+  (interactive)
+  (cond
+   (vimpulse-visual-mode-block
+    (exchange-point-and-mark))
+   (t
+    (let ((origin vimpulse-visual-overlay-origin))
+      (setq vimpulse-visual-overlay-origin (point))
+      (goto-char origin)))))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Visual Block Mode Support ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -348,8 +384,8 @@ chosen according to this command."
   ;; overlay bounds in normal and linewise mode, region bounds in block mode.
   (destructuring-bind (rb re) (if vimpulse-visual-mode-block 
 				  (list (region-beginning) (region-end))
-				(list (overlay-start vimpulse-visual-overlay)
-				      (overlay-end vimpulse-visual-overlay)))
+				(list (vimpulse-get-vs-start)
+				      (vimpulse-get-vs-end)))
     (make-local-variable 'vimpulse-visual-insert-coords)
     (setq vimpulse-visual-insert-coords nil)
   
