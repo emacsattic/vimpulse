@@ -6,7 +6,7 @@
 ;;;;
 (defvar vimpulse-fold-level 0)
 (when (boundp 'hs-minor-mode)
-  (add-hook hs-minor-mode-hook (lambda () 
+  (add-hook 'hs-minor-mode-hook (lambda () 
 				 (call-interactively 'hs-hide-all)
 				 (define-key viper-vi-global-user-map "za"   'hs-toggle-hiding)
 				 (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
