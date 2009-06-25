@@ -301,9 +301,56 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
 					   (list count char motion) ?d viper-use-register nil nil))
       (vimpulse-delete-text-objects-function (cons (list count char motion) ?c))
       (vimpulse-visual-mode nil)
-      (open-line 1)
+      (when (= char ?l)
+	(open-line 1))
       (viper-change-state-to-insert)))))
 
+(defun vimpulse-replace-chars-in-selection-function (arg)
+  "Fills the text in the region identified by COUNT, VISUAL-MODE and MOTION 
+with the CHAR character, without replacing the newlines."
+  (destructuring-bind (count visual-mode motion char) (car arg)
+    (let ((bounds (vimpulse-unify-multiple-bounds (point) visual-mode count motion)))
+      (when bounds
+	(goto-char (car bounds))
+	(save-excursion
+	  (dotimes (i (1+ (- (cadr bounds) (car bounds))))
+	    (unless (memq (char-after (point)) '(?\r ?\n))
+	      (delete-char 1)
+	      (insert char))))))))
+	      
+(defun vimpulse-visual-replace-region (&optional arg)
+  (interactive)
+  (cond
+   ((not vimpulse-visual-mode-block)
+    
+    (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
+	  (visual-selection-mode (if vimpulse-visual-mode-linewise ?l ?r))
+	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds)))
+	  (char (read-char))
+	  (start (vimpulse-get-vs-start)))
+      (viper-set-destructive-command (list 'vimpulse-replace-chars-in-selection-function
+					   (list count visual-selection-mode motion char) ?r nil nil nil))
+      (goto-char start) 
+      (vimpulse-visual-mode nil)
+      (vimpulse-replace-chars-in-selection-function (cons (list count visual-selection-mode motion char) ?r))))))
+      
+(defun vimpulse-visual-replace-region (&optional arg)
+  (interactive "P")
+  (goto-char (vimpulse-get-vs-start))
+  (vimpulse-set-mark (vimpulse-get-vs-end))
+  (vimpulse-visual-mode 'toggle)
+  (cond
+   ((= (mark) (point)) nil)
+   (t 
+    (if (< (mark) (point)) (exchange-point-and-mark))
+    (viper-replace-char arg)		
+    (let ((c (char-after (point))))
+      (dotimes (i (- (mark) (point)))
+	(cond
+	 ((member (char-after (point)) '(?\r ?\n))
+	  (forward-char))
+	  (t (delete-char 1)
+	     (insert c))))))))
 (defun vimpulse-visual-replace-region (&optional arg)
   (interactive "P")
   (goto-char (vimpulse-get-vs-start))
@@ -349,7 +396,8 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
     (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
 	  (char (if vimpulse-visual-mode-linewise ?l ?r))
 	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
-      (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))))))
+      (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))
+      (vimpulse-visual-mode nil)))))
 
 (defun vimpulse-invert-origin-and-cursor ()
   (interactive)
