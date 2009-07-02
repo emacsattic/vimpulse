@@ -37,7 +37,7 @@
 ;;    to your .emacs _before_ (require 'vimpulse)
 ;; 
 ;; 6. (Optional) remove (setq vimpulse-experimental nil) from your .emacs 
-;;    before loading vimpulse if you want to use ,alpha' features.
+;;    before loading vimpulse if you want to use "alpha" features.
 ;;    This may annoy your cat, kill your dog, make vimpulse suck
 ;;    more and whatever, but you'll be on the bleeding edge, and with your 
 ;;    feedback you'll help vimpulse get better.
