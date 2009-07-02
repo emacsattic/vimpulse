@@ -83,7 +83,7 @@
   "Indents the current line, inserts a newline and indents the new line."
   (interactive)
   (indent-according-to-mode)
-  (insert ?\n)
+  (newline)
   (indent-according-to-mode))
 
 ;;; His code (Brad)
