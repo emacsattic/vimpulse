@@ -2,47 +2,37 @@
 
 
 
-
 ;; ### For setup instructions, see "Installation" below. ###
 
 
 
-;; Copyright (C) 2007 Alessandro Piras and Brad Beveridge
+;; Copyright (C) 2007 Brad Beveridge.
+;; Copyright (C) 2007, 2009 Alessandro Piras.
+;; Copyright (C) 2008 Frank Fischer.
+;; Copyright (C) 2009 Jason Spiro.
 ;; 
 ;; Version: 0.2.6.9
 ;; Keywords: emulations
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, Emacs pinky finger
-;; Authors: Alessandro Piras <laynor@gmail.com>,
-;;          Brad Beveridge <brad.beveridge@gmail.com>
-;; Maintainer: Alessandro Piras, who is subscribed to the Vimpulse mailing list
-;; ( http://lists.ourproject.org/cgi-bin/mailman/listinfo/implementations-list )
-;; 
-;;  DISCLAIMER: I took on the maintainership because I've seen the script is
-;;              currently unmaintained, and I just woke up 2 days ago, installed 
-;;              emacs again, installed vimpulse and noticed visual mode sucked big
-;;              time, so I implemented a visual mode and a paren match algorithm
-;;              to make vimpulse better. But:
-;;                 A) I suck big time as a maintainer
-;;                 B) I'm very lazy
-;;                 C) I'm even more lazy
-;;             But still it's better then no maintainer at all I think. Anyone wanting
-;;             to volunteer for maintainership please email me :)
-;;            
-;; 
-;; Thanks to our
-;;        Old Maintainer: Jason Spiro
-;; we'll miss you as a maintainer :)
-;;  
-;; Note: If you create a patch that makes Vimpulse work more 
-;;       like Vim, do not send it to the maintainer.  Test it on Emacs 
-;;       and XEmacs, then merge it into the wiki page.  Send all other 
-;;       patches to the maintainer.
+;; Authors: Alessandro Piras and Brad Beveridge
+;; Contact: <implementations-list at lists.ourproject.org>.
+;;          You don't have to subscribe.  We usually reply within a
+;;          few days and CC our replies back to you.  If we don't,
+;;          check the archives:
+;;          http://tinyurl.com/implementations-list
+;; New bug tracker: http://my-trac.assembla.com/vimpulse/report/1
+;; URL: http://emacswiki.org/emacs/vimpulse.el
+;; Source control: http://www.assembla.com/spaces/vimpulse/trac_subversion_tool
 ;; License: GPLv2 or later, as described below under "License"
 ;; Compatibility: Works well with GNU Emacs 21.4 and 22.0.
 ;;                Causes problems with undo, but has no other problems, 
 ;;                on XEmacs 21.4.19.
-;;                Please send us compatibility info re. other Emacsen.
-;; URL: http://emacswiki.org/elisp/vimpulse.el
+;;                Please send us compatibility info about other versions.
+;; Maintainer: Alessandro Piras but I am looking for a co-maintainer
+;;             or for a new maintainer to take over.  Contact the list.
+;; Thanks to our
+;;        Old Maintainer: Jason Spiro
+;; we'll miss you as a maintainer :)
 ;; 
 ;; This file is not part of GNU Emacs.
 
@@ -53,12 +43,13 @@
 ;; Vimpulse is a set of modifications to viper, the minor mode
 ;; that emulates Vi.  Vimpulse is not a minor mode; as soon as it is
 ;; loaded, viper will start working in a more Vim-like way.
+;; 
+;; Vimpulse is beta software.  It seems to work quite well already
+;; though.  Patches and feature requests welcome.
+;; 
 ;; NEWS 19/06/2009: The visual mode is greatly improved, we also 
 ;;                  feature an improved paren matching. It can
 ;;                  become slow (i didn't check, but it's likely)
 ;;                  if you work with very big files, so deactivate it 
 ;;                  if you notice sluggishness (see point 5 of the 
 ;;                  installation instructions). 
-;; 
-;; Vimpulse is beta software.  It seems to work quite well already
-;; though.  Patches and feature requests welcome.

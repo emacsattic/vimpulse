@@ -7,9 +7,9 @@
 ;; 2. Add the following block of code to your ~/.emacs file.  (If the
 ;;    file does not exist, create it.  If you use Windows, see
 ;;    http://www.gnu.org/software/emacs/windows/faq3.html#TOC33 to
-;;    learn where to save the file.  If you use a Mac, email the
-;;    maintainer for help.)  Leave out the semicolons at the beginning
-;;    of each line.
+;;    learn where to save the file.  If you use a Mac, email 
+;;    implementations-list for help.)  Leave out the semicolons at the 
+;;    beginning of each line.
 ;; 
 ;(setq viper-mode t)                ; enable Viper at load time
 ;(setq viper-ex-style-editing nil)  ; can backspace past start of insert / line
@@ -30,10 +30,12 @@
 ;;    in your load-path and add the Lisp expression (require
 ;;    'rect-mark) to your .emacs file. Block mode will work
 ;;    without rect-mark but you won't see the nice rectangle.
+;; 
 ;; 5. (Optional) If you don't want to use the enhanced paren-matching 
 ;;    algorithm, add 
 ;;         (setq vimpulse-enhanced-paren-matching nil)
 ;;    to your .emacs _before_ (require 'vimpulse)
+;; 
 ;; 6. (Optional) remove (setq vimpulse-experimental nil) from your .emacs 
 ;;    before loading vimpulse if you want to use ,alpha' features.
 ;;    This may annoy your cat, kill your dog, make vimpulse suck
