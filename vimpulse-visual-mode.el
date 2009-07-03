@@ -137,8 +137,6 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "S" 'vimpulse-visual-change-command)
 (define-key vimpulse-visual-mode-map "r" 'vimpulse-visual-replace-region)
 (define-key vimpulse-visual-mode-map "\"" 'vimpulse-visual-set-current-register)
-;;(define-key vimpulse-visual-mode-map "o" 'exchange-point-and-mark) ;TODO: fix this for the new visual selection code
-;;(define-key vimpulse-visual-mode-map "O" 'exchange-point-and-mark) ;      as it doesn't use point and mark
 (define-key vimpulse-visual-mode-map "o" 'vimpulse-invert-origin-and-cursor)
 (define-key vimpulse-visual-mode-map "O" 'vimpulse-invert-origin-and-cursor)
 (define-key vimpulse-visual-mode-map "I" 'vimpulse-visual-insert)
@@ -148,9 +146,6 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "t" 'undefined)
 (define-key vimpulse-visual-mode-map "." 'undefined)
 (define-key vimpulse-visual-mode-map "T" 'undefined)
-;;as suggested in a patch, this is neither needed nor welcome
-;;(define-key vimpulse-visual-mode-map "i" 'vimpulse-visual-mode-to-insert-mode) 
-
 ;; advice viper-intercept-ESC-key to exit visual mode with esc 
 (defadvice viper-intercept-ESC-key (around vimpulse-esc-exit-visual-mode activate)
   (when vimpulse-visual-mode
@@ -188,8 +183,10 @@ mode of operation to line-wise if Visual selection is already started."
 ;; note: the structure returned by vimpulse-get-line-margins _can_ change to a more opaque one in the future. 
 ;; use the provided accessors.
 (defun vimpulse-get-line-margins (&optional p)
-  "Returns a structure containing the beginning-of-line and end-of-line markers of the line where the merker `p' resides.
-If `p' is nil, (point-marker) is used instead. The information can be retrieved using `vimpulse-get-bol' and `vimpulse-get-eol'."
+  "Returns a structure containing the beginning-of-line and end-of-line 
+markers of the line where the merker `p' resides. If `p' is nil, 
+(point-marker) is used instead. The information can be retrieved using 
+`vimpulse-get-bol' and `vimpulse-get-eol'."
   (save-excursion
     (if p (goto-char p)) 
     (list (point-at-bol) (point-at-eol))))
@@ -210,6 +207,19 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
   (overlay-start vimpulse-visual-overlay))
 (defun vimpulse-get-vs-end ()
   (overlay-end vimpulse-visual-overlay))
+
+(defvar vimpulse-vs-start-marker (make-marker))
+(defvar vimpulse-vs-end-marker (make-marker))
+
+;; This is a kludge. It's intended to emulate vim's behavior when
+;; issuing : when visual selecting. To implement the kludge, 
+;; viper-ex is redefined, see viper-function-redefinitions.el
+;; furthermore, this function has to be called from vimpulse-update-overlay.
+(defun vimpulse-set-vs-registers ()
+  (set-marker vimpulse-vs-start-marker (vimpulse-get-vs-start))
+  (set-marker vimpulse-vs-end-marker (1- (vimpulse-get-vs-end)))
+  (set-register (viper-int-to-char (1+ (- ?y ?a))) vimpulse-vs-start-marker)
+  (set-register (viper-int-to-char (1+ (- ?z ?a))) vimpulse-vs-end-marker))
 
 (defun vimpulse-update-visual-overlay-mode-normal ()
   (let ((pt (point)))
@@ -241,13 +251,13 @@ If `p' is nil, (point-marker) is used instead. The information can be retrieved 
      (vimpulse-visual-mode-linewise 
       (vimpulse-update-visual-overlay-mode-linewise))
      (t
-      (vimpulse-update-visual-overlay-mode-normal)))))
+      (vimpulse-update-visual-overlay-mode-normal)))
+    (vimpulse-set-vs-registers)))
       
 (add-hook 'post-command-hook '(lambda ()
 				(if (and vimpulse-visual-mode 
 					 (not vimpulse-visual-mode-block))
 				    (vimpulse-update-overlay))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Destructive commands ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -575,9 +585,6 @@ chosen according to this command."
   (if vimpulse-visual-mode-linewise
       (viper-Append arg)
       (viper-append arg)))
-
-
-
 
 ;; CHECKME: this stuff probably doesn't work well with the new visual
 ;;           mode code

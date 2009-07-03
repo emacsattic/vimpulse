@@ -5,12 +5,18 @@
 ;;;;   to avoid multiple prefixes
 ;;;;
 (defvar vimpulse-fold-level 0)
+(defun vimpulse-hs-Open ()
+  (interactive)
+  (hs-show-block)
+  (hs-hide-level -1))
 (when (boundp 'hs-minor-mode)
   (add-hook 'hs-minor-mode-hook (lambda () 
 				 (call-interactively 'hs-hide-all)
-				 (define-key viper-vi-global-user-map "za"   'hs-toggle-hiding)
+				 (define-key viper-vi-global-user-map "za" '(lambda () (hs-toggle-hiding) (hs-hide-level h)))
+				 (define-key viper-vi-global-user-map "zA"   'hs-toggle-hiding)
 				 (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
 				 (define-key viper-vi-global-user-map "zR"   'hs-show-all)
+				 (define-key viper-vi-global-user-map "zO" 'vimpulse-hs-Open)
 				 (define-key viper-vi-global-user-map "zo"   'hs-show-block)
 				 (define-key viper-vi-global-user-map "zc"   'hs-hide-block))))
 
@@ -31,8 +37,6 @@
 (define-key viper-vi-global-user-map "*"    'vimpulse-search-forward-for-symbol-at-point) 
 (define-key viper-vi-global-user-map "#"    'vimpulse-search-backward-for-symbol-at-point) 
 (define-key viper-vi-global-user-map " "    nil)
-(define-key viper-vi-global-user-map "O"    'vimpulse-open-new-line-above)
-(define-key viper-vi-global-user-map "o"    'vimpulse-open-new-line-below)
 (define-key viper-vi-global-user-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-global-user-map "\C-t" 'pop-tag-mark)
 ;; Map undo and redo from XEmacs' redo.el
@@ -42,7 +46,7 @@
 ; Window manipulation
 (define-key viper-vi-global-user-map "\C-w" (make-sparse-keymap))
 (define-key viper-vi-global-user-map "\C-w\C-w" 'vimpulse-cycle-windows)
-(define-key viper-vi-global-user-map "\C-ww" '-cycle-windows)
+(define-key viper-vi-global-user-map "\C-ww" 'vimpulse-cycle-windows)
 (define-key viper-vi-global-user-map "\C-wo" 'delete-other-windows)
 (define-key viper-vi-global-user-map "\C-wc" 'delete-window)
 (define-key viper-vi-global-user-map "\C-ws" 'split-window-vertically)
@@ -56,9 +60,8 @@
 ; Vim-like completion keys
 (define-key viper-insert-global-user-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-global-user-map "\C-n" 'vimpulse-abbrev-expand-after)
-(define-key viper-insert-global-user-map [backspace] 'backward-delete-char-untabify)
-; automatic enter indents
-(define-key viper-insert-global-user-map (kbd "RET") 'vimpulse-enter-indents)
+;;(define-key viper-insert-global-user-map [backspace] 'backward-delete-char-untabify) ;vim doesn't do this!
+(define-key viper-insert-global-user-map [delete] 'delete-char) ;; delete key
 ; make ^[ work
 (define-key viper-insert-global-user-map (kbd "ESC") 'viper-exit-insert-state)
 
@@ -68,24 +71,6 @@
     (dotimes (i count)
       (indent-according-to-mode)
       (next-line))))
-(defun vimpulse-open-new-line-above (&optional arg)
-  "Opens a line above the cursor, enters insert mode and indents."
-  (interactive)
-  (viper-Open-line arg)
-  (indent-according-to-mode))
-(defun vimpulse-open-new-line-below (&optional arg)
-  "Opens a line below the cursor, enters insert mode and indents."
-  (interactive)
-  (viper-open-line arg)
-  (indent-according-to-mode))
-
-(defun vimpulse-enter-indents (&optional arg)
-  "Indents the current line, inserts a newline and indents the new line."
-  (interactive)
-  (indent-according-to-mode)
-  (newline)
-  (indent-according-to-mode))
-
 ;;; His code (Brad)
 (defun vimpulse-goto-first-line ()
   "Send point to the start of the first line."

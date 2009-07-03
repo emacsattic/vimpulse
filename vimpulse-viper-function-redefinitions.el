@@ -183,4 +183,119 @@ actions instead of one."
 	       (error "%s" (error-message-string err))))))
       ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Redefining viper-ex to get a similar behavior to vim when ;;;
+;;; issuing ":" when visual selecting.                        ;;;
+;;; NOTE: this is a kludge.                                   ;;;
+;;;       Vimpulse eats 'y and 'z marks to emulate vim's      ;;;
+;;;       behavior instead of introducing '< and '>, because  ;;;
+;;;       introducing them would introduce even more kludges  ;;;
+;;;       like this one.                                      ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun viper-ex (arg &optional string)
+  (interactive "P")
+  (or string
+      (setq ex-g-flag nil
+	    ex-g-variant nil))
+  (let* ((map (copy-keymap minibuffer-local-map))
+	 (address nil)
+	 (cont t)
+	 (dot (point))
+	 reg-beg-line reg-end-line
+	 reg-beg reg-end
+	 (initial-str (when (and vimpulse-visual-mode
+				 (not vimpulse-visual-mode-block))
+			"'y,'z"))
+		      
+	 prev-token-type com-str)
+    (viper-add-keymap viper-ex-cmd-map map)
+
+    (if arg
+	(progn
+	  (viper-enlarge-region (mark t) (point))
+	  (if (> (point) (mark t))
+	      (setq reg-beg (mark t)
+		    reg-end (point))
+	    (setq reg-end (mark t)
+		  reg-beg (point)))
+	  (save-excursion
+	    (goto-char reg-beg)
+	    (setq reg-beg-line (1+ (count-lines (point-min) (point)))
+		  reg-end-line
+		  (+ reg-beg-line (count-lines reg-beg reg-end) -1)))))
+    (if reg-beg-line
+	(setq initial-str (format "%d,%d" reg-beg-line reg-end-line)))
+
+    (setq com-str
+	  (if string
+	      (concat initial-str string)
+	    (viper-read-string-with-history
+	     ":"
+	     initial-str
+	     'viper-ex-history
+	     ;; no default when working on region
+	     (if initial-str
+		 nil
+	       (car viper-ex-history))
+	     map
+	     (if initial-str
+		 " [Type command to execute on current region]"))))
+    (save-window-excursion
+      ;; just a precaution
+      (setq viper-ex-work-buf (get-buffer-create viper-ex-work-buf-name))
+      (set-buffer viper-ex-work-buf)
+      (delete-region (point-min) (point-max))
+      (insert com-str "\n")
+      (goto-char (point-min)))
+    (setq ex-token-type nil
+	  ex-addresses nil)
+    (while cont
+      (viper-get-ex-token)
+      (cond ((memq ex-token-type '(command end-mark))
+	     (if address (setq ex-addresses (cons address ex-addresses)))
+	     (viper-deactivate-mark)
+	     (let ((cmd (ex-cmd-assoc ex-token ex-token-alist)))
+	       (if (null cmd)
+		   (error "`%s': %s" ex-token viper-BadExCommand))
+	       (ex-cmd-execute cmd)
+	       (if (or (ex-cmd-is-mashed-with-args cmd)
+		       (ex-cmd-is-one-letter cmd))
+		   (setq cont nil)
+		 (save-excursion
+		   (save-window-excursion
+		     (setq viper-ex-work-buf
+			   (get-buffer-create viper-ex-work-buf-name))
+		     (set-buffer viper-ex-work-buf)
+		     (skip-chars-forward " \t")
+		     (cond ((looking-at "|")
+			    (forward-char 1))
+			   ((looking-at "\n")
+			    (setq cont nil))
+			   (t (error
+			       "`%s': %s" ex-token viper-SpuriousText)))
+		     )))
+	       ))
+	    ((eq ex-token-type 'non-command)
+	     (error "`%s': %s" ex-token viper-BadExCommand))
+	    ((eq ex-token-type 'whole)
+	     (setq address nil)
+	     (setq ex-addresses
+		   (if ex-addresses
+		       (cons (point-max) ex-addresses)
+		     (cons (point-max) (cons (point-min) ex-addresses)))))
+	    ((eq ex-token-type 'comma)
+	     (if (eq prev-token-type 'whole)
+		 (setq address (point-min)))
+	     (setq ex-addresses
+		   (cons (if (null address) (point) address) ex-addresses)))
+	    ((eq ex-token-type 'semi-colon)
+	     (if (eq prev-token-type 'whole)
+		 (setq address (point-min)))
+	     (if address (setq dot address))
+	     (setq ex-addresses
+		   (cons (if (null address) (point) address) ex-addresses)))
+	    (t (let ((ans (viper-get-ex-address-subr address dot)))
+		 (if ans (setq address ans)))))
+      (setq prev-token-type ex-token-type))))
+
 (provide 'vimpulse-viper-function-redefinitions)
