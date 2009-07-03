@@ -1,13 +1,16 @@
 ;;; Change Log:
 ;; 
-;; Forthcoming Version
+;; Version 0.3.0      
+;;  [laynor@gmail.com:]
+;;  - [NEW] register support on text object commands
+;;  - [NEW] issuing : when visual selecting has a behavior closer to vim's
 ;;  [jasonspiro3@gmail.com:]
 ;;  - [FIX]: The Enter key now does what it should do -- insert a
 ;;    newline -- even when longlines-mode is on.
 ;;  - Comment changes.
 ;; 
 ;; Version 0.2.6.9
-;;  [laynor@gmail.com]
+;;  [laynor@gmail.com:]
 ;; - [FIX & NEW] Text Objects support fixed and integrated with viper. Now
 ;;   count works (i.e. you can do 3caw and it works correctly), and it's
 ;;   possible to repeat the commands with ".".
