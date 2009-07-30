@@ -3,6 +3,7 @@
 
 ;; Load advice.el.
 (require 'advice)
+(require 'cl)
 
 ;; Load redo.el if available.  Sadly we can't use APEL's require
 ;; function to get 'noerror functionality because GNU Emacs 21 doesn't
