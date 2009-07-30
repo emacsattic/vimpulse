@@ -21,7 +21,6 @@
 ;;;; Alessandro Piras
 ;;; Begin Text Objects code{{{
 
-(when vimpulse-experimental
   (defun vimpulse-get-syntaxes-bounds (pos syntaxes)
     "Returns the bounds of contiguous character that match `syntaxes', 
 where syntaxes is an emacs' syntax specification."
@@ -358,7 +357,6 @@ The kind of text object is asked interactively to the user using `read-char'."
     (interactive)
     (let ((motion (read-char)))
       (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))))
-  )
 ;; This is for silencing viper when he checks if the insertion must be repeated, never true for 
 ;; this kind of commands.
 (defvar vimpulse-text-objects-command (list 'vimpulse-delete-text-objects-function 

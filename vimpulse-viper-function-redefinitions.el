@@ -9,18 +9,7 @@
 ;; The function works fine at eol and eob but TODO: understand the
 ;; original viper-exec-change command and see if mine does everything
 ;; it does.
-(unless vimpulse-experimental
-  (defun viper-exec-change (m-com com)
-    (save-excursion ;; Added by Alessandro Piras, to fix cW suckage 
-      (viper-exec-delete m-com com)) ;; on the last word of a line
-    (if (eq m-com 'viper-goto-eol)
-					; use viper-append here since vi's C (change to end of line)
-					; command works differently than c
-	(viper-append nil) 
-      (viper-insert nil))))
-
 ;;EXPERIMENTAL: make the changecommand work like vim 
-(when vimpulse-experimental
   (defun viper-exec-change (m-com com)
     (cond
      ((vimpulse-is-whitespace viper-com-point)            ;; check if the command has been issued on a whitespace
@@ -35,7 +24,6 @@
 					; command works differently than c
 	  (viper-append nil) 
 	(viper-insert nil)))))
-  )
 
 (when nil
   (defun viper-adjust-undo ()

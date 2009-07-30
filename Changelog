@@ -1,5 +1,9 @@
 ;;; Change Log:
 ;; 
+;; Version 0.3.1
+;;  [laynor@gmail.com:]
+;;  Added some small fixes, and promoted the experimental stuff to 
+;;  stable, as it seems to work well and not loading it caused problems.
 ;; Version 0.3.0      
 ;;  [laynor@gmail.com:]
 ;;  - [NEW] register support on text object commands
