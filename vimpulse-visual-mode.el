@@ -542,25 +542,17 @@ chosen according to this command."
 ;; when it is found in the kill ring, the block    ;;
 ;; is pasted instead. (Alessandro Piras)           ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(unless vimpulse-experimental
-  (defadvice viper-put-back (around vimpulse-visual-block-put-back (arg) activate)
-    (if (equal (current-kill 0) "\02VimpulseVisualBlockMode\03")
-	(yank-rectangle)
-      ad-do-it)))
-;; EXPERIMENTAL: FIX to make pasting when in visual mode work like vim
-(when vimpulse-experimental
-  (defadvice viper-put-back (around vimpulse-visual-block-put-back (arg) activate)
-    (let ((was-in-visual-mode vimpulse-visual-mode))
-      (when vimpulse-visual-mode
-	(vimpulse-visual-delete-command)
-	(current-kill 1)
-	(backward-char ))
+(defadvice viper-put-back (around vimpulse-visual-block-put-back (arg) activate)
+  (let ((was-in-visual-mode vimpulse-visual-mode))
+    (when vimpulse-visual-mode
+      (vimpulse-visual-delete-command)
+      (current-kill 1)
+      (backward-char ))
     (if (equal (current-kill 0) "\02VimpulseVisualBlockMode\03")
 	(yank-rectangle)
       ad-do-it)
     (when was-in-visual-mode
       (current-kill -1))))
-  )
 
 
 ;; These 2 functions implement insertion at the beginning/ end of a visual 
