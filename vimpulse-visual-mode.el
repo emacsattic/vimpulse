@@ -148,7 +148,8 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "T" 'undefined)
 ;; advice viper-intercept-ESC-key to exit visual mode with esc 
 (defadvice viper-intercept-ESC-key (around vimpulse-esc-exit-visual-mode activate)
-  (when vimpulse-visual-mode
+  (when (and vimpulse-visual-mode
+	     (not (input-pending-p)))
     (vimpulse-visual-mode nil))
   ad-do-it)
 
