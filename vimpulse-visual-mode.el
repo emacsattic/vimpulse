@@ -44,7 +44,7 @@
 ;; This advice is needed to know whether the next object to 
 ;; paste is a rectangle.
 (defadvice kill-new (around notita (string &optional replace yank-handler) activate)
-  (setf vimpulse-last-yank nil)
+  (setq vimpulse-last-yank nil)
   ad-do-it)
 
 (defun vimpulse-visual-mode-ch-charwise ()
@@ -275,7 +275,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
   (cond 
    (vimpulse-visual-mode-block
     (vimpulse-visual-mode nil)
-    (setf vimpulse-last-yank 'rectangle)
+    (setq vimpulse-last-yank 'rectangle)
     ;;(rm-kill-region (region-beginning) (region-end))
     (kill-rectangle (region-beginning) (region-end))
     (goto-char (region-beginning)))
@@ -305,7 +305,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
    (vimpulse-visual-mode-block
     (let ((beg (region-beginning))
 	  (end (region-end)))
-      (setf vimpulse-last-yank 'rectangle)
+      (setq vimpulse-last-yank 'rectangle)
       (vimpulse-create-coords ?c)
       (kill-rectangle beg end)
       (vimpulse-visual-mode nil) 
@@ -403,7 +403,7 @@ with the CHAR character, without replacing the newlines."
   (cond 
    (vimpulse-visual-mode-block
     ;;(kill-new "\02VimpulseVisualBlockMode\03")
-    (setf vimpulse-last-yank 'rectangle)
+    (setq vimpulse-last-yank 'rectangle)
     (vimpulse-visual-mode nil)
     ;;(rm-kill-ring-save (region-beginning) (region-end))
     (kill-rectangle (region-beginning) (region-end))
@@ -552,7 +552,6 @@ chosen according to this command."
 ;; This still sucks and it's a kludge and an       ;;
 ;; anti-pattern.                                   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(kill-new (list 1 2 3) nil (lambda () nil))
 
 (defadvice viper-Put-back (around vimpulse-visual-block-Put-back (arg) activate)
   (let ((was-in-visual-mode vimpulse-visual-mode))
