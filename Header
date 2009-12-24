@@ -11,7 +11,7 @@
 ;; Copyright (C) 2008 Frank Fischer.
 ;; Copyright (C) 2009 Jason Spiro <http://www.jspiro.com>.
 ;; 
-;; Version: 0.3.0
+;; Version: 0.3.0+svn
 ;; Keywords: emulations
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, Emacs pinky finger
 ;; Authors: Alessandro Piras and Brad Beveridge
