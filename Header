@@ -15,14 +15,14 @@
 ;; Keywords: emulations
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, Emacs pinky finger
 ;; Authors: Alessandro Piras and Brad Beveridge
+;; URL: http://emacswiki.org/emacs/vimpulse.el
 ;; Contact: <implementations-list at lists.ourproject.org>.
 ;;          You don't have to subscribe.  We usually reply within a
 ;;          few days and CC our replies back to you.  If we don't,
 ;;          check the archives:
 ;;          http://tinyurl.com/implementations-list
-;; New bug tracker: http://my-trac.assembla.com/vimpulse/report/1
-;; URL: http://emacswiki.org/emacs/vimpulse.el
-;; Source control: http://www.assembla.com/spaces/vimpulse/trac_subversion_tool
+;; SVN and bug tracker: http://www.assembla.com/spaces/vimpulse/
+;; Send patches to: http://my-trac.assembla.com/vimpulse/report/1
 ;; License: GPLv2 or later, as described below under "License"
 ;; Compatibility: Works well with GNU Emacs 21.4 and 22.0.
 ;;                Causes problems with undo, but has no other problems, 
@@ -30,6 +30,8 @@
 ;;                Please send us compatibility info about other versions.
 ;; Maintainer: Alessandro Piras but I am looking for a co-maintainer
 ;;             or for a new maintainer to take over.  Contact the list.
+;; Related: viper.el, viper-in-more-modes.el
+;; 
 ;; Thanks to our
 ;;        Old Maintainer: Jason Spiro
 ;; we'll miss you as a maintainer :)
