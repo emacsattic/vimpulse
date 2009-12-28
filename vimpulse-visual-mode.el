@@ -137,8 +137,6 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "y" 'vimpulse-visual-yank-command)
 (define-key vimpulse-visual-mode-map "u" 'vimpulse-visual-mode)
 (define-key vimpulse-visual-mode-map "c" 'vimpulse-visual-change-command)
-(define-key vimpulse-visual-mode-map "F" 'vimpulse-visual-change-command)
-(define-key vimpulse-visual-mode-map "c" 'vimpulse-visual-change-command)
 (define-key vimpulse-visual-mode-map "C" 'vimpulse-visual-change-command)
 (define-key vimpulse-visual-mode-map "s" 'vimpulse-visual-change-command)
 (define-key vimpulse-visual-mode-map "S" 'vimpulse-visual-change-command)
@@ -150,9 +148,7 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "A" 'vimpulse-visual-append)
 (define-key vimpulse-visual-mode-map "=" 'vimpulse-visual-indent-command)
 ;; Keys that have no effect in visual mode
-(define-key vimpulse-visual-mode-map "t" 'undefined)
 (define-key vimpulse-visual-mode-map "." 'undefined)
-(define-key vimpulse-visual-mode-map "T" 'undefined)
 ;; advice viper-intercept-ESC-key to exit visual mode with esc
 (defadvice viper-intercept-ESC-key (around vimpulse-esc-exit-visual-mode activate)
   (when (and vimpulse-visual-mode

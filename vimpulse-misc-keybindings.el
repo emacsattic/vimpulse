@@ -11,14 +11,14 @@
   (hs-hide-level -1))
 (when (boundp 'hs-minor-mode)
   (add-hook 'hs-minor-mode-hook (lambda ()
-				 (call-interactively 'hs-hide-all)
-				 (define-key viper-vi-global-user-map "za" '(lambda () (hs-toggle-hiding) (hs-hide-level h)))
-				 (define-key viper-vi-global-user-map "zA"   'hs-toggle-hiding)
-				 (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
-				 (define-key viper-vi-global-user-map "zR"   'hs-show-all)
-				 (define-key viper-vi-global-user-map "zO" 'vimpulse-hs-Open)
-				 (define-key viper-vi-global-user-map "zo"   'hs-show-block)
-				 (define-key viper-vi-global-user-map "zc"   'hs-hide-block))))
+                 (call-interactively 'hs-hide-all)
+                 (define-key viper-vi-global-user-map "za" '(lambda () (hs-toggle-hiding) (hs-hide-level h)))
+                 (define-key viper-vi-global-user-map "zA"   'hs-toggle-hiding)
+                 (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
+                 (define-key viper-vi-global-user-map "zR"   'hs-show-all)
+                 (define-key viper-vi-global-user-map "zO" 'vimpulse-hs-Open)
+                 (define-key viper-vi-global-user-map "zo"   'hs-show-block)
+                 (define-key viper-vi-global-user-map "zc"   'hs-hide-block))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;; VISUAL MODE BINDINGS ;;;;;;;;;;;;;;;;
@@ -84,10 +84,13 @@
 
 (defun vimpulse-search-for-symbol-at-point (whether-forward)
   "Search forwards or backwards for the symbol under point."
-  (let ((symbol (concat "\\<" (thing-at-point 'symbol) "\\>")))
-    (setq viper-s-string symbol)
+  (let* ((str (regexp-quote (thing-at-point 'symbol)))
+         (search-str (concat "\\<" str "\\>"
+                             "\\|"
+                             "\\_<" str "\\_>")))
+    (setq viper-s-string search-str)
     (setq viper-s-forward whether-forward)
-    (viper-search symbol whether-forward 1)))
+    (viper-search search-str whether-forward 1)))
 
 (defun vimpulse-search-forward-for-symbol-at-point ()
   (interactive)
