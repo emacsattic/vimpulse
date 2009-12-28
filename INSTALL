@@ -3,14 +3,14 @@
 
 ;; 1. Copy vimpulse.el to somewhere in your load-path, e.g. your
 ;;    site-lisp directory.
-;; 
+;;
 ;; 2. Add the following block of code to your ~/.emacs file.  (If the
 ;;    file does not exist, create it.  If you use Windows, see
 ;;    http://www.gnu.org/software/emacs/windows/faq3.html#TOC33 to
-;;    learn where to save the file.  If you use a Mac, email 
-;;    implementations-list for help.)  Leave out the semicolons at the 
+;;    learn where to save the file.  If you use a Mac, email
+;;    implementations-list for help.)  Leave out the semicolons at the
 ;;    beginning of each line.
-;; 
+;;
 ;(setq viper-mode t)                ; enable Viper at load time
 ;(setq viper-ex-style-editing nil)  ; can backspace past start of insert / line
 ;(require 'viper)                   ; load Viper
@@ -18,29 +18,29 @@
 ;(require 'vimpulse)                ; load Vimpulse
 ;(setq woman-use-own-frame nil)     ; don't create new frame for manpages
 ;(setq woman-use-topic-at-point t)  ; don't prompt upon K key (manpage display)
-;; 
+;;
 ;; 3. Optional:  If you use GNU Emacs and want C-r (the redo key) to work,
 ;;    also install http://wonderworks.com/download/redo.el
 ;;    and add (require 'redo) to your .emacs file.  (XEmacs and
 ;;    Aquamacs already ship redo.el.)
-;; 
+;;
 ;; 4. Optional:  If you want a nice-looking block visual mode (i.e.
 ;;    rectangle selection), download and install
-;;    http://emacswiki.org/elisp/download/rect-mark.el 
+;;    http://emacswiki.org/elisp/download/rect-mark.el
 ;;    and add (require 'rect-mark) to your .emacs file.
 ;;    Block mode will work without rect-mark but you won't see the
 ;;    nice rectangle.
-;; 
-;; 5. Optional:  If you don't want to use the enhanced paren-matching 
-;;    algorithm, add 
+;;
+;; 5. Optional:  If you don't want to use the enhanced paren-matching
+;;    algorithm, add
 ;;         (setq vimpulse-enhanced-paren-matching nil)
 ;;    to your .emacs _before_ (require 'vimpulse).
-;; 
+;;
 ;; 6. Optional:  If you want to use experimental features, remove
 ;;    (setq vimpulse-experimental nil) from your .emacs before
 ;;    loading vimpulse.
-;; 
-;; We would appreciate it if you emailed us saying whether you liked 
+;;
+;; We would appreciate it if you emailed us saying whether you liked
 ;; or disliked vimpulse and why, and which new features you would like.
 ;; Also, if you stop using Emacs or Vimpulse, please tell  us why so
 ;; that we can try to improve them.

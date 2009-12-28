@@ -10,7 +10,7 @@
 ;; Copyright (C) 2007, 2009 Alessandro Piras.
 ;; Copyright (C) 2008 Frank Fischer.
 ;; Copyright (C) 2009 Jason Spiro <http://www.jspiro.com>.
-;; 
+;;
 ;; Version: 0.3.0+svn
 ;; Keywords: emulations
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, Emacs pinky finger
@@ -25,33 +25,33 @@
 ;; Send patches to: http://my-trac.assembla.com/vimpulse/report/1
 ;; License: GPLv2 or later, as described below under "License"
 ;; Compatibility: Works well with GNU Emacs 21.4 and 22.0.
-;;                Causes problems with undo, but has no other problems, 
+;;                Causes problems with undo, but has no other problems,
 ;;                on XEmacs 21.4.19.
 ;;                Please send us compatibility info about other versions.
 ;; Maintainer: Alessandro Piras but I am looking for a co-maintainer
 ;;             or for a new maintainer to take over.  Contact the list.
 ;; Related: viper.el, viper-in-more-modes.el
-;; 
+;;
 ;; Thanks to our
 ;;        Old Maintainer: Jason Spiro
 ;; we'll miss you as a maintainer :)
-;; 
+;;
 ;; This file is not part of GNU Emacs.
 
 ;;; Commentary:
 
 ;; Vimpulse emulates Vim's most useful features, including Visual
-;; mode and (still partially) text objects.  
+;; mode and (still partially) text objects.
 ;; Vimpulse is a set of modifications to viper, the minor mode
 ;; that emulates Vi.  Vimpulse is not a minor mode; as soon as it is
 ;; loaded, viper will start working in a more Vim-like way.
-;; 
+;;
 ;; Vimpulse is beta software.  It seems to work quite well already
 ;; though.  Patches and feature requests welcome.
-;; 
-;; NEWS 19/06/2009: The visual mode is greatly improved, we also 
+;;
+;; NEWS 19/06/2009: The visual mode is greatly improved, we also
 ;;                  feature an improved paren matching. It can
 ;;                  become slow (i didn't check, but it's likely)
-;;                  if you work with very big files, so deactivate it 
-;;                  if you notice sluggishness (see point 5 of the 
-;;                  installation instructions). 
+;;                  if you work with very big files, so deactivate it
+;;                  if you notice sluggishness (see point 5 of the
+;;                  installation instructions).

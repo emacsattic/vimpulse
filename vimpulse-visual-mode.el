@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; This file contains All the code relative to visual mode.  ;;;;;
-;;;; Visual mode is implemented as a minor mode.               ;;;;; 
+;;;; Visual mode is implemented as a minor mode.               ;;;;;
 ;;;; Currently, visual selection highlighting is done through  ;;;;;
 ;;;; the use of overlays for linewise and characterwise modes, ;;;;;
 ;;;; while for blockwise mode, rect-mark.el is needed.         ;;;;;
@@ -23,7 +23,7 @@
   :lighter " visual"
   :initial-value nil
   :global nil
-  :group 'vimpulse-visual)   
+  :group 'vimpulse-visual)
 (defvar vimpulse-visual-mode-map (make-sparse-keymap)
   "Viper Visual mode keymap. This keymap is active when viper is in VISUAL mode")
 (defvar vimpulse-visual-mode-linewise nil
@@ -42,7 +42,7 @@
 ;;; mode of operation change (character-wise, block-wise, ;;;
 ;;; line-wise)                                            ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; This advice is needed to know whether the next object to 
+;; This advice is needed to know whether the next object to
 ;; paste is a rectangle.
 (defadvice kill-new (around notita (string &optional replace yank-handler) activate)
   (setq vimpulse-last-yank nil)
@@ -73,9 +73,9 @@ mode of operation to line-wise if Visual selection is already started."
 (defun vimpulse-set-mark (pos)
   "Sets the region respecting the Emacsen-version, activates highlighting"
   (set-mark pos)
-  (when (fboundp 'activate-region) 
+  (when (fboundp 'activate-region)
     (activate-region))
-  ;; Force transient-mark-mode to have visual selection 
+  ;; Force transient-mark-mode to have visual selection
   (when (fboundp 'transient-mark-mode)
     (transient-mark-mode t)))
 
@@ -122,7 +122,7 @@ mode of operation to line-wise if Visual selection is already started."
   (vimpulse-visual-mode t)
   (setq vimpulse-visual-mode-block t)
   ;; perhaps a bad hack -> rm-set-mark deactivates the normal mark
-  (when (fboundp 'rm-set-mark) 
+  (when (fboundp 'rm-set-mark)
     (rm-set-mark nil)))
 ;;;;;;;;;;;;;;;;;;;;
 ;;; Key bindings ;;;
@@ -153,7 +153,7 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "t" 'undefined)
 (define-key vimpulse-visual-mode-map "." 'undefined)
 (define-key vimpulse-visual-mode-map "T" 'undefined)
-;; advice viper-intercept-ESC-key to exit visual mode with esc 
+;; advice viper-intercept-ESC-key to exit visual mode with esc
 (defadvice viper-intercept-ESC-key (around vimpulse-esc-exit-visual-mode activate)
   (when (and vimpulse-visual-mode
 	     (not (input-pending-p)))
@@ -172,7 +172,7 @@ mode of operation to line-wise if Visual selection is already started."
 (cond
  ((>= emacs-major-version 22)
   (vimpulse-add-visual-maps-macro viper--key-maps))
- (t 
+ (t
   (vimpulse-add-visual-maps-macro minor-mode-map-alist)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -188,15 +188,15 @@ mode of operation to line-wise if Visual selection is already started."
 (make-variable-buffer-local 'vimpulse-visual-overlay-origin)
 
 ;; functions used for linewise mode to access line margins
-;; note: the structure returned by vimpulse-get-line-margins _can_ change to a more opaque one in the future. 
+;; note: the structure returned by vimpulse-get-line-margins _can_ change to a more opaque one in the future.
 ;; use the provided accessors.
 (defun vimpulse-get-line-margins (&optional p)
-  "Returns a structure containing the beginning-of-line and end-of-line 
-markers of the line where the merker `p' resides. If `p' is nil, 
-(point-marker) is used instead. The information can be retrieved using 
+  "Returns a structure containing the beginning-of-line and end-of-line
+markers of the line where the merker `p' resides. If `p' is nil,
+(point-marker) is used instead. The information can be retrieved using
 `vimpulse-get-bol' and `vimpulse-get-eol'."
   (save-excursion
-    (if p (goto-char p)) 
+    (if p (goto-char p))
     (list (point-at-bol) (point-at-eol))))
 (defun vimpulse-get-bol (line-margins)
   "Retrieves the beginning-of-line marker from the structure returned by vimpulse-get-line-margins."
@@ -208,7 +208,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
 (defun vimpulse-set-visual-overlay ()
   (setq vimpulse-visual-overlay-origin (point-marker))
   (vimpulse-update-overlay))
-      
+
 (defun vimpulse-get-vs-bounds ()
   (list (overlay-start vimpulse-visual-overlay) (overlay-end vimpulse-visual-overlay)))
 (defun vimpulse-get-vs-start ()
@@ -220,7 +220,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
 (defvar vimpulse-vs-end-marker (make-marker))
 
 ;; This is a kludge. It's intended to emulate vim's behavior when
-;; issuing : when visual selecting. To implement the kludge, 
+;; issuing : when visual selecting. To implement the kludge,
 ;; viper-ex is redefined, see viper-function-redefinitions.el
 ;; furthermore, this function has to be called from vimpulse-update-overlay.
 (defun vimpulse-set-vs-registers ()
@@ -231,39 +231,39 @@ markers of the line where the merker `p' resides. If `p' is nil,
 
 (defun vimpulse-update-visual-overlay-mode-normal ()
   (let ((pt (point)))
-    (if (< pt vimpulse-visual-overlay-origin) 
-        (move-overlay vimpulse-visual-overlay 
-		      pt 
+    (if (< pt vimpulse-visual-overlay-origin)
+        (move-overlay vimpulse-visual-overlay
+		      pt
 		      (+ 1 vimpulse-visual-overlay-origin))
-      (move-overlay vimpulse-visual-overlay 
-		    vimpulse-visual-overlay-origin 
+      (move-overlay vimpulse-visual-overlay
+		    vimpulse-visual-overlay-origin
 		    (+ 1 pt)))))
 
 (defun vimpulse-update-visual-overlay-mode-linewise ()
   (let ((pt (point-marker)))
     (let ((lm-point (vimpulse-get-line-margins pt))
           (lm-origin (vimpulse-get-line-margins vimpulse-visual-overlay-origin)))
-      (cond 
+      (cond
        ((< pt vimpulse-visual-overlay-origin)
-	(move-overlay vimpulse-visual-overlay 
-		      (vimpulse-get-bol lm-point) 
+	(move-overlay vimpulse-visual-overlay
+		      (vimpulse-get-bol lm-point)
 		      (1+ (vimpulse-get-eol lm-origin))))
        (t
-	(move-overlay vimpulse-visual-overlay 
-		      (vimpulse-get-bol lm-origin) 
+	(move-overlay vimpulse-visual-overlay
+		      (vimpulse-get-bol lm-origin)
 		      (1+ (vimpulse-get-eol lm-point))))))))
 
 (defun vimpulse-update-overlay ()
   (save-excursion
-    (cond 
-     (vimpulse-visual-mode-linewise 
+    (cond
+     (vimpulse-visual-mode-linewise
       (vimpulse-update-visual-overlay-mode-linewise))
      (t
       (vimpulse-update-visual-overlay-mode-normal)))
     (vimpulse-set-vs-registers)))
-      
+
 (add-hook 'post-command-hook '(lambda ()
-				(if (and vimpulse-visual-mode 
+				(if (and vimpulse-visual-mode
 					 (not vimpulse-visual-mode-block))
 				    (vimpulse-update-overlay))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -273,7 +273,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
 (defun vimpulse-visual-delete-command ()
   "Deletes the visual selection"
   (interactive)
-  (cond 
+  (cond
    (vimpulse-visual-mode-block
     (vimpulse-visual-mode nil)
     (setq vimpulse-last-yank 'rectangle)
@@ -285,7 +285,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
     (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
 	  (char (if vimpulse-visual-mode-linewise ?l ?r))
 	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
-      (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function 
+      (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function
 					   (list count char motion) ?d nil nil nil))
       (vimpulse-delete-text-objects-function (cons (list count char motion) ?d))))))
 
@@ -301,22 +301,22 @@ markers of the line where the merker `p' resides. If `p' is nil,
 (defun vimpulse-visual-change-command ()
   "Called when in visual (block) mode to delete the selected region and go to insert mode"
   (interactive)
-  
-  (cond 
+
+  (cond
    (vimpulse-visual-mode-block
     (let ((beg (region-beginning))
 	  (end (region-end)))
       (setq vimpulse-last-yank 'rectangle)
       (vimpulse-create-coords ?c)
       (kill-rectangle beg end)
-      (vimpulse-visual-mode nil) 
+      (vimpulse-visual-mode nil)
       (viper-insert nil)))
    (t
     (goto-char (vimpulse-get-vs-start))
     (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
 	  (char (if vimpulse-visual-mode-linewise ?l ?r))
 	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
-      (viper-set-destructive-command (list 'vimpulse-change-text-objects-function 
+      (viper-set-destructive-command (list 'vimpulse-change-text-objects-function
 					   (list count char motion) ?d viper-use-register nil nil))
       (vimpulse-delete-text-objects-function (cons (list count char motion) ?c))
       (vimpulse-visual-mode nil)
@@ -325,7 +325,7 @@ markers of the line where the merker `p' resides. If `p' is nil,
       (viper-change-state-to-insert)))))
 
 (defun vimpulse-replace-chars-in-selection-function (arg)
-  "Fills the text in the region identified by COUNT, VISUAL-MODE and MOTION 
+  "Fills the text in the region identified by COUNT, VISUAL-MODE and MOTION
 with the CHAR character, without replacing the newlines."
   (destructuring-bind (count visual-mode motion char) (car arg)
     (let ((bounds (vimpulse-unify-multiple-bounds (point) visual-mode count motion)))
@@ -336,12 +336,12 @@ with the CHAR character, without replacing the newlines."
 	    (unless (memq (char-after (point)) '(?\r ?\n))
 	      (delete-char 1)
 	      (insert char))))))))
-	      
+
 (defun vimpulse-visual-replace-region (&optional arg)
   (interactive)
   (cond
    ((not vimpulse-visual-mode-block)
-    
+
     (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
 	  (visual-selection-mode (if vimpulse-visual-mode-linewise ?l ?r))
 	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds)))
@@ -349,10 +349,10 @@ with the CHAR character, without replacing the newlines."
 	  (start (vimpulse-get-vs-start)))
       (viper-set-destructive-command (list 'vimpulse-replace-chars-in-selection-function
 					   (list count visual-selection-mode motion char) ?r nil nil nil))
-      (goto-char start) 
+      (goto-char start)
       (vimpulse-visual-mode nil)
       (vimpulse-replace-chars-in-selection-function (cons (list count visual-selection-mode motion char) ?r))))))
-      
+
 (defun vimpulse-visual-replace-region (&optional arg)
   (interactive "P")
   (goto-char (vimpulse-get-vs-start))
@@ -360,9 +360,9 @@ with the CHAR character, without replacing the newlines."
   (vimpulse-visual-mode 'toggle)
   (cond
    ((= (mark) (point)) nil)
-   (t 
+   (t
     (if (< (mark) (point)) (exchange-point-and-mark))
-    (viper-replace-char arg)		
+    (viper-replace-char arg)
     (let ((c (char-after (point))))
       (dotimes (i (- (mark) (point)))
 	(cond
@@ -377,9 +377,9 @@ with the CHAR character, without replacing the newlines."
   (vimpulse-visual-mode 'toggle)
   (cond
    ((= (mark) (point)) nil)
-   (t 
+   (t
     (if (< (mark) (point)) (exchange-point-and-mark))
-    (viper-replace-char arg)		
+    (viper-replace-char arg)
     (let ((c (char-after (point))))
       (dotimes (i (- (mark) (point)))
 	(cond
@@ -400,7 +400,7 @@ with the CHAR character, without replacing the newlines."
 (defun vimpulse-visual-yank-command ()
   "Saves the visual selection in the kill-ring"
   (interactive)
-  (cond 
+  (cond
    (vimpulse-visual-mode-block
     ;;(kill-new "\02VimpulseVisualBlockMode\03")
     (setq vimpulse-last-yank 'rectangle)
@@ -427,7 +427,7 @@ with the CHAR character, without replacing the newlines."
     (let ((origin vimpulse-visual-overlay-origin))
       (setq vimpulse-visual-overlay-origin (point))
       (goto-char origin)))))
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Visual Block Mode Support ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -446,21 +446,21 @@ with the CHAR character, without replacing the newlines."
   "Updates the list of block insert coordinates with the current rectangle.
 `i-com' should be ?c, ?i, ?a, ?I or ?A, the column for the insertion will be
 chosen according to this command."
-  ;; New visual mode handling: instead of using (region-beginning) and 
+  ;; New visual mode handling: instead of using (region-beginning) and
   ;; (region-end) we use rb and re, bound to the right bounds:
   ;; overlay bounds in normal and linewise mode, region bounds in block mode.
-  (destructuring-bind (rb re) (if vimpulse-visual-mode-block 
+  (destructuring-bind (rb re) (if vimpulse-visual-mode-block
 				  (list (region-beginning) (region-end))
 				(list (vimpulse-get-vs-start)
 				      (vimpulse-get-vs-end)))
     (make-local-variable 'vimpulse-visual-insert-coords)
     (setq vimpulse-visual-insert-coords nil)
-  
+
     (let ((nlines (count-lines re rb))
 	  (col 0))		  ; For ?I and ?A trivial: column is 0
       (when (or (eq i-com ?a) (eq i-com ?i) (eq i-com ?c))
 	;; for ?i and ?a chose the left (the right) column of the rectangle
-	(let ((start-col (save-excursion 
+	(let ((start-col (save-excursion
 			   (goto-char rb)
 			   (current-column)))
 	      (end-col (save-excursion
@@ -470,29 +470,29 @@ chosen according to this command."
 	  (setq col (max 0 (if (or (eq i-com ?i) (eq i-com ?c))
 			       (min start-col end-col)
 			     (1- (max start-col end-col)))))))
-    
+
       ;; Ok we have all information, so go to the insert-point ...
-      (goto-char rb) 
+      (goto-char rb)
       (move-to-column col)
       ;; ... and save the information
-      (setq vimpulse-visual-insert-coords 
+      (setq vimpulse-visual-insert-coords
 	    (list i-com (point) col nlines)))))
 
 
 ;; FIXME This function or the follwing one is bug ridden
 (defun connect-undos (n undo-list)
   "Connects the last n undo steps in undo-list to one step"
-  (when (and (listp undo-list) 
-	     (listp (cdr undo-list)) 
+  (when (and (listp undo-list)
+	     (listp (cdr undo-list))
 	     (> n 1))
     (if (null (cadr undo-list))
-	(progn 
+	(progn
 	  (setcdr undo-list (cddr undo-list))
 	  (connect-undos (1- n) undo-list))
         (connect-undos n (cdr undo-list)))))
 
 ;; __Redefinitions of viper functions to handle visual block-mode__
-;; This function is not in viper-functions-redefinitions.el 
+;; This function is not in viper-functions-redefinitions.el
 ;; because its code is closely related to visual mode.
 (defun viper-exit-insert-state ()
   (interactive)
@@ -508,12 +508,12 @@ chosen according to this command."
 	(dotimes (i (1- nlines))
 	  (forward-line 1)
 	  (let ((cur-col (move-to-column col)))
-	    ;; If we are in block mode this line but do not hit the correct 
+	    ;; If we are in block mode this line but do not hit the correct
             ;; column, we check if we should convert tabs and/or append spaces
 	    (if (and vimpulse-visual-mode-block
-		     (or (/= col cur-col) ;; wrong column or 
-			 (eolp)))         ;; end of line 
-		(cond ((< col cur-col)	  ;; we are inside a tab 
+		     (or (/= col cur-col) ;; wrong column or
+			 (eolp)))         ;; end of line
+		(cond ((< col cur-col)	  ;; we are inside a tab
 		       (move-to-column (1+ col) 'fill) ;; -> convert to spaces
 		       (move-to-column col 'fill) ;; this is needed for ?a
 		       (viper-repeat nil))
@@ -521,10 +521,10 @@ chosen according to this command."
 			    (eq i-com ?a))   ;; and i-com is ?a
 		       (move-to-column (1+ col) t) ;; -> append spaces
 		       (viper-repeat nil)))
-		    
+
 	      (viper-repeat nil)))))
       (setq vimpulse-visual-insert-coords nil)
-    
+
       ;; update the last two undos
       (if (> nlines 1)
 	  (if (eq i-com ?c)
@@ -533,10 +533,10 @@ chosen according to this command."
 	(if (eq i-com ?c)
 	    (connect-undos 2 buffer-undo-list)	 ; delete, insert
 	  (connect-undos 1 buffer-undo-list))))) ; insert
-  (if (and (/= (char-before (point)) ?\r) 
+  (if (and (/= (char-before (point)) ?\r)
 	   (/= (char-before (point)) ?\n))
-      (backward-char 1)))               ; <---------- a[ESC] leaves the cursor 
-					; where it was before in VIM, without 
+      (backward-char 1)))               ; <---------- a[ESC] leaves the cursor
+					; where it was before in VIM, without
 					; backward-char it advances 1 character.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -579,12 +579,12 @@ chosen according to this command."
       (current-kill -1))))
 
 
-;; These 2 functions implement insertion at the beginning/ end of a visual 
+;; These 2 functions implement insertion at the beginning/ end of a visual
 ;; block or linewise selection
 (defun vimpulse-visual-insert (&optional arg)
   "Called when in visual mode to go insert mode at the beginning of the selection."
   (interactive "P")
-  
+
   (when vimpulse-visual-mode-linewise (vimpulse-create-coords ?I))
   (when vimpulse-visual-mode-block (vimpulse-create-coords ?i))
   (vimpulse-visual-mode nil)
@@ -595,7 +595,7 @@ chosen according to this command."
 (defun vimpulse-visual-append (&optional arg)
   "Called when in visual mode to go to insert mode at the end of the selection"
   (interactive "P")
-  
+
   (when vimpulse-visual-mode-linewise (vimpulse-create-coords ?A))
   (when vimpulse-visual-mode-block (vimpulse-create-coords ?a))
   (vimpulse-visual-mode nil)
@@ -613,7 +613,7 @@ chosen according to this command."
 (add-hook 'deactivate-mark-hook 'vimpulse-detect-mark-deactivate)
 
 ;;;
-;;; 
+;;;
 ;;;
 ;; CHECKME: is this still needed?
 (defadvice viper-move-marker-locally (around vimpulse-move-marker-locally-wrap activate)

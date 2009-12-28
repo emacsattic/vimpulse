@@ -8,12 +8,12 @@
       ; Emacs and Vim use inverted naming conventions for splits.
       ("vsplit" (split-window-horizontally))
 ))
- 
+
 
 (defun vimpulse-kill-current-buffer ()
   "Kill the current buffer."
   (interactive)
-  (kill-buffer nil)) 
+  (kill-buffer nil))
 
 
 ;;; Manipulation of Vipers functions by using the advice feature
@@ -21,7 +21,7 @@
 ;;; Additional Ex mode features.
 ;;; ex-token-alist is defined as a constant, but it appears I can safely push values to it!
 (defadvice viper-ex (around vimpulse-extended-ex-commands (arg &optional string) activate)
-  ad-do-it) 
+  ad-do-it)
 
 (setq ex-token-alist (append vimpulse-extra-ex-commands ex-token-alist))
 

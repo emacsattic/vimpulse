@@ -1,7 +1,7 @@
 ;;;;
-;;;; This file contains helper functions that 
+;;;; This file contains helper functions that
 ;;;; a) Can be useful for the end user
-;;;; b) Can be useful for the contributor, thus avoiding 
+;;;; b) Can be useful for the contributor, thus avoiding
 ;;;;    duplication of functionalities.
 ;;;;
 
@@ -26,12 +26,12 @@
 ;; create a movement map and set the keys
 ;(setq vimpulse-movement-map (make-sparse-keymap))
 ;(vimpulse-set-movement-keys-for-map vimpulse-movement-map)
-;(viper-modify-major-mode 'dired-mode 'emacs-state vimpulse-movement-map) 
+;(viper-modify-major-mode 'dired-mode 'emacs-state vimpulse-movement-map)
 ;(viper-modify-major-mode 'help-mode 'emacs-state vimpulse-movement-map)
 
 
 (defmacro vimpulse-region-command (function)
-  "Commodity macro to convert emacs region commands to 
+  "Commodity macro to convert emacs region commands to
 vimpulse visual selection commands. See the comments on the source
 for an example on how to use it."
   `(lambda ()
@@ -44,12 +44,12 @@ for an example on how to use it."
 ;;; the region. For example, the comment-region and uncomment-region commands:
 ;;;        (comment-region beg end &optional arg)
 ;;;       (uncomment-region beg end &optional arg)
-;;; You can define new bindings for comment region and uncomment region as 
-;;; easily as 
+;;; You can define new bindings for comment region and uncomment region as
+;;; easily as
 ;;
-;; (define-key viper-vi-global-user-map "\\\]" 
+;; (define-key viper-vi-global-user-map "\\\]"
 ;;   (vimpulse-region-command comment-region))
-;; (define-key viper-vi-global-user-map "\\," 
+;; (define-key viper-vi-global-user-map "\\,"
 ;;   (vimpulse-region-command uncomment-region))
 
 

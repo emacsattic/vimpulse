@@ -1,7 +1,7 @@
 ;;;;
-;;;; Almost all of this code is taken from extended-viper 
+;;;; Almost all of this code is taken from extended-viper
 ;;;; coded by Brad Beveridge (bradbev@gmail.com)
-;;;; - I changed the prefix of the custom functions to vimpulse 
+;;;; - I changed the prefix of the custom functions to vimpulse
 ;;;;   to avoid multiple prefixes
 ;;;;
 (defvar vimpulse-fold-level 0)
@@ -10,7 +10,7 @@
   (hs-show-block)
   (hs-hide-level -1))
 (when (boundp 'hs-minor-mode)
-  (add-hook 'hs-minor-mode-hook (lambda () 
+  (add-hook 'hs-minor-mode-hook (lambda ()
 				 (call-interactively 'hs-hide-all)
 				 (define-key viper-vi-global-user-map "za" '(lambda () (hs-toggle-hiding) (hs-hide-level h)))
 				 (define-key viper-vi-global-user-map "zA"   'hs-toggle-hiding)
@@ -28,14 +28,14 @@
 
 (define-key viper-vi-global-user-map "K"    'woman)
 (define-key viper-vi-global-user-map "gf"   'find-file-at-point)
-(define-key viper-vi-global-user-map "gg"   'vimpulse-goto-first-line) 
+(define-key viper-vi-global-user-map "gg"   'vimpulse-goto-first-line)
 (define-key viper-vi-global-user-map "zb"   'viper-line-to-bottom)
 (define-key viper-vi-global-user-map "zh"   'scroll-right)
 (define-key viper-vi-global-user-map "zl"   'scroll-left)
 (define-key viper-vi-global-user-map "zt"   'viper-line-to-top)
 (define-key viper-vi-global-user-map "zz"   'viper-line-to-middle)
-(define-key viper-vi-global-user-map "*"    'vimpulse-search-forward-for-symbol-at-point) 
-(define-key viper-vi-global-user-map "#"    'vimpulse-search-backward-for-symbol-at-point) 
+(define-key viper-vi-global-user-map "*"    'vimpulse-search-forward-for-symbol-at-point)
+(define-key viper-vi-global-user-map "#"    'vimpulse-search-backward-for-symbol-at-point)
 (define-key viper-vi-global-user-map " "    nil)
 (define-key viper-vi-global-user-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-global-user-map "\C-t" 'pop-tag-mark)
@@ -75,11 +75,11 @@
 (defun vimpulse-goto-first-line ()
   "Send point to the start of the first line."
   (interactive)
-  (viper-goto-line 1)) 
+  (viper-goto-line 1))
 
 (defun vimpulse-cycle-windows ()
   "Cycle point to another window."
-  (interactive) 
+  (interactive)
   (select-window (next-window)))
 
 (defun vimpulse-search-for-symbol-at-point (whether-forward)
