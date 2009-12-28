@@ -31,6 +31,7 @@
 (defvar vimpulse-visual-mode-block nil
   "If non nil visual mode will operate blockwise")
 (defvar vimpulse-visual-current-register nil)
+(defvar vimpulse-last-yank nil)
 (defcustom vimpulse-visual-load-hook nil
   "Hooks to run after loading vimpulse-visual-mode."
   :type 'hook
@@ -396,7 +397,6 @@ with the CHAR character, without replacing the newlines."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Non destructive commands ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defvar vimpulse-last-yank nil)
 (defun vimpulse-visual-yank-command ()
   "Saves the visual selection in the kill-ring"
   (interactive)
