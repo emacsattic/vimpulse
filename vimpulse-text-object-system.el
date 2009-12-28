@@ -129,10 +129,10 @@ lower bound of the position, lime is the upper bound to the position."
     (let ((result))
       (save-excursion
 	(goto-char pos)
-	(re-search-forward "[\n\r[:space:]]")
+	(re-search-forward "[[:space:]]")
 	(push (- (point) 2) result)
 	(backward-char)
-	(re-search-backward "[\n\r[:space:]]")
+	(re-search-backward "[[:space:]]")
 	(cons (1+ (point)) result))))
 
   (defun vimpulse-get-sentence-bounds (pos)
@@ -149,7 +149,7 @@ lower bound of the position, lime is the upper bound to the position."
 	  (goto-char (point-min)))
 	 (t
 	  (forward-char 1)))
-	(posix-search-forward "\\(\n\\|\r\\|[[:space:]]\\)*" (point-max) t)
+	(posix-search-forward "\\(\n\\|\r\\|[[:blank:]]\\)*" (point-max) t)
 	(push (point) result))))
 
   (defun vimpulse-get-paragraph-bounds (pos)
@@ -225,12 +225,12 @@ followed is the same:
       (let ((start (point))
 	    (end nil))
 
-	(skip-chars-forward "[:space:]\n\r")
+	(skip-chars-forward "[:blank:]\n\r")
 	(let ((bounds (apply func  (list (point)))))
 	  (cond
 	   (bounds
 	    (goto-char (1+ (cadr bounds)))
-	    (skip-chars-forward (concat "[:space:]" (if trailing-newlines "\n\r" "")))
+	    (skip-chars-forward (concat "[:blank:]" (if trailing-newlines "\n\r" "")))
 	    (list (min start (car bounds)) (1- (point))))
 	   (t nil))))))
 
