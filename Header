@@ -14,7 +14,6 @@
 ;; Version: 0.3.0+svn
 ;; Keywords: emulations
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, Emacs pinky finger
-;; Authors: Alessandro Piras and Brad Beveridge
 ;; URL: http://emacswiki.org/emacs/vimpulse.el
 ;; Contact: <implementations-list at lists.ourproject.org>.
 ;;          You don't have to subscribe.  We usually reply within a
@@ -30,6 +29,8 @@
 ;;                Please send us compatibility info about other versions.
 ;; Maintainer: Alessandro Piras but I am looking for a co-maintainer
 ;;             or for a new maintainer to take over.  Contact the list.
+;; Current developers: Alessandro Piras (maintainer),
+;;                     Vegard Øye <vegard_oye at hotmail dot com> 
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
 ;; Thanks to our
