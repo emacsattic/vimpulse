@@ -160,10 +160,10 @@ mode of operation to line-wise if Visual selection is already started."
 ;; and stop it bugging about free variable
 ;; viper--key-maps in emacs 21 :)
 ;; update: and to stop emacs 23 bugging about the old macro
-(defmacro vimpulse-add-visual-maps-macro(keymap)
+(defmacro vimpulse-add-visual-maps-macro (keymap)
   `(defadvice viper-normalize-minor-mode-map-alist (after vimpulse-add-visual-maps activate)
      "This function modifies minor-mode-map-alists to include the visual mode keymap"
-     (push (cons 'vimpulse-visual-mode vimpulse-visual-mode-map) ,keymap)))
+     (add-to-list ',keymap (cons 'vimpulse-visual-mode vimpulse-visual-mode-map))))
 
 (cond
  ((>= emacs-major-version 22)

@@ -28,7 +28,7 @@ where syntaxes is an emacs' syntax specification."
       (save-excursion
 	(goto-char pos)
 	(skip-syntax-forward syntaxes)
-	(push (1- (point)) result)
+	(add-to-list 'result (1- (point)))
 	(skip-syntax-backward syntaxes)
 	(cons (point) result))))
 
@@ -130,7 +130,7 @@ lower bound of the position, lime is the upper bound to the position."
       (save-excursion
 	(goto-char pos)
 	(re-search-forward "[[:space:]]")
-	(push (- (point) 2) result)
+	(add-to-list 'result (- (point) 2))
 	(backward-char)
 	(re-search-backward "[[:space:]]")
 	(cons (1+ (point)) result))))
@@ -142,7 +142,7 @@ lower bound of the position, lime is the upper bound to the position."
 	(goto-char pos)
 	(when (not (posix-search-forward "\\(^\r\\|^\n\\|\\.[\n\r]?\\)" (point-max) t))
 	  (goto-char (point-max)))
-	(push (1- (point)) result)
+	(add-to-list 'result (1- (point)))
 	(backward-char (length (match-string 0)))
 	(cond
 	 ((not (posix-search-backward "\\(^\r\\|^\n\\|\\.[\r\n]?\\)" (point-min) t))
@@ -150,7 +150,7 @@ lower bound of the position, lime is the upper bound to the position."
 	 (t
 	  (forward-char 1)))
 	(posix-search-forward "\\(\n\\|\r\\|[[:blank:]]\\)*" (point-max) t)
-	(push (point) result))))
+	(add-to-list 'result (point)))))
 
   (defun vimpulse-get-paragraph-bounds (pos)
     "Returns the boundaries of a paragraph."
@@ -159,14 +159,14 @@ lower bound of the position, lime is the upper bound to the position."
 	(goto-char pos)
 	(when (not (re-search-forward "\\(^\r\\|^\n\\)" (point-max) t))
 	  (goto-char (point-max)))
-	(push (- (point) 2) result)
+	(add-to-list 'result (- (point) 2))
 	(backward-char (length (match-string 0)))
 	(cond
 	 ((not (re-search-backward "\\(^\r\\|^\n\\)" (point-min) t))
 	  (goto-char (point-min)))
 	 (t
 	  (forward-char 1)))
-	(push (point) result))))
+	(add-to-list 'result (point)))))
 
   (defun vimpulse-get-paired-bounds (pos char)
     "Returns the boundaries of a `char'-quoted expression."
@@ -175,9 +175,9 @@ lower bound of the position, lime is the upper bound to the position."
       (if (= (char-before (point)) ?\\) (backward-char))
       (let ((result))
 	(when (re-search-forward (concat "[^\\\\]" (string char)) (point-max) t)
-	  (push (1- (point)) result)
+	  (add-to-list 'result (1- (point)))
 	  (condition-case ()
-	      (push (scan-sexps (point) -1) result)
+	      (add-to-list 'result (scan-sexps (point) -1))
 	    (error (setq result nil))))
 	result)))
 
