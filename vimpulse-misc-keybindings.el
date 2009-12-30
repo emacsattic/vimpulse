@@ -50,7 +50,17 @@
 (define-key viper-vi-global-user-map "\C-wo" 'delete-other-windows)
 (define-key viper-vi-global-user-map "\C-wc" 'delete-window)
 (define-key viper-vi-global-user-map "\C-ws" 'split-window-vertically)
-(define-key viper-vi-global-user-map "\C-wS" 'split-window-vertically)
+(define-key viper-vi-global-user-map "\C-wv" 'split-window-horizontally)
+(add-to-list 'ex-token-alist '("on"    (delete-other-windows)))
+(add-to-list 'ex-token-alist '("only"  (delete-other-windows)))
+(add-to-list 'ex-token-alist '("clo"   (delete-window)))
+(add-to-list 'ex-token-alist '("close" (delete-window)))
+
+(when (fboundp 'windmove-left)
+  (define-key viper-vi-global-user-map "\C-wh" 'windmove-left)
+  (define-key viper-vi-global-user-map "\C-wj" 'windmove-down)
+  (define-key viper-vi-global-user-map "\C-wk" 'windmove-up)
+  (define-key viper-vi-global-user-map "\C-wl" 'windmove-right))
 
 ; Block Visual Mode keys
 (define-key viper-vi-global-user-map "\C-p" 'yank-rectangle)
