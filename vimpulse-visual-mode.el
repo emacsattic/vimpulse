@@ -152,8 +152,8 @@ mode of operation to line-wise if Visual selection is already started."
 ;; advice viper-intercept-ESC-key to exit visual mode with esc
 (defadvice viper-intercept-ESC-key (around vimpulse-esc-exit-visual-mode activate)
   (when (and vimpulse-visual-mode
-	     (not (input-pending-p)))
-    (vimpulse-visual-mode nil))
+             (not (input-pending-p)))
+    (vimpulse-visual-mode -1))
   ad-do-it)
 
 ;; this thing is just to silence the byte compiler
