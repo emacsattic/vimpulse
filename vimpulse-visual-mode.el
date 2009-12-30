@@ -90,10 +90,11 @@ mode of operation to line-wise if Visual selection is already started."
 (defun vimpulse-visual-mode-toggle (&optional arg)
   (interactive "P")
   (make-local-variable 'vimpulse-visual-mode-linewise)
-  (when (not vimpulse-visual-overlay)
-      (setq vimpulse-visual-overlay (make-overlay (point) (point)))
-      (delete-overlay vimpulse-visual-overlay)
-      (overlay-put vimpulse-visual-overlay 'face (cons 'background-color "blue")))
+  (unless vimpulse-visual-overlay
+    (setq vimpulse-visual-overlay (make-overlay (point) (point)))
+    (delete-overlay vimpulse-visual-overlay)
+    (overlay-put vimpulse-visual-overlay 'face (cons 'background-color "blue"))
+    (overlay-put vimpulse-visual-overlay 'priority 1))
   (unless vimpulse-visual-mode
     (setq vimpulse-visual-current-register nil)
     (vimpulse-deactivate-mark)
