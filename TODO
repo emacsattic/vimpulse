@@ -20,9 +20,6 @@
 ;; - i_C-(I forgot the letter) should do (copy-from-above-command 1)
 ;;   from misc.el
 ;;
-;; - add advanced C-w commands; they can can use windmove.el
-;;   (directional window-selection routines)
-;;
 ;; - add :set spell / :set nospell that uses flyspell-mode
 ;;
 ;; - add support for tabs.el, a tabs mode that works sensibly (get it
