@@ -335,39 +335,6 @@ with the CHAR character, without replacing the newlines."
 	      (insert char))))))))
 
 (defun vimpulse-visual-replace-region (&optional arg)
-  (interactive)
-  (cond
-   ((not vimpulse-visual-mode-block)
-
-    (let ((count (if vimpulse-visual-mode-linewise (count-lines (vimpulse-get-vs-start) (vimpulse-get-vs-end)) 1))
-	  (visual-selection-mode (if vimpulse-visual-mode-linewise ?l ?r))
-	  (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds)))
-	  (char (read-char))
-	  (start (vimpulse-get-vs-start)))
-      (viper-set-destructive-command (list 'vimpulse-replace-chars-in-selection-function
-					   (list count visual-selection-mode motion char) ?r nil nil nil))
-      (goto-char start)
-      (vimpulse-visual-mode nil)
-      (vimpulse-replace-chars-in-selection-function (cons (list count visual-selection-mode motion char) ?r))))))
-
-(defun vimpulse-visual-replace-region (&optional arg)
-  (interactive "P")
-  (goto-char (vimpulse-get-vs-start))
-  (vimpulse-set-mark (vimpulse-get-vs-end))
-  (vimpulse-visual-mode 'toggle)
-  (cond
-   ((= (mark) (point)) nil)
-   (t
-    (if (< (mark) (point)) (exchange-point-and-mark))
-    (viper-replace-char arg)
-    (let ((c (char-after (point))))
-      (dotimes (i (- (mark) (point)))
-	(cond
-	 ((member (char-after (point)) '(?\r ?\n))
-	  (forward-char))
-	  (t (delete-char 1)
-	     (insert c))))))))
-(defun vimpulse-visual-replace-region (&optional arg)
   (interactive "P")
   (goto-char (vimpulse-get-vs-start))
   (vimpulse-set-mark (vimpulse-get-vs-end))
