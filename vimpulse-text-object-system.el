@@ -185,16 +185,16 @@ lower bound of the position, lime is the upper bound to the position."
     "Quotes supported by the text-object system.")
 
   (defun vimpulse-get-text-object-bounds-i (pos motion)
-    "Returns the inner boundaries of a text object at point `pos'.
-`motion' identifies the text object:
+    "Returns the inner boundaries of a text object at point POS.
+MOTION identifies the text object:
   - w -> word
   - W -> Word
   - s -> sentence
   - p -> paragraph
   - <paren> -> paren block (see variable `vimpulse-paren-matching-table'
-               to see the supported parens.
+               to see the supported parens).
   - <quote> -> quoted expression (see variable `paired-expression-delimiter'
-               to see the type of quotes supported."
+               to see the type of quotes supported)."
     (cond
      ((= motion ?w) (vimpulse-get-vword-bounds pos))
      ((= motion ?W) (vimpulse-get-vWord-bounds pos))
@@ -202,14 +202,14 @@ lower bound of the position, lime is the upper bound to the position."
      ((= motion ?p) (vimpulse-get-paragraph-bounds pos))
      ((memq motion vimpulse-paired-expression-delimiters)
       (let ((bounds (vimpulse-get-paired-bounds pos motion)))
-	(when bounds
-	    (destructuring-bind (s e) bounds
-	      (list (1+ s) (1- e))))))
+        (when bounds
+          (let ((s (car bounds)) (e (cadr bounds)))
+            (list (1+ s) (1- e))))))
      ((memq motion vimpulse-balanced-bounds-char-list)
       (let ((bounds (vimpulse-get-balanced-bounds pos motion)))
-	(when bounds
-	    (destructuring-bind (s e) bounds
-	      (list (1+ s) (1- e))))))
+        (when bounds
+          (let ((s (car bounds)) (e (cadr bounds)))
+            (list (1+ s) (1- e))))))
      (t nil)))
 
   (defun vimpulse-get-bounds-with-whitespace (func pos &optional trailing-newlines)
@@ -281,28 +281,31 @@ MOTION indicates the kind of text object."
       (if end (list start end) nil)))
 
   (defun vimpulse-delete-text-objects-function (arg)
-    "Deletes COUNT text objects of MOTION kind starting from `point', following the
-behavior indicated by CHAR: ?i stands for 'inner', ?a stands for 'a'.
-ARG has the form ((COUNT CHAR MOTION) . ?d)"
-    (destructuring-bind (count char motion) (car arg)
-      (let ((bounds (vimpulse-unify-multiple-bounds (point) char count motion)))
-	(when bounds
-	  (when viper-use-register ;; copy stuff to registers
-	    ;; This code is take from viper-exec-delete
-	    (cond
-	     ((viper-valid-register viper-use-register '(letter digit))
-	      (copy-to-register
-	       viper-use-register (car bounds) (1+ (cadr bounds)) nil))
-	     ((viper-valid-register viper-use-register '(Letter))
-	      (viper-append-to-register
-	       (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
-	     (t (setq viper-use-register nil)
-		(error viper-InvalidRegister viper-use-register)))
-	    (setq viper-use-register nil))
-	  ;;end of viper-exec-delete code
-	  (goto-char (car bounds))
-	  (set-mark (1+ (cadr bounds)))
-	  (call-interactively 'kill-region)))))
+    "Deletes COUNT text objects of MOTION kind starting from `point',
+following the behavior indicated by CHAR: ?i stands for \"inner\",
+?a stands for \"a\". ARG has the form ((COUNT CHAR MOTION) . ?d)."
+    (let* ((count  (nth 0 (car arg)))
+           (char   (nth 1 (car arg)))
+           (motion (nth 2 (car arg)))
+           (bounds (vimpulse-unify-multiple-bounds
+                    (point) char count motion)))
+      (when bounds
+        (when viper-use-register        ; copy stuff to registers
+          ;; This code is taken from `viper-exec-delete'
+          (cond
+           ((viper-valid-register viper-use-register '(letter digit))
+            (copy-to-register
+             viper-use-register (car bounds) (1+ (cadr bounds)) nil))
+           ((viper-valid-register viper-use-register '(Letter))
+            (viper-append-to-register
+             (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
+           (t (setq viper-use-register nil)
+              (error viper-InvalidRegister viper-use-register)))
+          (setq viper-use-register nil))
+        ;; End of `viper-exec-delete' code
+        (goto-char (car bounds))
+        (set-mark (1+ (cadr bounds)))
+        (call-interactively 'kill-region))))
 
   (defun vimpulse-delete-text-objects-command (count char)
     "Deletes COUNT text objects following the behavior CHAR ('inner' or 'a').
@@ -329,27 +332,30 @@ The kind of text object is asked interactively to the user using `read-char'."
       (viper-change-state-to-insert)))
 
   (defun vimpulse-yank-text-objects-function (arg)
-    "Yanks COUNT text objects of MOTION kind starting from `point', following the
-behavior indicated by CHAR: ?i stands for 'inner', ?a stands for 'a'.
-ARG has the form ((COUNT CHAR MOTION) . ?d)"
-    (destructuring-bind (count char motion) (car arg)
-      (let ((bounds (vimpulse-unify-multiple-bounds (point) char count motion)))
-	(when bounds
-	  (when viper-use-register ;; copy stuff to registers
-	    ;; This code is take from viper-exec-delete
-	    (cond
-	     ((viper-valid-register viper-use-register '(letter digit))
-	      (copy-to-register
-	       viper-use-register (car bounds) (1+ (cadr bounds)) nil))
-	     ((viper-valid-register viper-use-register '(Letter))
-	      (viper-append-to-register
-	       (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
-	     (t (setq viper-use-register nil)
-		(error viper-InvalidRegister viper-use-register)))
-	    (setq viper-use-register nil))
-	  ;;end of viper-exec-delete code
-	  (copy-region-as-kill (car bounds) (1+ (cadr bounds)))
-	  (goto-char (car bounds))))))
+    "Yanks COUNT text objects of MOTION kind starting from `point',
+following the behavior indicated by CHAR: ?i stands for \"inner\",
+?a stands for \"a\". ARG has the form ((COUNT CHAR MOTION) . ?d)."
+    (let* ((count  (nth 0 (car arg)))
+           (char   (nth 1 (car arg)))
+           (motion (nth 2 (car arg)))
+           (bounds (vimpulse-unify-multiple-bounds
+                    (point) char count motion)))
+      (when bounds
+        (when viper-use-register        ; copy stuff to registers
+          ;; This code is taken from `viper-exec-delete'
+          (cond
+           ((viper-valid-register viper-use-register '(letter digit))
+            (copy-to-register
+             viper-use-register (car bounds) (1+ (cadr bounds)) nil))
+           ((viper-valid-register viper-use-register '(Letter))
+            (viper-append-to-register
+             (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
+           (t (setq viper-use-register nil)
+              (error viper-InvalidRegister viper-use-register)))
+          (setq viper-use-register nil))
+        ;; End of `viper-exec-delete' code
+        (copy-region-as-kill (car bounds) (1+ (cadr bounds)))
+        (goto-char (car bounds)))))
 
   (defun vimpulse-yank-text-objects-command (count char)
     "Yanks COUNT text objects following the behavior CHAR ('inner' or 'a').
