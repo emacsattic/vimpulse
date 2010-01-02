@@ -324,15 +324,19 @@ markers of the line where the merker `p' resides. If `p' is nil,
 (defun vimpulse-replace-chars-in-selection-function (arg)
   "Fills the text in the region identified by COUNT, VISUAL-MODE and MOTION
 with the CHAR character, without replacing the newlines."
-  (destructuring-bind (count visual-mode motion char) (car arg)
-    (let ((bounds (vimpulse-unify-multiple-bounds (point) visual-mode count motion)))
-      (when bounds
-	(goto-char (car bounds))
-	(save-excursion
-	  (dotimes (i (1+ (- (cadr bounds) (car bounds))))
-	    (unless (memq (char-after (point)) '(?\r ?\n))
-	      (delete-char 1)
-	      (insert char))))))))
+  (let* ((count       (nth 0 (car arg)))
+         (visual-mode (nth 1 (car arg)))
+         (motion      (nth 2 (car arg)))
+         (char        (nth 3 (car arg)))
+         (bounds (vimpulse-unify-multiple-bounds
+                  (point) visual-mode count motion)))
+    (when bounds
+      (goto-char (car bounds))
+      (save-excursion
+        (dotimes (i (1+ (- (cadr bounds) (car bounds))))
+          (unless (memq (char-after (point)) '(?\r ?\n))
+            (delete-char 1)
+            (insert char)))))))
 
 (defun vimpulse-visual-replace-region (&optional arg)
   (interactive "P")
@@ -408,39 +412,41 @@ with the CHAR character, without replacing the newlines."
 ;; Modified by Alessandro Piras
 (defun vimpulse-create-coords (i-com)
   "Updates the list of block insert coordinates with the current rectangle.
-`i-com' should be ?c, ?i, ?a, ?I or ?A, the column for the insertion will be
+I-COM should be ?c, ?i, ?a, ?I or ?A, the column for the insertion will be
 chosen according to this command."
   ;; New visual mode handling: instead of using (region-beginning) and
-  ;; (region-end) we use rb and re, bound to the right bounds:
+  ;; (region-end) we use `rb' and `re', bound to the right bounds:
   ;; overlay bounds in normal and linewise mode, region bounds in block mode.
-  (destructuring-bind (rb re) (if vimpulse-visual-mode-block
-				  (list (region-beginning) (region-end))
-				(list (vimpulse-get-vs-start)
-				      (vimpulse-get-vs-end)))
+  (let (rb re)
+    (if vimpulse-visual-mode-block
+        (setq rb (region-beginning)
+              re (region-end))
+      (setq rb (vimpulse-get-vs-start)
+            re (vimpulse-get-vs-end)))
     (make-local-variable 'vimpulse-visual-insert-coords)
     (setq vimpulse-visual-insert-coords nil)
 
     (let ((nlines (count-lines re rb))
-	  (col 0))		  ; For ?I and ?A trivial: column is 0
+          (col 0)) ; For ?I and ?A trivial: column is 0
       (when (or (eq i-com ?a) (eq i-com ?i) (eq i-com ?c))
-	;; for ?i and ?a chose the left (the right) column of the rectangle
-	(let ((start-col (save-excursion
-			   (goto-char rb)
-			   (current-column)))
-	      (end-col (save-excursion
-			 (goto-char re)
-			 (current-column))))
-	  ;; decide if we use the left or the right column
-	  (setq col (max 0 (if (or (eq i-com ?i) (eq i-com ?c))
-			       (min start-col end-col)
-			     (1- (max start-col end-col)))))))
+        ;; For ?i and ?a chose the left (the right) column of the rectangle
+        (let ((start-col (save-excursion
+                           (goto-char rb)
+                           (current-column)))
+              (end-col (save-excursion
+                         (goto-char re)
+                         (current-column))))
+          ;; Decide if we use the left or the right column
+          (setq col (max 0 (if (or (eq i-com ?i) (eq i-com ?c))
+                               (min start-col end-col)
+                             (1- (max start-col end-col)))))))
 
-      ;; Ok we have all information, so go to the insert-point ...
+      ;; OK, we have all information, so go to the insert-point ...
       (goto-char rb)
       (move-to-column col)
       ;; ... and save the information
       (setq vimpulse-visual-insert-coords
-	    (list i-com (point) col nlines)))))
+            (list i-com (point) col nlines)))))
 
 
 ;; FIXME This function or the follwing one is bug ridden
