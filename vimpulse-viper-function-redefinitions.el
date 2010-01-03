@@ -286,4 +286,12 @@ actions instead of one."
 		 (if ans (setq address ans)))))
       (setq prev-token-type ex-token-type))))
 
+(defadvice viper-exit-insert-state (after vimpulse activate)
+  "Move cursor backwards even if `viper-exit-insert-state' is nil."
+  (when (and (not viper-ex-style-editing)
+             (not (bobp))
+             (/= (char-before (point)) ?\r)
+             (/= (char-before (point)) ?\n))
+    (backward-char 1)))
+
 (provide 'vimpulse-viper-function-redefinitions)
