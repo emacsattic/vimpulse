@@ -104,7 +104,7 @@ mode of operation to line-wise if Visual selection is already started."
     (setq vimpulse-visual-mode-linewise nil)
     (setq vimpulse-visual-mode-block nil)
     (vimpulse-set-visual-overlay)))
-                                        ;(vimpulse-set-mark (point))))
+;; (vimpulse-set-mark (point))))
 
 (defun vimpulse-visual-mode-linewise (&optional arg)
   "Starts viper visual mode in `linewise' mode"
