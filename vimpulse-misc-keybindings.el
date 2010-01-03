@@ -45,7 +45,7 @@
 (define-key viper-vi-global-user-map "u"    'undo)
 (define-key viper-vi-global-user-map "\C-r" 'redo)
 
-                                        ; Window manipulation
+;; Window manipulation
 (define-key viper-vi-global-user-map "\C-w" (make-sparse-keymap))
 (define-key viper-vi-global-user-map "\C-w\C-w" 'vimpulse-cycle-windows)
 (define-key viper-vi-global-user-map "\C-ww" 'vimpulse-cycle-windows)
@@ -64,15 +64,15 @@
   (define-key viper-vi-global-user-map "\C-wk" 'windmove-up)
   (define-key viper-vi-global-user-map "\C-wl" 'windmove-right))
 
-                                        ; Block Visual Mode keys
+;; Block Visual Mode keys
 (define-key viper-vi-global-user-map "\C-p" 'yank-rectangle)
 (define-key viper-vi-global-user-map "\C-v" 'vimpulse-visual-mode-block)
 
-                                        ; Insert mode keys
-                                        ; Vim-like completion keys
+;; Insert mode keys
+;; Vim-like completion keys
 (define-key viper-insert-global-user-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-global-user-map "\C-n" 'vimpulse-abbrev-expand-after)
-;;(define-key viper-insert-global-user-map [backspace] 'backward-delete-char-untabify) ;vim doesn't do this!
+;; (define-key viper-insert-global-user-map [backspace] 'backward-delete-char-untabify) ; vim doesn't do this!
 (define-key viper-insert-global-user-map [delete] 'delete-char) ;; delete key
                                         ; make ^[ work
 (define-key viper-insert-global-user-map (kbd "ESC") 'viper-exit-insert-state)
