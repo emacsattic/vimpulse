@@ -10,15 +10,17 @@
   (hs-show-block)
   (hs-hide-level -1))
 (when (boundp 'hs-minor-mode)
-  (add-hook 'hs-minor-mode-hook (lambda ()
-                 (call-interactively 'hs-hide-all)
-                 (define-key viper-vi-global-user-map "za" '(lambda () (hs-toggle-hiding) (hs-hide-level h)))
-                 (define-key viper-vi-global-user-map "zA"   'hs-toggle-hiding)
-                 (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
-                 (define-key viper-vi-global-user-map "zR"   'hs-show-all)
-                 (define-key viper-vi-global-user-map "zO" 'vimpulse-hs-Open)
-                 (define-key viper-vi-global-user-map "zo"   'hs-show-block)
-                 (define-key viper-vi-global-user-map "zc"   'hs-hide-block))))
+  (add-hook 'hs-minor-mode-hook
+            (lambda ()
+              (call-interactively 'hs-hide-all)
+              (define-key viper-vi-global-user-map "za"
+                (lambda () (hs-toggle-hiding) (hs-hide-level h)))
+              (define-key viper-vi-global-user-map "zA"   'hs-toggle-hiding)
+              (define-key viper-vi-global-user-map "zM"   'hs-hide-all)
+              (define-key viper-vi-global-user-map "zR"   'hs-show-all)
+              (define-key viper-vi-global-user-map "zO" 'vimpulse-hs-Open)
+              (define-key viper-vi-global-user-map "zo"   'hs-show-block)
+              (define-key viper-vi-global-user-map "zc"   'hs-hide-block))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;; VISUAL MODE BINDINGS ;;;;;;;;;;;;;;;;
@@ -43,7 +45,7 @@
 (define-key viper-vi-global-user-map "u"    'undo)
 (define-key viper-vi-global-user-map "\C-r" 'redo)
 
-; Window manipulation
+                                        ; Window manipulation
 (define-key viper-vi-global-user-map "\C-w" (make-sparse-keymap))
 (define-key viper-vi-global-user-map "\C-w\C-w" 'vimpulse-cycle-windows)
 (define-key viper-vi-global-user-map "\C-ww" 'vimpulse-cycle-windows)
@@ -62,17 +64,17 @@
   (define-key viper-vi-global-user-map "\C-wk" 'windmove-up)
   (define-key viper-vi-global-user-map "\C-wl" 'windmove-right))
 
-; Block Visual Mode keys
+                                        ; Block Visual Mode keys
 (define-key viper-vi-global-user-map "\C-p" 'yank-rectangle)
 (define-key viper-vi-global-user-map "\C-v" 'vimpulse-visual-mode-block)
 
-; Insert mode keys
-; Vim-like completion keys
+                                        ; Insert mode keys
+                                        ; Vim-like completion keys
 (define-key viper-insert-global-user-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-global-user-map "\C-n" 'vimpulse-abbrev-expand-after)
 ;;(define-key viper-insert-global-user-map [backspace] 'backward-delete-char-untabify) ;vim doesn't do this!
 (define-key viper-insert-global-user-map [delete] 'delete-char) ;; delete key
-; make ^[ work
+                                        ; make ^[ work
 (define-key viper-insert-global-user-map (kbd "ESC") 'viper-exit-insert-state)
 
 ;;; My code (Alessandro)
@@ -111,9 +113,9 @@
   (vimpulse-search-for-symbol-at-point nil))
 
 (defun vimpulse-jump-to-tag-at-point ()
- (interactive)
- (let ((tag (thing-at-point 'word)))
-   (find-tag tag)))
+  (interactive)
+  (let ((tag (thing-at-point 'word)))
+    (find-tag tag)))
 
 ;;; cppjavaperl's code
 (defun vimpulse-abbrev-expand-after ()
