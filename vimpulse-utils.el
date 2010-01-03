@@ -24,10 +24,11 @@
 ;; EXAMPLE, the following lines enable Vim style movement in help
 ;; and dired modes.
 ;; create a movement map and set the keys
-;(setq vimpulse-movement-map (make-sparse-keymap))
-;(vimpulse-set-movement-keys-for-map vimpulse-movement-map)
-;(viper-modify-major-mode 'dired-mode 'emacs-state vimpulse-movement-map)
-;(viper-modify-major-mode 'help-mode 'emacs-state vimpulse-movement-map)
+;;
+;; (setq vimpulse-movement-map (make-sparse-keymap))
+;; (vimpulse-set-movement-keys-for-map vimpulse-movement-map)
+;; (viper-modify-major-mode 'dired-mode 'emacs-state vimpulse-movement-map)
+;; (viper-modify-major-mode 'help-mode 'emacs-state vimpulse-movement-map)
 
 
 (defmacro vimpulse-region-command (function)

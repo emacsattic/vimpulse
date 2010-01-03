@@ -30,7 +30,7 @@
 ;; Maintainer: Alessandro Piras but I am looking for a co-maintainer
 ;;             or for a new maintainer to take over.  Contact the list.
 ;; Current developers: Alessandro Piras (maintainer),
-;;                     Vegard Øye <vegard_oye at hotmail dot com> 
+;;                     Vegard Øye <vegard_oye at hotmail dot com>
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
 ;; Thanks to our

@@ -1,13 +1,14 @@
 ;;; All this code is taken from Brad Beveridge's extended viper.
-(defvar vimpulse-extra-ex-commands '(
-      ("b" "buffer")
-      ("bdelete" (vimpulse-kill-current-buffer))
-      ("bnext" "next")
-      ("syntax" (global-font-lock-mode))
-      ("split" (split-window))
-      ; Emacs and Vim use inverted naming conventions for splits.
-      ("vsplit" (split-window-horizontally))
-))
+(defvar vimpulse-extra-ex-commands
+  '(
+    ("b" "buffer")
+    ("bdelete" (vimpulse-kill-current-buffer))
+    ("bnext" "next")
+    ("syntax" (global-font-lock-mode))
+    ("split" (split-window))
+    ;; Emacs and Vim use inverted naming conventions for splits.
+    ("vsplit" (split-window-horizontally))
+    ))
 
 
 (defun vimpulse-kill-current-buffer ()
