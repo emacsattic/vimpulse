@@ -498,16 +498,11 @@ chosen according to this command."
       ;; update the last two undos
       (if (> nlines 1)
 	  (if (eq i-com ?c)
-	      (connect-undos 3 buffer-undo-list) ; delete, insert, repeat
-	    (connect-undos 2 buffer-undo-list))	 ; insert, repeat
+	      (connect-undos 3 buffer-undo-list)  ; delete, insert, repeat
+	    (connect-undos 2 buffer-undo-list))	  ; insert, repeat
 	(if (eq i-com ?c)
-	    (connect-undos 2 buffer-undo-list)	 ; delete, insert
-	  (connect-undos 1 buffer-undo-list))))) ; insert
-  (if (and (/= (char-before (point)) ?\r)
-	   (/= (char-before (point)) ?\n))
-      (backward-char 1)))               ; <---------- a[ESC] leaves the cursor
-					; where it was before in VIM, without
-					; backward-char it advances 1 character.
+	    (connect-undos 2 buffer-undo-list)	  ; delete, insert
+	  (connect-undos 1 buffer-undo-list)))))) ; insert
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Visual block hack:                              ;;
