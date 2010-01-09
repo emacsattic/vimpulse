@@ -19,9 +19,9 @@
 ;; Wang Xin
 ;; Weihua JIANG <weihua.jiang at gmail.com>
 ;;
-;; and all the other people who have
-;; sent in bug reports or feedback.  Also, thanks to Michael Kifer and
-;; all those who have contributed to viper-mode.
+;; and all the other people who have sent in bug reports or feedback.
+;; Also, thanks to Michael Kifer and all those who have contributed to
+;; viper-mode.
 ;;
 ;; We love patches.  Would you like to see your name here?  Please
 ;; send code and/or documentation patches to the maintainer.  Ideas,

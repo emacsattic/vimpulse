@@ -89,8 +89,6 @@
 ;;       where Tabs aren't whitespace, and you need at least two spaces
 ;;       after the punctuation mark.
 ;;
-;; - purge the code of all cl.el dependencies.
-;;
 ;; - try to get vimpulse included with upstream viper; also, ideally,
 ;;   if you pressed "v" in viper, viper would offer to load vimpulse.
 ;;   (likely to happen?  Consider that Michael Kifer, the viper
