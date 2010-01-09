@@ -21,6 +21,9 @@
 ;;;; Alessandro Piras
 ;;; Begin Text Objects code{{{
 
+(defvar vimpulse-last-object-selection nil
+  "Last object selection, in list format: (COUNT CHAR MOTION).")
+
 (defun vimpulse-get-syntaxes-bounds (pos syntaxes)
   "Returns the bounds of contiguous character that match `syntaxes',
 where syntaxes is an emacs' syntax specification."
@@ -205,12 +208,14 @@ MOTION identifies the text object:
       (when bounds
         (let ((s (car bounds)) (e (cadr bounds)))
           (list (1+ s) (1- e))))))
-   ((memq motion vimpulse-balanced-bounds-char-list)
+   ((or (= motion ?b) (= motion ?B)
+        (memq motion vimpulse-balanced-bounds-char-list))
+    (when (= motion ?b) (setq motion ?\())
+    (when (= motion ?B) (setq motion ?\{))
     (let ((bounds (vimpulse-get-balanced-bounds pos motion)))
       (when bounds
         (let ((s (car bounds)) (e (cadr bounds)))
-          (list (1+ s) (1- e))))))
-   (t nil)))
+          (list (1+ s) (1- e))))))))
 
 (defun vimpulse-get-bounds-with-whitespace (func pos &optional trailing-newlines)
   "Given a function that returns inner boundaries, returns a boundary that includes
@@ -243,11 +248,16 @@ followed is the same:
    ((= motion ?W) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vWord-bounds pos))
    ((= motion ?s) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-sentence-bounds pos))
    ((= motion ?p) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-paragraph-bounds pos t))
+   ((= motion ?b)
+    (setq motion ?\()
+    (vimpulse-get-balanced-bounds pos motion))
+   ((= motion ?B)
+    (setq motion ?\{)
+    (vimpulse-get-balanced-bounds pos motion))
    ((memq motion vimpulse-paired-expression-delimiters)
     (vimpulse-get-paired-bounds pos motion))
    ((memq motion vimpulse-balanced-bounds-char-list)
-    (vimpulse-get-balanced-bounds pos motion))
-   (t nil)))
+    (vimpulse-get-balanced-bounds pos motion))))
 
 (defun vimpulse-get-text-object-bounds (pos char motion)
   "Returns the boundaries of a text object. 'pos' indicates the start position,
@@ -292,7 +302,7 @@ following the behavior indicated by CHAR: ?i stands for \"inner\",
          (bounds (vimpulse-unify-multiple-bounds
                   (point) char count motion)))
     (when bounds
-      (when viper-use-register        ; copy stuff to registers
+      (when viper-use-register          ; copy stuff to registers
         ;; This code is taken from `viper-exec-delete'
         (cond
          ((viper-valid-register viper-use-register '(letter digit))
@@ -307,7 +317,7 @@ following the behavior indicated by CHAR: ?i stands for \"inner\",
       ;; End of `viper-exec-delete' code
       (goto-char (car bounds))
       (set-mark (1+ (cadr bounds)))
-      (call-interactively 'kill-region))))
+      (kill-region (car bounds) (1+ (cadr bounds))))))
 
 (defun vimpulse-delete-text-objects-command (count char)
   "Deletes COUNT text objects following the behavior CHAR ('inner' or 'a').
