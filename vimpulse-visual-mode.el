@@ -148,9 +148,11 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "I" 'vimpulse-visual-insert)
 (define-key vimpulse-visual-mode-map "A" 'vimpulse-visual-append)
 (define-key vimpulse-visual-mode-map "=" 'vimpulse-visual-indent-command)
+(define-key vimpulse-visual-mode-map "a" 'vimpulse-select-text-object)
+(define-key vimpulse-visual-mode-map "i" 'vimpulse-select-text-object)
 ;; Keys that have no effect in visual mode
 (define-key vimpulse-visual-mode-map "." 'undefined)
-;; advice viper-intercept-ESC-key to exit visual mode with esc
+;; Advice viper-intercept-ESC-key to exit visual mode with ESC
 (defadvice viper-intercept-ESC-key (around vimpulse-esc-exit-visual-mode activate)
   (when (and vimpulse-visual-mode
              (not (input-pending-p)))
@@ -181,7 +183,8 @@ mode of operation to line-wise if Visual selection is already started."
 (make-variable-buffer-local 'vimpulse-visual-overlay)
 
 ;; vimpulse-visual-overlay-origin: stores the point location where the visual selection started
-(defvar vimpulse-visual-overlay-origin nil)
+(defvar vimpulse-visual-overlay-origin (make-marker)
+  "Beginning of visual overlay.")
 (make-variable-buffer-local 'vimpulse-visual-overlay-origin)
 
 ;; functions used for linewise mode to access line margins
@@ -202,8 +205,12 @@ markers of the line where the merker `p' resides. If `p' is nil,
   "Retrieves the end-of-line marker from the structure returned by vimpulse-get-line-margins."
   (cadr line-margins))
 
-(defun vimpulse-set-visual-overlay ()
-  (setq vimpulse-visual-overlay-origin (point-marker))
+(defun vimpulse-set-visual-overlay (&optional location)
+  "Set start of visual overlay at LOCATION (point, by default)."
+  (setq location (or location (point)))
+  (if (markerp vimpulse-visual-overlay-origin)
+      (set-marker vimpulse-visual-overlay-origin location)
+    (setq vimpulse-visual-overlay-origin location))
   (vimpulse-update-overlay))
 
 (defun vimpulse-get-vs-bounds ()
@@ -395,6 +402,52 @@ with the CHAR character, without replacing the newlines."
     (let ((origin vimpulse-visual-overlay-origin))
       (setq vimpulse-visual-overlay-origin (point))
       (goto-char origin)))))
+
+(defun vimpulse-select-text-object
+  (count &optional char motion) 
+  "Visually select a text object."
+  (interactive "p")
+  (let* ((char    (or char last-command-event))
+         (motion  (or motion (read-char)))
+         (pmotion (nth 2 vimpulse-last-object-selection))
+         (bounds  (progn
+                    (and (eq ?i char)
+                         (eq motion pmotion)
+                         (forward-char))
+                    (vimpulse-unify-multiple-bounds
+                     (point) char count motion)))
+         (start   (car bounds))
+         (end     (cadr bounds)))
+    (when bounds 
+      (vimpulse-widen-selection start end)
+      (setq vimpulse-last-object-selection
+            (list count char motion)))))
+
+(defun vimpulse-widen-selection (start end)
+  "Widen visual selection to START and END.
+ When called interactively, derive START and END
+ from previous text object selection."
+  (interactive
+   (let ((count  (nth 0 vimpulse-last-object-selection))
+         (char   (nth 1 vimpulse-last-object-selection))
+         (motion (nth 2 vimpulse-last-object-selection)))
+     (when (eq ?i char) (forward-char))
+     (or (vimpulse-unify-multiple-bounds
+          (point) char count motion)
+         '(nil nil)))) ; `vimpulse-unify-multiple-bounds' failed
+  (cond
+   ((or (not (numberp start)) (not (numberp end)))
+    ;; If called interactively without previous selection, do nothing
+    nil)
+   ((< (point) vimpulse-visual-overlay-origin)
+    (vimpulse-set-visual-overlay
+     (max start end vimpulse-visual-overlay-origin))
+    (goto-char (min start end (point))))
+   (t
+    (vimpulse-set-visual-overlay
+     (min start end vimpulse-visual-overlay-origin))
+    (goto-char (max start end (point))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Visual Block Mode Support ;;;

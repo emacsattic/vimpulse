@@ -82,7 +82,8 @@
   (save-excursion
     (dotimes (i count)
       (indent-according-to-mode)
-      (next-line))))
+      (forward-line))))
+
 ;;; His code (Brad)
 (defun vimpulse-goto-first-line ()
   "Send point to the start of the first line."
