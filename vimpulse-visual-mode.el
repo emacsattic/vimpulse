@@ -107,7 +107,7 @@ mode of operation to line-wise if Visual selection is already started."
 ;; (vimpulse-set-mark (point))))
 
 (defun vimpulse-visual-mode-linewise (&optional arg)
-  "Starts viper visual mode in `linewise' mode"
+  "Starts viper visual mode in \"linewise\" mode."
   (interactive "P")
   (vimpulse-visual-mode 'toggle)
   (setq vimpulse-visual-mode-linewise t)
@@ -118,7 +118,7 @@ mode of operation to line-wise if Visual selection is already started."
 (run-hooks 'vimpulse-visual-load-hook)
 
 (defun vimpulse-visual-mode-block (&optional arg)
-  "Starts viper visual mode in `block' mode"
+  "Starts viper visual mode in \"block\" mode."
   (interactive "P")
   (vimpulse-visual-mode t)
   (setq vimpulse-visual-mode-block t)
@@ -192,9 +192,9 @@ mode of operation to line-wise if Visual selection is already started."
 ;; use the provided accessors.
 (defun vimpulse-get-line-margins (&optional p)
   "Returns a structure containing the beginning-of-line and end-of-line
-markers of the line where the merker `p' resides. If `p' is nil,
+markers of the line where the marker P resides. If P is nil,
 \(point-marker) is used instead. The information can be retrieved using
-`vimpulse-get-bol' and `vimpulse-get-eol'."
+functions `vimpulse-get-bol' and `vimpulse-get-eol'."
   (save-excursion
     (if p (goto-char p))
     (list (point-at-bol) (point-at-eol))))
@@ -206,12 +206,14 @@ markers of the line where the merker `p' resides. If `p' is nil,
   (cadr line-margins))
 
 (defun vimpulse-set-visual-overlay (&optional location)
-  "Set start of visual overlay at LOCATION (point, by default)."
+  "Set start of visual overlay at LOCATION (point, by default).
+Return position."
   (setq location (or location (point)))
   (if (markerp vimpulse-visual-overlay-origin)
       (set-marker vimpulse-visual-overlay-origin location)
     (setq vimpulse-visual-overlay-origin location))
-  (vimpulse-update-overlay))
+  (vimpulse-update-overlay)
+  location)
 
 (defun vimpulse-get-vs-bounds ()
   (list (overlay-start vimpulse-visual-overlay) (overlay-end vimpulse-visual-overlay)))
@@ -409,44 +411,59 @@ with the CHAR character, without replacing the newlines."
   (interactive "p")
   (let* ((char    (or char last-command-event))
          (motion  (or motion (read-char)))
-         (pmotion (nth 2 vimpulse-last-object-selection))
-         (bounds  (progn
-                    (and (eq ?i char)
-                         (eq motion pmotion)
-                         (forward-char))
-                    (vimpulse-unify-multiple-bounds
-                     (point) char count motion)))
+         (bounds  (vimpulse-unify-multiple-bounds
+                   (point) char count motion))
          (start   (car bounds))
          (end     (cadr bounds)))
     (when bounds 
-      (vimpulse-widen-selection start end)
+      (unless (vimpulse-widen-selection start end)
+        ;; We're stuck; move and try again
+        (if (< (point) vimpulse-visual-overlay-origin)
+            (backward-char) (forward-char))
+        (setq  bounds (vimpulse-unify-multiple-bounds
+                       (point) char count motion)
+               start (car bounds)
+               end   (cadr bounds))
+        (vimpulse-widen-selection start end))
       (setq vimpulse-last-object-selection
             (list count char motion)))))
 
 (defun vimpulse-widen-selection (start end)
   "Widen visual selection to START and END.
- When called interactively, derive START and END
- from previous text object selection."
+Returns nil if selection is unchanged (i.e., selection already
+encompasses START and END). When called interactively, derives
+START and END from previous text object selection."
   (interactive
    (let ((count  (nth 0 vimpulse-last-object-selection))
          (char   (nth 1 vimpulse-last-object-selection))
          (motion (nth 2 vimpulse-last-object-selection)))
-     (when (eq ?i char) (forward-char))
-     (or (vimpulse-unify-multiple-bounds
-          (point) char count motion)
-         '(nil nil)))) ; `vimpulse-unify-multiple-bounds' failed
-  (cond
-   ((or (not (numberp start)) (not (numberp end)))
-    ;; If called interactively without previous selection, do nothing
-    nil)
-   ((< (point) vimpulse-visual-overlay-origin)
-    (vimpulse-set-visual-overlay
-     (max start end vimpulse-visual-overlay-origin))
-    (goto-char (min start end (point))))
-   (t
-    (vimpulse-set-visual-overlay
-     (min start end vimpulse-visual-overlay-origin))
-    (goto-char (max start end (point))))))
+     (when vimpulse-last-object-selection
+       (vimpulse-select-text-object count char motion))
+     '(nil nil))) ; that's it, we're done
+  (let (widen-start-p widen-end-p)
+    (cond
+     ((or (not (numberp start)) (not (numberp end)))
+      nil)
+     ((< (point) vimpulse-visual-overlay-origin)
+      (setq widen-start-p
+            (not (= (point) (min start end (point)))))
+      (setq widen-end-p
+            (not (= vimpulse-visual-overlay-origin
+                    (max start end vimpulse-visual-overlay-origin))))
+      (vimpulse-set-visual-overlay
+       (max start end vimpulse-visual-overlay-origin))
+      (goto-char (min start end (point))))
+     (t
+      (setq widen-start-p
+            (not (= vimpulse-visual-overlay-origin
+                    (min start end vimpulse-visual-overlay-origin))))
+      (setq widen-end-p
+            (not (= (point) (max start end (point)))))
+      (vimpulse-set-visual-overlay
+       (min start end vimpulse-visual-overlay-origin))
+      (goto-char (max start end (point)))))
+    ;; Was selection widened?
+    (or widen-start-p widen-end-p)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -456,11 +473,11 @@ with the CHAR character, without replacing the newlines."
 ;; This variable holds the point and column of the first line
 ;; as well as the number of lines in the region.
 (defvar vimpulse-visual-insert-coords nil
-  "A list with (i-com ul-pos col nlines), where
-`i-com' is the insert command (?i, ?a, ?I or ?A)
-`ul-pos' is the position of the upper left corner of the region
-`col' is the column of insertion
-`nlines' is the number of lines in the region")
+  "A list with (I-COM UL-POS COL NLINES), where
+I-COM is the insert command (?i, ?a, ?I or ?A),
+UL-POS is the position of the upper left corner of the region,
+COL is the column of insertion, and
+NLINES is the number of lines in the region.")
 
 ;; Modified by Alessandro Piras
 (defun vimpulse-create-coords (i-com)
