@@ -24,9 +24,49 @@
 (defvar vimpulse-last-object-selection nil
   "Last object selection, in list format: (COUNT CHAR MOTION).")
 
+(defun vimpulse-text-object-bounds
+  (backward-func forward-func &optional arg pos)
+  "Returns the boundaries of one or more text objects.
+BACKWARD-FUNC moves point to the object's beginning,
+FORWARD-FUNC moves to its end. Schematically,
+
+\(vimpulse-text-object-bounds <beg-of-object> <end-of-object>)
+
+Boundaries are returned as (START END). If specified,
+ARG controls the number of objects and POS the starting point
+\(`point' by default)."
+  (let (beg end)
+    (setq arg (or arg 1))
+    ;; If ARG is negative, swap BACKWARD-FUNC and FORWARD-FUNC
+    (cond 
+     ((> 0 arg)
+      (setq beg backward-func)
+      (setq backward-func forward-func)
+      (setq forward-func beg)
+      (setq arg (abs arg)))
+     ((= 0 arg)
+      (setq arg 1)))
+    ;; To avoid errors when hitting upon buffer boundaries,
+    ;; we make extensive use of `condition-case' ...
+    (save-excursion
+      (when pos
+        (goto-char pos))
+      (condition-case nil
+          (funcall forward-func 1)
+        (error nil))
+      (condition-case nil
+          (funcall backward-func 1)
+        (error nil))
+      (setq beg (point))
+      (condition-case nil
+          (funcall forward-func arg)
+        (error nil))
+      (setq end (point)))
+    (sort (list beg end) '<)))
+
 (defun vimpulse-get-syntaxes-bounds (pos syntaxes)
-  "Returns the bounds of contiguous character that match `syntaxes',
-where syntaxes is an emacs' syntax specification."
+  "Returns the bounds of contiguous character that match SYNTAXES,
+where syntaxes is an Emacs' syntax specification."
   (let ((result))
     (save-excursion
       (goto-char pos)
@@ -66,8 +106,8 @@ table[key] = (match . opening-paren)"
          vimpulse-paren-matching-table)
 
 (defun vimpulse-skip-until-delimiters (pos paren match limb lime dir)
-  "Skips all the character different from `paren' and `match' starting
-from `pos' following the direction `dir', with pos in [limb, lime]."
+  "Skips all the character different from PAREN and MATCH starting
+from POS following the direction DIR, with POS in [LIMB, LIME]."
   (let ((pos-1 pos))
     (while (and (/= (char-after pos-1) paren)
                 (/= (char-after pos-1) match)
@@ -77,9 +117,9 @@ from `pos' following the direction `dir', with pos in [limb, lime]."
     pos-1))
 
 (defun vimpulse-find-first-unbalanced-1 (pos paren match limb lime dir)
-  "Finds the first unbalanced `paren' following the direction `dir', starting
-from position `pos'. `match' is the paren that matches with `paren', limb is the
-lower bound of the position, lime is the upper bound to the position."
+  "Finds the first unbalanced PAREN following the direction DIR, starting
+from position POS. MATCH is the paren that matches with PAREN, LIMB is the
+lower bound of the position, LIME is the upper bound to the position."
   (cond
    ((or (eq pos 'not-found))
     'not-found)
@@ -116,63 +156,47 @@ lower bound of the position, lime is the upper bound to the position."
 
 (defun vimpulse-get-vword-bounds (pos)
   "Returns the boundaries of a word."
-  (let ((syntaxes)
-        (syntax (char-syntax (char-after pos))))
+  (let (syntax)
+    (unless (eobp)
+      (setq syntax (char-syntax (char-after pos))))
     (cond
-     ((= syntax ?\))
-      (setq syntaxes (string syntax ?\()))
-     ((= syntax ?\()
-      (setq syntaxes (string syntax ?\))))
+     ((eq syntax ?\))
+      (vimpulse-get-syntaxes-bounds pos (string syntax)))
+     ((eq syntax ?\()
+      (vimpulse-get-syntaxes-bounds pos (string syntax)))
      (t
-      (setq syntaxes (string syntax))))
-    (vimpulse-get-syntaxes-bounds pos syntaxes)))
+      (save-excursion
+        (goto-char pos)
+        (vimpulse-text-object-bounds
+         'viper-backward-word
+         'viper-end-of-word))))))
 
 (defun vimpulse-get-vWord-bounds (pos)
   "Returns the boundaries of a Word."
-  (let ((result))
-    (save-excursion
-      (goto-char pos)
-      (re-search-forward "[[:space:]]")
-      (add-to-list 'result (- (point) 2))
-      (backward-char)
-      (re-search-backward "[[:space:]]")
-      (cons (1+ (point)) result))))
+  (save-excursion
+    (goto-char pos)
+    (vimpulse-text-object-bounds
+     'viper-backward-Word
+     'viper-end-of-Word)))
 
 (defun vimpulse-get-sentence-bounds (pos)
   "Returns the boundaries of a sentence."
-  (let ((result))
-    (save-excursion
-      (goto-char pos)
-      (when (not (posix-search-forward "\\(^\r\\|^\n\\|\\.[\n\r]?\\)" (point-max) t))
-        (goto-char (point-max)))
-      (add-to-list 'result (1- (point)))
-      (backward-char (length (match-string 0)))
-      (cond
-       ((not (posix-search-backward "\\(^\r\\|^\n\\|\\.[\r\n]?\\)" (point-min) t))
-        (goto-char (point-min)))
-       (t
-        (forward-char 1)))
-      (posix-search-forward "\\(\n\\|\r\\|[[:blank:]]\\)*" (point-max) t)
-      (add-to-list 'result (point)))))
+  (save-excursion
+    (goto-char pos)
+    (vimpulse-text-object-bounds
+     'viper-backward-sentence
+     'viper-forward-sentence)))
 
 (defun vimpulse-get-paragraph-bounds (pos)
   "Returns the boundaries of a paragraph."
-  (let ((result))
-    (save-excursion
-      (goto-char pos)
-      (when (not (re-search-forward "\\(^\r\\|^\n\\)" (point-max) t))
-        (goto-char (point-max)))
-      (add-to-list 'result (- (point) 2))
-      (backward-char (length (match-string 0)))
-      (cond
-       ((not (re-search-backward "\\(^\r\\|^\n\\)" (point-min) t))
-        (goto-char (point-min)))
-       (t
-        (forward-char 1)))
-      (add-to-list 'result (point)))))
+  (save-excursion
+    (goto-char pos)
+    (vimpulse-text-object-bounds
+     'viper-backward-paragraph
+     'viper-forward-paragraph)))
 
 (defun vimpulse-get-paired-bounds (pos char)
-  "Returns the boundaries of a `char'-quoted expression."
+  "Returns the boundaries of a CHAR-quoted expression."
   (save-excursion
     (goto-char pos)
     (if (= (char-before (point)) ?\\) (backward-char))
@@ -241,7 +265,7 @@ followed is the same:
 
 
 (defun vimpulse-get-text-object-bounds-a (pos motion)
-  "Returns the boundaries of `a' text object, whitespace to be killed included."
+  "Returns the boundaries of \"a\" text object, including whitespace."
   (cond
    ((= motion ?w)
     (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vword-bounds pos))
@@ -321,7 +345,7 @@ following the behavior indicated by CHAR: ?i stands for \"inner\",
 
 (defun vimpulse-delete-text-objects-command (count char)
   "Deletes COUNT text objects following the behavior CHAR ('inner' or 'a').
-The kind of text object is asked interactively to the user using `read-char'."
+The user is queried for the type of object with `read-char'."
   (interactive)
   (let ((motion (read-char)))
     (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function
@@ -334,7 +358,7 @@ The kind of text object is asked interactively to the user using `read-char'."
   (viper-yank-last-insertion))
 
 (defun vimpulse-change-text-objects-command (count char)
-  "Changes COUNT text objects following the behavior CHAR ('inner' or 'a').
+  "Changes COUNT text objects following the behavior CHAR (\"inner\" or \"a\").
 The kind of text object is asked interactively to the user using `read-char'."
   (interactive)
   (let ((motion (read-char)))
