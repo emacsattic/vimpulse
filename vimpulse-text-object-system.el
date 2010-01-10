@@ -38,12 +38,11 @@ ARG controls the number of objects and POS the starting point
   (let (beg end)
     (setq arg (or arg 1))
     ;; If ARG is negative, swap BACKWARD-FUNC and FORWARD-FUNC
-    (cond 
+    (cond
      ((> 0 arg)
       (setq beg backward-func)
       (setq backward-func forward-func)
-      (setq forward-func beg)
-      (setq arg (abs arg)))
+      (setq forward-func beg))
      ((= 0 arg)
       (setq arg 1)))
     ;; To avoid errors when hitting upon buffer boundaries,
@@ -51,6 +50,13 @@ ARG controls the number of objects and POS the starting point
     (save-excursion
       (when pos
         (goto-char pos))
+      ;; We might already be at the ending character --
+      ;; go one character back so we don't run past it.
+      (condition-case nil
+          (if (> 0 arg)
+              (forward-char)
+            (backward-char))
+        (error nil))
       (condition-case nil
           (funcall forward-func 1)
         (error nil))
@@ -59,7 +65,7 @@ ARG controls the number of objects and POS the starting point
         (error nil))
       (setq beg (point))
       (condition-case nil
-          (funcall forward-func arg)
+          (funcall forward-func (abs arg))
         (error nil))
       (setq end (point)))
     (sort (list beg end) '<)))
