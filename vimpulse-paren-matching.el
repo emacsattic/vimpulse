@@ -11,8 +11,12 @@
 ;;;
 
 ;;; Begin Paren Matching Code {{{
-(unless (boundp 'vimpulse-enhanced-paren-matching)  ;; Enhanced paren matching is enabled by default. To disable it
-  (setq vimpulse-enhanced-paren-matching t))       ;; just add (setq vimpulse-enhanced-paren-matching nil) to your .emacs
+
+;; Do we really need this option?
+(defcustom vimpulse-enhanced-paren-matching t
+  "Enhanced matching of parentheses, on by default."
+  :group 'vimpulse
+  :type  'boolean)
 
 (when vimpulse-enhanced-paren-matching
   (require 'paren)
