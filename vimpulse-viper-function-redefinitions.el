@@ -10,20 +10,39 @@
 ;; original viper-exec-change command and see if mine does everything
 ;; it does.
 ;;EXPERIMENTAL: make the changecommand work like vim
-(defun viper-exec-change (m-com com)
+;; (defun viper-exec-change (m-com com)
+;;   (cond
+;;    ((vimpulse-is-whitespace viper-com-point)            ;; check if the command has been issued on a whitespace
+;;     (save-excursion (viper-exec-delete m-com com))      ;; deletes the stuff as in the old code
+;;     (while (vimpulse-is-whitespace (point))             ;; eliminates all trailing whitespace like vim does
+;;       (delete-char 1))
+;;     (viper-insert nil))
+;;    (t                                                   ;; Old code executed in the other cases
+;;     (save-excursion ;; Added by Alessandro Piras, to fix cW suckage
+;;       (viper-exec-delete m-com com)) ;; on the last word of a line
+;;     (if (eq m-com 'viper-goto-eol) ; use viper-append here since vi's C (change to end of line)
+;;                                         ; command works differently than c
+;;         (viper-append nil)
+;;       (viper-insert nil)))))
+
+(defcustom vimpulse-want-change-state nil
+  "Whether commands like \"cw\" invoke Replace state, vi-like.
+The default is to delete the text and enter Insert state,
+like in Vim."
+  :group 'vimpulse
+  :type  'boolean)
+
+(defadvice viper-change
+  (around vimpulse-want-change-state activate)
+  "Disable Replace state if `vimpulse-want-change-state' is nil."
   (cond
-   ((vimpulse-is-whitespace viper-com-point)            ;; check if the command has been issued on a whitespace
-    (save-excursion (viper-exec-delete m-com com))      ;; deletes the stuff as in the old code
-    (while (vimpulse-is-whitespace (point))             ;; eliminates all trailing whitespace like vim does
-      (delete-char 1))
-    (viper-insert nil))
-   (t                                                   ;; Old code executed in the other cases
-    (save-excursion ;; Added by Alessandro Piras, to fix cW suckage
-      (viper-exec-delete m-com com)) ;; on the last word of a line
-    (if (eq m-com 'viper-goto-eol) ; use viper-append here since vi's C (change to end of line)
-                                        ; command works differently than c
-        (viper-append nil)
-      (viper-insert nil)))))
+   (vimpulse-want-change-state
+    ad-do-it)
+   (t
+    ;; We don't want Viper's Replace mode when changing text;
+    ;; just delete it and enter Insert state.
+    (kill-region beg end)
+    (viper-change-state-to-insert))))
 
 (when nil
   (defun viper-adjust-undo ()
