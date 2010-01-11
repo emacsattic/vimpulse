@@ -34,8 +34,8 @@
 (defvar vimpulse-last-yank nil)
 (defcustom vimpulse-visual-load-hook nil
   "Hooks to run after loading vimpulse-visual-mode."
-  :type 'hook
-  :group 'vimpulse-visual)
+  :group 'vimpulse
+  :type  'hook)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Functions related to visual selection activation,     ;;;
