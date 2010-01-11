@@ -406,7 +406,7 @@ with the CHAR character, without replacing the newlines."
       (goto-char origin)))))
 
 (defun vimpulse-select-text-object
-  (count &optional char motion) 
+  (count &optional char motion)
   "Visually select a text object."
   (interactive "p")
   (let* ((char    (or char last-command-event))
@@ -415,7 +415,7 @@ with the CHAR character, without replacing the newlines."
                    (point) char count motion))
          (start   (car bounds))
          (end     (cadr bounds)))
-    (when bounds 
+    (when bounds
       (unless (vimpulse-widen-selection start end)
         ;; We're stuck; move and try again
         (if (< (point) vimpulse-visual-overlay-origin)

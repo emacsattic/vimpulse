@@ -53,8 +53,7 @@ ARG controls the number of objects and POS the starting point
       ;; We might already be at the ending character --
       ;; go one character back so we don't run past it.
       (condition-case nil
-          (if (> 0 arg)
-              (forward-char)
+          (if (> 0 arg) (forward-char)
             (backward-char))
         (error nil))
       (condition-case nil
@@ -174,16 +173,24 @@ lower bound of the position, LIME is the upper bound to the position."
       (save-excursion
         (goto-char pos)
         (vimpulse-text-object-bounds
-         'viper-backward-word
-         'viper-end-of-word))))))
+         (lambda (arg)
+           (forward-char)
+           (viper-backward-word arg))
+         (lambda (arg)
+           (unless (viper-end-of-word-p)
+             (viper-end-of-word arg)))))))))
 
 (defun vimpulse-get-vWord-bounds (pos)
   "Returns the boundaries of a Word."
   (save-excursion
     (goto-char pos)
     (vimpulse-text-object-bounds
-     'viper-backward-Word
-     'viper-end-of-Word)))
+     (lambda (arg)
+       (forward-char)
+       (viper-backward-Word arg))
+     (lambda (arg)
+       (unless (looking-at "[[:space:]]"))
+       (viper-end-of-Word arg)))))
 
 (defun vimpulse-get-sentence-bounds (pos)
   "Returns the boundaries of a sentence."
@@ -191,15 +198,21 @@ lower bound of the position, LIME is the upper bound to the position."
     (goto-char pos)
     (vimpulse-text-object-bounds
      'viper-backward-sentence
-     'viper-forward-sentence)))
+     (lambda (arg)
+       (viper-forward-sentence arg)
+       (backward-char)))))
 
 (defun vimpulse-get-paragraph-bounds (pos)
   "Returns the boundaries of a paragraph."
   (save-excursion
     (goto-char pos)
     (vimpulse-text-object-bounds
-     'viper-backward-paragraph
-     'viper-forward-paragraph)))
+     (lambda (arg)
+       (viper-backward-paragraph arg)
+       (forward-char))
+     (lambda (arg)
+       (viper-forward-paragraph arg)
+       (backward-char)))))
 
 (defun vimpulse-get-paired-bounds (pos char)
   "Returns the boundaries of a CHAR-quoted expression."
@@ -259,16 +272,14 @@ followed is the same:
     (goto-char pos)
     (let ((start (point))
           (end nil))
-
       (skip-chars-forward "[:blank:]\n\r")
       (let ((bounds (apply func  (list (point)))))
         (cond
          (bounds
           (goto-char (1+ (cadr bounds)))
-          (skip-chars-forward (concat "[:blank:]" (if trailing-newlines "\n\r" "")))
+          (skip-chars-forward (if trailing-newlines "[:blank:]\n\r" "[:blank:]"))
           (list (min start (car bounds)) (1- (point))))
          (t nil))))))
-
 
 (defun vimpulse-get-text-object-bounds-a (pos motion)
   "Returns the boundaries of \"a\" text object, including whitespace."
@@ -276,7 +287,7 @@ followed is the same:
    ((= motion ?w)
     (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vword-bounds pos))
    ((= motion ?W) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vWord-bounds pos))
-   ((= motion ?s) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-sentence-bounds pos))
+   ((= motion ?s) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-sentence-bounds pos t))
    ((= motion ?p) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-paragraph-bounds pos t))
    ((= motion ?b)
     (setq motion ?\()
