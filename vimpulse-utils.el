@@ -36,9 +36,10 @@
 vimpulse visual selection commands. See the comments on the source
 for an example on how to use it."
   `(lambda ()
+     ,(format "Apply `%s' on visual selection." function)
      (interactive)
      (,function (vimpulse-get-vs-start) (vimpulse-get-vs-end))
-     (vimpulse-visual-mode nil)))
+     (vimpulse-visual-mode -1)))
 
 ;;; The macro vimpulse-region-commands works with any emacs command that
 ;;; operates with a region and takes as arguments the beginning and end of

@@ -150,6 +150,8 @@ mode of operation to line-wise if Visual selection is already started."
 (define-key vimpulse-visual-mode-map "=" 'vimpulse-visual-indent-command)
 (define-key vimpulse-visual-mode-map "a" 'vimpulse-select-text-object)
 (define-key vimpulse-visual-mode-map "i" 'vimpulse-select-text-object)
+(define-key vimpulse-visual-mode-map "u" (vimpulse-region-command downcase-region))
+(define-key vimpulse-visual-mode-map "U" (vimpulse-region-command upcase-region))
 ;; Keys that have no effect in visual mode
 (define-key vimpulse-visual-mode-map "." 'undefined)
 ;; Advice viper-intercept-ESC-key to exit visual mode with ESC
