@@ -78,6 +78,8 @@ SYM is unquoted. Returns VAL."
   ;; Make cursor color consistent
   (vimpulse-setq viper-insert-state-cursor-color
                  viper-vi-state-cursor-color)
+  ;; Cursor moves backwards when exiting Insert state
+  (vimpulse-setq viper-ESC-moves-cursor-back t)
   ;; Not in Vim: C-h is indispensable in Emacs
   (vimpulse-setq viper-want-ctl-h-help t)
   ;; Refresh Viper settings
