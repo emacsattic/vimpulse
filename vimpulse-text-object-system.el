@@ -209,7 +209,7 @@ lower bound of the position, LIME is the upper bound to the position."
     (vimpulse-text-object-bounds
      (lambda (arg)
        (viper-backward-paragraph arg)
-       (forward-char))
+       (unless (bobp) (forward-char)))
      (lambda (arg)
        (viper-forward-paragraph arg)
        (backward-char)))))
