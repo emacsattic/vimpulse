@@ -1,12 +1,12 @@
 
 ;;; Development and documentation TODOs:
 
-;; - make sure I have added all stuff in Brad's viper additions and
+;; - Make sure I have added all stuff in Brad's viper additions and
 ;;   from my collection, then start documenting already.  Once there
 ;;   are even the simplest of docs (a nice key map) people will have a
 ;;   far easier time using vimpulse and so I bet more will contribute.
 ;;
-;; - the / key should allow isearch that works like Vim's, or until
+;; - The / key should allow isearch that works like Vim's, or until
 ;;   that's implemented, it should at least remap / to isearch-forward
 ;;   or viper-isearch-forward.  This should be an option that should
 ;;   be disabled by default.  For now, have viper load .vimrc and
@@ -18,50 +18,50 @@
 ;;   I personally only use foldmethod=marker, and even that only rarely.
 ;;
 ;; - i_C-(I forgot the letter) should do (copy-from-above-command 1)
-;;   from misc.el
+;;   from misc.el.
 ;;
-;; - add :set spell / :set nospell that uses flyspell-mode
+;; - Add :set spell / :set nospell that uses flyspell-mode.
 ;;
-;; - add support for tabs.el, a tabs mode that works sensibly (get it
-;;   from Emacs Lisp List)
-;;     - minimum needed: :tabedit, :tabnext, :tabprevious
-;;     - since I'm emulating Vim, emulate its tab pages feature.  So a
+;; - Add support for tabs.el, a tabs mode that works sensibly (get it
+;;   from Emacs Lisp List).
+;;     - Minimum needed: :tabedit, :tabnext, :tabprevious.
+;;     - Since I'm emulating Vim, emulate its tab pages feature.  So a
 ;;       tab page should be able to hold one or more buffers.
 ;;
-;; - add Customize option to let users stop C-r from being redo?
+;; - Add Customize option to let users stop C-r from being redo?
 ;;
-;; - email and try to get redo.el included with GNU Emacs (since I
+;; - E-mail and try to get redo.el included with GNU Emacs (since I
 ;;   won't include redo.el here since nobody else includes it in their
-;;   Lisp files either)
+;;   Lisp files either).
 ;;
-;; - copy more features from Brad's work in darcs and from vimpact
-;;   into vimpulse
+;; - Copy more features from Brad's work in darcs and from vimpact
+;;   into vimpulse.
 ;;
-;; - doc: look in google chat log, find description of one-char-off
+;; - Doc: look in google chat log, find description of one-char-off
 ;;   bug, see if it applies to this or to the not-yet-released
-;;   viper-x, and if to this, mention under Bugs
+;;   viper-x, and if to this, mention under Bugs.
 ;;
-;; - doc: fix ref to "your home directory": Windows users don't have
-;;   one
+;; - Doc: fix ref to "your home directory": Windows users don't have
+;;   one.
 ;;
-;; - doc: list all new keys (and maybe all differences from viper) in
-;;   Usage section
+;; - Doc: list all new keys (and maybe all differences from viper) in
+;;   Usage section.
 ;;
-;; - doc: describe all new keys in Usage section; can look at Vim
-;;   manual for ideas
+;; - Doc: describe all new keys in Usage section; can look at Vim
+;;   manual for ideas.
 ;;
-;; - modify how tramp works so it also automatically handles URLs
-;;   typed in the netrw syntax, i.e. http:// etc.  But first ask tramp
+;; - Modify how tramp works so it also automatically handles URLs
+;;   typed in the netrw syntax, i.e., http:// etc.  But first ask tramp
 ;;   upstream if they could please make those changes themselves.
 ;;
-;; - add CTRL-O for jumping back in the jumplist and CTRL-I for
+;; - Add CTRL-O for jumping back in the jumplist and CTRL-I for
 ;;   jumping forwards (for undoing one CTRL-O).  I wonder if emacs'
 ;;   tags functionality allows a jumplist.  I wonder if viper does
 ;;   tags like nvi does.
 ;;     - The global mark ring is not what I want.
 ;;     - Try code.google.com/p/ejumplist/source/browse/trunk/jumplist.el
 ;;
-;; - on my PC (I run Ubuntu), if you start plain Vim then press CTRL-O
+;; - On my PC (I run Ubuntu), if you start plain Vim then press CTRL-O
 ;;   many times, it starts opening recently opened files.  Is that
 ;;   useful?  Should vimpulse have persistent jump table functionality
 ;;   like that, and if so, should it use recentf or vim's .viminfo
@@ -69,7 +69,7 @@
 ;;   with the fact that in emacs it's not traditional to suddenly
 ;;   close files without warning?
 ;;
-;; - make sentence movement work like in Vim.  I wonder if this can be
+;; - Make sentence movement work like in Vim.  I wonder if this can be
 ;;   done by setting viper options.
 ;;     - In Vim, according to :help sentence, end of sentence is:
 ;;         - '.', '?', or '!'
@@ -89,23 +89,27 @@
 ;;       where Tabs aren't whitespace, and you need at least two spaces
 ;;       after the punctuation mark.
 ;;
-;; - try to get vimpulse included with upstream viper; also, ideally,
+;; - Make "dgg" work.
+;;
+;; - Implement smartcase searching.
+;;
+;; - Try to get vimpulse included with upstream viper; also, ideally,
 ;;   if you pressed "v" in viper, viper would offer to load vimpulse.
 ;;   (likely to happen?  Consider that Michael Kifer, the viper
 ;;   maintainer, told me he doesn't need vim keys.  Then again, maybe
 ;;   I could convince him that it's worth it to ship vim keys, for
-;;   other people's benefit.)
+;;   other people's benefit).
 ;;
-;; - email ridip <rdp@inthefaith.net> and ask him for his vimpulse
-;;   contribs and his dvorak stuff
+;; - E-mail ridip <rdp@inthefaith.net> and ask him for his vimpulse
+;;   contribs and his DVORAK stuff.
 ;;
-;; - email to Tromey for upload into ELPA?  we'd have to redo this
+;; - E-mail to Tromey for upload into ELPA?  we'd have to redo this
 ;;   when a new major version comes out.  Or maybe we should just
 ;;   contribute some auto-ELPA-management code.  By the way, should we
 ;;   move vimpulse into CVS somewhere?
 ;;
-;; - maybe merge all feature requests that anyone has ever sent into a
-;;   "Feature requests" section here
+;; - Maybe merge all feature requests that anyone has ever sent into a
+;;   "Feature requests" section here.
 
 ;;; Development plans:
 
@@ -163,18 +167,18 @@
 ;;       50+ buffers open.  Wildmenu is almost like iswitchb or ido.
 ;;     - I wonder how well that stuff works with just a few buffers open.
 ;;
-;; - simulate Vim's set virtualedit=onemore option to make C-x C-e
+;; - Simulate Vim's set virtualedit=onemore option to make C-x C-e
 ;;   possible w/o first advancing to next line?
 ;;
 ;; - Would it be bad to edit users' .viminfo files without asking
 ;;   permission, or should some variable have to be customized on to do
 ;;   such a thing?
 ;;
-;; - should gj and gk do longlines-style movement like in Vim?  I
+;; - Should gj and gk do longlines-style movement like in Vim?  I
 ;;   really must resolve my Windows vs. Unix line-length hangups by
 ;;   Googling or asking before I even think about this.
 ;;
-;; - is there any need to implement Vim's new
+;; - Is there any need to implement Vim's new
 ;;   [count]dk-can-go-past-top-of-file-without-error functionality (to
 ;;   me, no need) or any related functionality?
 ;;
