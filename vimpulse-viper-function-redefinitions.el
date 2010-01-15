@@ -40,7 +40,7 @@ like in Vim."
     ad-do-it)
    (t
     ;; We don't want Viper's Replace mode when changing text;
-    ;; just delete it and enter Insert state.
+    ;; just delete and enter Insert state.
     (kill-region beg end)
     (viper-change-state-to-insert))))
 
@@ -305,9 +305,12 @@ actions instead of one."
                  (if ans (setq address ans)))))
       (setq prev-token-type ex-token-type))))
 
-(defadvice viper-exit-insert-state (after vimpulse activate)
-  "Move cursor backwards even if `viper-exit-insert-state' is nil."
-  (unless (or viper-ex-style-editing (bolp))
-    (backward-char 1)))
+;; This is no longer needed now that Vimpulse customizes
+;; variables properly.
+;;
+;; (defadvice viper-exit-insert-state (after vimpulse activate)
+;;   "Move cursor backwards even if `viper-ex-style-editing' is nil."
+;;   (unless (or viper-ex-style-editing (bolp))
+;;     (backward-char 1)))
 
 (provide 'vimpulse-viper-function-redefinitions)
