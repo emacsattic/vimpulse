@@ -176,6 +176,8 @@ mode of operation to line-wise if Visual selection is already started."
  (t
   (vimpulse-add-visual-maps-macro minor-mode-map-alist)))
 
+(viper-normalize-minor-mode-map-alist)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Visual selection visualization ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -383,7 +385,7 @@ with the CHAR character, without replacing the newlines."
    (vimpulse-visual-mode-block
     ;;(kill-new "\02VimpulseVisualBlockMode\03")
     (setq vimpulse-last-yank 'rectangle)
-    (vimpulse-visual-mode nil)
+    (vimpulse-visual-mode -1)
     ;;(rm-kill-ring-save (region-beginning) (region-end))
     (kill-rectangle (region-beginning) (region-end))
     (goto-char (region-beginning))
@@ -395,7 +397,7 @@ with the CHAR character, without replacing the newlines."
           (char (if vimpulse-visual-mode-linewise ?l ?r))
           (motion (unless vimpulse-visual-mode-linewise (vimpulse-get-vs-bounds))))
       (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))
-      (vimpulse-visual-mode nil)))))
+      (vimpulse-visual-mode -1)))))
 
 (defun vimpulse-invert-origin-and-cursor ()
   (interactive)
