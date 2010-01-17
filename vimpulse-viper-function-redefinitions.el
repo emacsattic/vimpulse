@@ -1,30 +1,3 @@
-
-;; This function replaces viper's original viper-exec-change function
-;; which is invoked by key sequences starting with 'c'.  When the user
-;; requests a command like 'cw', this function calls a sequence like
-;; 'dwi' instead.  This stops viper from indicating the change
-;; operation with distracting colored overlays and $ signs.  Instead,
-;; it simply deletes the text then enters Insert mode, like Vim does.
-;;
-;; The function works fine at eol and eob but TODO: understand the
-;; original viper-exec-change command and see if mine does everything
-;; it does.
-;;EXPERIMENTAL: make the changecommand work like vim
-;; (defun viper-exec-change (m-com com)
-;;   (cond
-;;    ((vimpulse-is-whitespace viper-com-point)            ;; check if the command has been issued on a whitespace
-;;     (save-excursion (viper-exec-delete m-com com))      ;; deletes the stuff as in the old code
-;;     (while (vimpulse-is-whitespace (point))             ;; eliminates all trailing whitespace like vim does
-;;       (delete-char 1))
-;;     (viper-insert nil))
-;;    (t                                                   ;; Old code executed in the other cases
-;;     (save-excursion ;; Added by Alessandro Piras, to fix cW suckage
-;;       (viper-exec-delete m-com com)) ;; on the last word of a line
-;;     (if (eq m-com 'viper-goto-eol) ; use viper-append here since vi's C (change to end of line)
-;;                                         ; command works differently than c
-;;         (viper-append nil)
-;;       (viper-insert nil)))))
-
 (defcustom vimpulse-want-change-state nil
   "Whether commands like \"cw\" invoke Replace state, vi-like.
 The default is to delete the text and enter Insert state,
@@ -44,20 +17,40 @@ like in Vim."
     (kill-region beg end)
     (viper-change-state-to-insert))))
 
-(when nil
-  (defun viper-adjust-undo ()
-    "This viper function has been redefined by vimpulse.el to
-do nothing.  This way, in insert mode, typing then moving
-the cursor then typing more counts as two separately undoable
-actions instead of one."
-    )
-  )
+(defcustom vimpulse-goto-line t
+  "Goto line with \"G\" like in Vim."
+  :group 'vimpulse
+  :type  'boolean)
+
+(defun vimpulse-goto-line (arg)
+  "Go to ARG's line; without ARG go to end of buffer.
+Works like Vim's \"G\"."
+  (interactive "P")
+  (let ((val (viper-P-val arg))
+        (com (viper-getCom arg)))
+    (when (eq ?c com) (setq com ?C))
+    (viper-move-marker-locally 'viper-com-point (point))
+    (viper-deactivate-mark)
+    (push-mark nil t)
+    (cond
+     ((null val)
+      (goto-char (point-max)))
+     (t
+      (goto-line val)))
+    (when com
+      (viper-execute-com 'vimpulse-goto-line val com))))
+
+(when vimpulse-goto-line
+  (fset 'viper-goto-line 'vimpulse-goto-line))
 
 ;;
 ;; Thanks to the anonymous poster for the idea on how to modify the viper
 ;; function to add the di da ci and ca partial commands.
 ;;
-
+(defcustom vimpulse-text-objects t
+  "Text objects support, on by default."
+  :group 'vimpulse
+  :type  'boolean)
 
 ;; REDEFINITION OF VIPER FUNCTION
 ;;
@@ -80,7 +73,7 @@ actions instead of one."
 ;; For (some) brewity, Kifer's comments are removed. The added lines
 ;; are annotated with ";; MODIFICATION".
 
-(defun viper-prefix-arg-com (char value com)
+(defun vimpulse-prefix-arg-com (char value com)
   (let ((cont t)
         cmd-info
         cmd-to-exec-at-end)
@@ -187,8 +180,10 @@ actions instead of one."
           (condition-case err
               (funcall cmd-to-exec-at-end cmd-info)
             (error
-             (error "%s" (error-message-string err))))))
-    ))
+             (error "%s" (error-message-string err))))))))
+
+(when vimpulse-text-objects
+  (fset 'viper-prefix-arg-com 'vimpulse-prefix-arg-com))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Redefining viper-ex to get a similar behavior to vim when ;;;
@@ -199,7 +194,12 @@ actions instead of one."
 ;;;       introducing them would introduce even more kludges  ;;;
 ;;;       like this one.                                      ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun viper-ex (arg &optional string)
+(defcustom vimpulse-visual-ex t
+  "Ex support for visual selections, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(defun vimpulse-ex (arg &optional string)
   (interactive "P")
   (or string
       (setq ex-g-flag nil
@@ -305,12 +305,7 @@ actions instead of one."
                  (if ans (setq address ans)))))
       (setq prev-token-type ex-token-type))))
 
-;; This is no longer needed now that Vimpulse customizes
-;; variables properly.
-;;
-;; (defadvice viper-exit-insert-state (after vimpulse activate)
-;;   "Move cursor backwards even if `viper-ex-style-editing' is nil."
-;;   (unless (or viper-ex-style-editing (bolp))
-;;     (backward-char 1)))
+(when vimpulse-visual-ex
+  (fset 'viper-ex 'vimpulse-ex))
 
 (provide 'vimpulse-viper-function-redefinitions)
