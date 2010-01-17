@@ -91,8 +91,6 @@
 ;;
 ;; - Make "dgg" work.
 ;;
-;; - Make "cG" work like "dG".
-;;
 ;; - Implement smartcase searching.
 ;;
 ;; - Try to get vimpulse included with upstream viper; also, ideally,
