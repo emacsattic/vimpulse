@@ -91,6 +91,8 @@
 ;;
 ;; - Make "dgg" work.
 ;;
+;; - Make :q and :q! work as in Vim.
+;;
 ;; - Implement smartcase searching.
 ;;
 ;; - Try to get vimpulse included with upstream viper; also, ideally,
