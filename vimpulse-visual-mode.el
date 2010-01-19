@@ -271,7 +271,7 @@ Otherwise deactivates visual mode."
 
 (define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-normal)
 (define-key viper-vi-basic-map "V" 'vimpulse-visual-toggle-line)
-(define-key viper-vi-basic-map "\C-v" 'vimpulse-visual-mode-block)
+(define-key viper-vi-basic-map "\C-v" 'vimpulse-visual-toggle-block)
 (define-key viper-vi-basic-map "\C-p" 'yank-rectangle)
 (define-key viper-vi-basic-map "g" nil)
 (define-key viper-vi-basic-map "gv" 'vimpulse-visual-reactivate)
