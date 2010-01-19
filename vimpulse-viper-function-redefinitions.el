@@ -111,7 +111,6 @@ Works like Vim's \"G\"."
               (t
                (setq com char)
                (setq char (read-char))))))
-
     (if (atom com)
         ;; `com' is a single char, so we construct the command argument
         ;; and if `char' is `?', we describe the arg; otherwise
@@ -133,7 +132,6 @@ Works like Vim's \"G\"."
           (setq cmd-to-exec-at-end
                 (viper-exec-form-in-vi
                  `(key-binding (char-to-string ,char)))))
-
       ;; as com is non-nil, this means that we have a command to execute
       (if (viper-memq-char (car com) '(?r ?R))
           ;; execute apropriate region command.
@@ -171,7 +169,6 @@ Works like Vim's \"G\"."
          ;; gg  acts as G0
          ((equal (car com) ?g)   (viper-goto-line 0))
          (t (error "Viper bell")))))
-
     (if cmd-to-exec-at-end
         (progn
           (setq last-command-event
@@ -208,15 +205,14 @@ Works like Vim's \"G\"."
          (address nil)
          (cont t)
          (dot (point))
-         reg-beg-line reg-end-line
+         (initial-str
+          (when (and vimpulse-visual-mode
+                     (not (eq 'block vimpulse-visual-mode)))
+            "'y,'z"))
          reg-beg reg-end
-         (initial-str (when (and vimpulse-visual-mode
-                                 (not vimpulse-visual-mode-block))
-                        "'y,'z"))
-
+         reg-beg-line reg-end-line
          prev-token-type com-str)
     (viper-add-keymap viper-ex-cmd-map map)
-
     (if arg
         (progn
           (viper-enlarge-region (mark t) (point))
@@ -232,7 +228,6 @@ Works like Vim's \"G\"."
                   (+ reg-beg-line (count-lines reg-beg reg-end) -1)))))
     (if reg-beg-line
         (setq initial-str (format "%d,%d" reg-beg-line reg-end-line)))
-
     (setq com-str
           (if string
               (concat initial-str string)
@@ -278,10 +273,11 @@ Works like Vim's \"G\"."
                             (forward-char 1))
                            ((looking-at "\n")
                             (setq cont nil))
-                           (t (error
-                               "`%s': %s" ex-token viper-SpuriousText)))
-                     )))
-               ))
+                           (t
+                            (error
+                             "`%s': %s"
+                             ex-token
+                             viper-SpuriousText))))))))
             ((eq ex-token-type 'non-command)
              (error "`%s': %s" ex-token viper-BadExCommand))
             ((eq ex-token-type 'whole)
