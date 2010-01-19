@@ -161,11 +161,7 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
   (define-key viper-vi-global-user-map "\C-wk" 'windmove-up)
   (define-key viper-vi-global-user-map "\C-wl" 'windmove-right))
 
-;; Block Visual Mode keys
-(define-key viper-vi-global-user-map "\C-p" 'yank-rectangle)
-(define-key viper-vi-global-user-map "\C-v" 'vimpulse-visual-mode-block)
-
-;; Insert mode keys
+;;; Insert mode keys
 ;; Vim-like completion keys
 (define-key viper-insert-global-user-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-global-user-map "\C-n" 'vimpulse-abbrev-expand-after)
@@ -192,15 +188,29 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
   (interactive)
   (select-window (next-window)))
 
-(defun vimpulse-search-for-symbol-at-point (whether-forward)
+(defun vimpulse-search-for-symbol-at-point (forward-p)
   "Search forwards or backwards for the symbol under point."
-  (let* ((str (regexp-quote (thing-at-point 'symbol)))
-         (search-str (concat "\\<" str "\\>"
-                             "\\|"
-                             "\\_<" str "\\_>")))
-    (setq viper-s-string search-str)
-    (setq viper-s-forward whether-forward)
-    (viper-search search-str whether-forward 1)))
+  (let ((str (thing-at-point 'symbol)))
+    ;; If there's no symbol under point, go forwards
+    ;; (or backwards) to find one
+    (save-excursion
+      (while (and (not str) (or (and forward-p (not (eobp)))
+                                (and (not forward-p) (not (bobp)))))
+        (if forward-p (forward-char) (backward-char))
+        (setq str (thing-at-point 'symbol))))
+    (cond
+     ((stringp str)
+      (setq str (regexp-quote str))
+      (setq str (concat "\\<" str "\\>" "\\|" "\\_<" str "\\_>"))
+      ;; If searching several times in a row,
+      ;; use the same search string each time
+      (when (or (string= "" viper-s-string)
+                (not (looking-at-p viper-s-string)))
+        (setq viper-s-string str))
+      (setq viper-s-forward forward-p)
+      (viper-search viper-s-string forward-p 1))
+     (t
+      (error "No string under cursor")))))
 
 (defun vimpulse-search-forward-for-symbol-at-point ()
   (interactive)
