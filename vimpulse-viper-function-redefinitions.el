@@ -305,3 +305,4 @@ Works like Vim's \"G\"."
   (fset 'viper-ex 'vimpulse-ex))
 
 (provide 'vimpulse-viper-function-redefinitions)
+

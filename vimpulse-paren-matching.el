@@ -123,3 +123,4 @@ matching paren, or mismatched paren." ;; FIXME: this description sucks.
 ;;; }}} End Paren Matching code
 
 (provide 'vimpulse-paren-matching)
+

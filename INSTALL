@@ -1,4 +1,3 @@
-
 ;;; Installation:
 
 ;; 0. If you checked out from SVN, do `make all' to produce
@@ -27,3 +26,4 @@
 ;; or disliked Vimpulse and why, and which new features you would like
 ;; to see.  Also, if you stop using Emacs or Vimpulse, please tell us
 ;; why, so we can try to improve it!
+

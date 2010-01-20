@@ -26,5 +26,5 @@
 
 (setq ex-token-alist (append vimpulse-extra-ex-commands ex-token-alist))
 
-
 (provide 'vimpulse-ex)
+

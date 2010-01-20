@@ -9,8 +9,3 @@
 (require 'vimpulse-visual-mode)
 
 (provide 'vimpulse)
-
-
-
-
-

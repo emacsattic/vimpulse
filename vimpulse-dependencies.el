@@ -90,3 +90,4 @@ SYM is unquoted. Returns VAL."
   (add-hook 'after-init-hook 'vimpulse-initialize-variables))
 
 (provide 'vimpulse-dependencies)
+
