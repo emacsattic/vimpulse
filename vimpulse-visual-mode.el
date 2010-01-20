@@ -587,11 +587,15 @@ Adapted from: rm-highlight-rectangle"
 (defun vimpulse-visual-delete ()
   "Kills the visual selection to the kill-ring."
   (interactive)
-  (let ((mode vimpulse-visual-mode))
+  (let ((mode vimpulse-visual-mode) length)
     (vimpulse-visual-normalize-region)
+    (setq length (abs (- (region-beginning) (region-end))))
     (cond
      ((eq 'normal mode)
-      (viper-prefix-arg-com ?r 1 ?d))
+      (viper-prefix-arg-com ?r 1 ?d)
+      (viper-set-destructive-command
+       (list 'viper-forward-char
+             length ?d viper-use-register nil nil)))
      ((eq 'line mode)
       (goto-char vimpulse-visual-last-begin)
       (viper-line (cons (count-lines
@@ -607,13 +611,17 @@ Adapted from: rm-highlight-rectangle"
 (defun vimpulse-visual-change ()
   "Change the visual selection to the kill-ring."
   (interactive)
-  (let ((mode vimpulse-visual-mode))
+  (let ((mode vimpulse-visual-mode) length)
     (vimpulse-visual-normalize-region)
+    (setq length (abs (- (region-beginning) (region-end))))
     (vimpulse-visual-mode -1)
     (vimpulse-push-buffer-undo-list-mark)
     (cond
      ((eq 'normal mode)
-      (viper-prefix-arg-com ?r 1 ?c))
+      (viper-prefix-arg-com ?r 1 ?c)
+      (viper-set-destructive-command
+       (list 'viper-forward-char
+             length ?c viper-use-register nil nil)))
      ((eq 'line mode)
       (goto-char vimpulse-visual-last-begin)
       (viper-line (cons (count-lines
@@ -977,7 +985,7 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
   (push vimpulse-buffer-undo-list-mark buffer-undo-list))
 
 ;; Redefinitions of viper functions to handle visual block-mode,
-;; the "update all lines when we hit ESC" part.
+;; that is, the "update all lines when we hit ESC" part.
 ;; This function is not in viper-functions-redefinitions.el
 ;; because its code is closely related to visual mode.
 (defun viper-exit-insert-state ()
@@ -1065,8 +1073,7 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
 
 ;; Viper's larger movement commands use the mark to store the previous
 ;; position, which is fine and useful when the mark isn't active. When
-;; it is, however, it has the effect of remaking the whole region. The
-;; following advice implements basic Transient Mark Mode awareness.
+;; it is, however, it has the effect of remaking the whole region.
 (defadvice push-mark (around vimpulse-visual-mode activate)
   (unless (and vimpulse-visual-mode
                ;; Note: if you really need to call `push-mark'
@@ -1082,12 +1089,6 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
                        viper-window-bottom
                        viper-window-middle
                        viper-window-top)))
-    ad-do-it))
-
-;; CHECKME: is this still needed?
-(defadvice viper-move-marker-locally
-  (around vimpulse-move-marker-locally-wrap activate)
-  (unless vimpulse-visual-mode
     ad-do-it))
 
 ;; CHECKME: is this still needed?
