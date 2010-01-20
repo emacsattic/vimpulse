@@ -1,10 +1,6 @@
 ;;; vimpulse.el --- emulates Vim's most useful features, including Visual mode
 
-
-
 ;; ### For setup instructions, see "Installation" below. ###
-
-
 
 ;; Copyright (C) 2007 Brad Beveridge.
 ;; Copyright (C) 2007, 2009 Alessandro Piras.
@@ -56,3 +52,4 @@
 ;;                  if you work with very big files, so deactivate it
 ;;                  if you notice sluggishness (see point 5 of the
 ;;                  installation instructions).
+

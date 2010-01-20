@@ -1098,3 +1098,4 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
     ad-do-it))
 
 (provide 'vimpulse-visual-mode)
+

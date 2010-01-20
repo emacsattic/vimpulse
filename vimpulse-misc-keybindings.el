@@ -231,3 +231,4 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
   (dabbrev-expand -1))
 
 (provide 'vimpulse-misc-keybindings)
+

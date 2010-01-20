@@ -1,4 +1,3 @@
-
 ;;; Bugs:
 
 ;; (We would appreciate very much if you report bugs.)
@@ -32,3 +31,4 @@
 ;;           standard vim behavior though)
 ;;
 ;; - Undo has problems in XEmacs.
+

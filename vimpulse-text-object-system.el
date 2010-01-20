@@ -1,4 +1,3 @@
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; EXPERIMENTAL
 ;;;; Text Object Support:
@@ -428,3 +427,4 @@ The kind of text object is asked interactively to the user using `read-char'."
 ;;; }}} End Text Objects code
 
 (provide 'vimpulse-text-object-system)
+
