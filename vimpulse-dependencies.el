@@ -85,7 +85,7 @@ SYM is unquoted. Returns VAL."
   ;; Refresh Viper settings
   (viper-change-state-to-vi))
 
-(if after-init-time
+(if (and (boundp 'after-init-time) after-init-time)
     (vimpulse-initialize-variables)
   (add-hook 'after-init-hook 'vimpulse-initialize-variables))
 
