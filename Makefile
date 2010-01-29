@@ -19,6 +19,7 @@ vimpulse-big.el: Header INSTALL README BUGS TODO Changelog \
 	    vimpulse-dependencies.el \
 	    vimpulse-viper-function-redefinitions.el \
 	    vimpulse-utils.el \
+	    vimpulse-modal.el \
 	    vimpulse-misc-keybindings.el \
 	    vimpulse-ex.el \
 	    vimpulse-paren-matching.el \
