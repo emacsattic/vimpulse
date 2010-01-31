@@ -17,16 +17,23 @@
   :prefix "vimpulse-visual-"
   :group  'emulations)
 
+(defcustom vimpulse-visual-basic-map (make-sparse-keymap)
+  "Visual mode keymap.
+This keymap is active when in visual mode."
+  :type  'keymap
+  :group 'vimpulse-visual)
+
 (define-minor-mode vimpulse-visual-mode
   "Toggles visual mode in viper"
-  :lighter " visual"
   :initial-value nil
+  :keymap vimpulse-visual-basic-map
   :global nil
   :group 'vimpulse-visual
   (cond
-   ((eq t vimpulse-visual-mode)
-    (vimpulse-visual-activate 'normal))
-   ((not vimpulse-visual-mode)
+   (vimpulse-visual-mode
+    (unless (memq vimpulse-visual-mode '(normal linewise block))
+      (vimpulse-visual-activate 'normal)))
+   (t
     ;; Hide the selection
     (vimpulse-visual-hide-region)
     ;; The Emacs region does not include the element under the cursor.
@@ -38,8 +45,8 @@
         (save-excursion
           (vimpulse-visual-normalize-region)))
     ;; Clean up local variables
-    (setq deactivate-mark-hook
-          (delq 'vimpulse-visual-deactivate deactivate-mark-hook))
+    (remove-hook 'post-command-hook 'vimpulse-visual-post-command)
+    (remove-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate)
     (and (boundp 'transient-mark-mode)
          (boundp 'vimpulse-visual-old-transient-mark-mode)
          (setq transient-mark-mode
@@ -55,16 +62,31 @@
     (mapcar #'kill-local-variable
             vimpulse-visual-our-local-variables)
     (viper-deactivate-mark)
+    (when (eq viper-current-state 'visual-state)
+      (viper-change-state 'vi-state)
+      (viper-restore-cursor-type))
     (run-hook-with-args 'vimpulse-visual-deactivate-hook))))
 
-(defcustom vimpulse-visual-mode-map (make-sparse-keymap)
-  "Visual mode keymap.
-This keymap is active when in visual mode."
-  :type  'keymap
-  :group 'vimpulse-visual)
+;; These become minor modes when `vimpulse-add-visual-maps-macro'
+;; is called below.
+(viper-deflocalvar
+ vimpulse-visual-state-modifier-minor-mode nil
+ "For making major mode-specific modifications to Visual state.")
 
-(defun vimpulse-visual-face ()
-  "Face of visual selection."
+(viper-deflocalvar
+ vimpulse-visual-global-user-minor-mode nil
+ "For user-defined global bindings in Visual state.")
+
+(defvar vimpulse-visual-global-user-map (make-sparse-keymap)
+  "Auxiliary map for user-defined bindings in Visual state.")
+
+(defvar vimpulse-visual-state-modifier-alist nil)
+
+(defvar vimpulse-visual-state-id "<VIS> "
+  "Mode line tag for identifying Visual state.")
+
+(defun vimpulse-region-face ()
+  "Return face of region."
   (if (featurep 'xemacs) 'highlight 'region))
 
 (defcustom vimpulse-visual-activate-hook nil
@@ -129,6 +151,110 @@ stored here.")
     keyboard-quit)
   "List of commands which would have disabled the mark
 if Transient Mark Mode was enabled.")
+
+(defun vimpulse-modifier-map (state &optional mode)
+  "Return the current major mode modifier map for STATE.
+If none, return an empty keymap (`viper-empty-keymap')."
+  (setq mode (or mode major-mode))
+  (setq state
+        (cond
+         ((eq state 'vi-state)
+          viper-vi-state-modifier-alist)
+         ((eq state 'insert-state)
+          viper-insert-state-modifier-alist)
+         ((eq state 'emacs-state)
+          viper-emacs-state-modifier-alist)
+         ((eq state 'visual-state)
+          vimpulse-visual-state-modifier-alist)))
+  (if (keymapp (cdr (assoc mode state)))
+      (cdr (assoc mode state))
+    viper-empty-keymap))
+
+;; Adding Visual state maps. The advice for this gets somewhat
+;; elaborate because Viper insists on making `minor-mode-map-alist'
+;; buffer-local in XEmacs, so we need to set both the default value
+;; and the local value.
+(defmacro vimpulse-add-visual-maps-macro (keymaps)
+  `(defadvice viper-normalize-minor-mode-map-alist
+     (after ,keymaps activate)
+     ,(format "Modifies `%s' to include visual keymaps." keymaps)
+     (let (mode temp)
+       (dolist (mode (list
+                      (cons 'vimpulse-visual-global-user-minor-mode
+                            vimpulse-visual-global-user-map)
+                      (cons 'vimpulse-visual-state-modifier-minor-mode
+                            (vimpulse-modifier-map 'visual-state))
+                      (cons 'vimpulse-visual-mode
+                            vimpulse-visual-basic-map)))
+         (setq temp (default-value ',keymaps))
+         (setq temp (assq-delete-all (car mode) temp)) ; already there?
+         (add-to-list 'temp mode)
+         (setq-default ,keymaps temp)
+         (setq temp ,keymaps)
+         (setq temp (assq-delete-all (car mode) temp))
+         (add-to-list 'temp mode)
+         (setq ,keymaps temp)))))
+
+(cond
+ ((featurep 'xemacs)
+  (vimpulse-add-visual-maps-macro viper--key-maps)
+  (vimpulse-add-visual-maps-macro minor-mode-map-alist))
+ ((>= emacs-major-version 22)
+  (vimpulse-add-visual-maps-macro viper--key-maps))
+ (t
+  (vimpulse-add-visual-maps-macro minor-mode-map-alist)))
+
+(viper-normalize-minor-mode-map-alist)
+
+(defadvice viper-refresh-mode-line (after vimpulse-states activate)
+  "Add mode line tag for Visual state."
+  (when (eq viper-current-state 'visual-state)
+    (set (make-local-variable 'viper-mode-string)
+         vimpulse-visual-state-id)
+    (force-mode-line-update)))
+
+(defadvice viper-set-mode-vars-for (after vimpulse-states activate)
+  "Activate minor modes for Visual state."
+  (cond
+   ((eq state 'visual-state)
+    (unless vimpulse-visual-mode
+      (vimpulse-visual-mode 1))
+    (setq vimpulse-visual-global-user-minor-mode t
+          vimpulse-visual-state-modifier-minor-mode t
+          ;; The rest is vi (command) maps
+          viper-vi-intercept-minor-mode t
+          viper-vi-minibuffer-minor-mode
+          (viper-is-in-minibuffer)
+          viper-vi-local-user-minor-mode t
+          viper-vi-kbd-minor-mode
+          (not (viper-is-in-minibuffer))
+          viper-vi-global-user-minor-mode t
+          viper-vi-state-modifier-minor-mode t
+          viper-vi-diehard-minor-mode
+          (not
+           (or viper-want-emacs-keys-in-vi
+               (viper-is-in-minibuffer)))
+          viper-vi-basic-minor-mode t
+          viper-emacs-intercept-minor-mode nil
+          viper-emacs-local-user-minor-mode nil
+          viper-emacs-kbd-minor-mode nil
+          viper-emacs-global-user-minor-mode nil
+          viper-emacs-state-modifier-minor-mode nil))
+   (t
+    (setq vimpulse-visual-global-user-minor-mode nil
+          vimpulse-visual-state-modifier-minor-mode nil)
+    (when vimpulse-visual-mode
+      (vimpulse-visual-mode -1)))))
+
+(defadvice viper-modify-major-mode (after vimpulse-visual activate)
+  "Modify Visual state."
+  (when (eq state 'visual-state)
+    (let ((alist 'vimpulse-visual-state-modifier-alist) elt)
+      (when (setq elt (assoc mode (eval alist)))
+        (set alist (delq elt (eval alist))))
+      (set alist (cons (cons mode keymap) (eval alist)))
+      (viper-normalize-minor-mode-map-alist)
+      (viper-set-mode-vars-for viper-current-state))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Functions related to visual selection activation, ;;;
@@ -202,8 +328,8 @@ Notice that an Emacs region is exclusive the last element, so
 this value is indeed (lower-right + 1), where `lower-right'
 denotes the last element contained in the selection.")
 
-(defun vimpulse-visual-activate (mode)
-  "Activates visual mode. MODE is `normal', `line' or `block'."
+(defun vimpulse-visual-activate (&optional mode)
+  "Activates Visual mode. MODE is `normal', `line' or `block'."
   (unless (memq vimpulse-visual-mode '(normal line block))
     ;; If we activate visual mode, set the mark
     (set-mark (point))
@@ -235,9 +361,12 @@ denotes the last element contained in the selection.")
     (if (boundp 'cua-mode) (setq cua-mode nil))
     (add-hook 'post-command-hook 'vimpulse-visual-post-command)
     (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate))
-  (setq vimpulse-visual-last-mode mode)
-  (setq vimpulse-visual-mode mode)
-  (run-hook-with-args 'vimpulse-visual-activate-hook mode)
+  (setq vimpulse-visual-last-mode (or mode 'normal))
+  (setq vimpulse-visual-mode (or mode 'normal))
+  (viper-change-state 'visual-state)
+  (viper-restore-cursor-type)
+  (run-hook-with-args 'vimpulse-visual-activate-hook
+                      (or mode 'normal))
   (cond
    ((eq 'normal mode)
     (message "-- VISUAL --"))
@@ -245,6 +374,10 @@ denotes the last element contained in the selection.")
     (message "-- VISUAL LINE --"))
    ((eq 'block mode)
     (message "-- VISUAL BLOCK --"))))
+
+(fset 'vimpulse-change-state-to-visual 'vimpulse-visual-activate)
+
+(defalias 'vimpulse-change-state-to-visual 'vimpulse-visual-activate)
 
 (defun vimpulse-visual-toggle (mode)
   "Activates visual-mode MODE if this is not the current visual mode.
@@ -276,38 +409,38 @@ Otherwise deactivates visual mode."
 (define-key viper-vi-basic-map "g" nil)
 (define-key viper-vi-basic-map "gv" 'vimpulse-visual-reactivate)
 
-(define-key vimpulse-visual-mode-map "v" 'vimpulse-visual-toggle-normal)
-(define-key vimpulse-visual-mode-map "V" 'vimpulse-visual-toggle-line)
-(define-key vimpulse-visual-mode-map "\C-v" 'vimpulse-visual-toggle-block)
-(define-key vimpulse-visual-mode-map "d" 'vimpulse-visual-delete)
-(define-key vimpulse-visual-mode-map "x" 'vimpulse-visual-delete)
-(define-key vimpulse-visual-mode-map "D" 'vimpulse-visual-delete)
-(define-key vimpulse-visual-mode-map "d" 'vimpulse-visual-delete)
-(define-key vimpulse-visual-mode-map "y" 'vimpulse-visual-yank)
-(define-key vimpulse-visual-mode-map "i" 'vimpulse-visual-mode-to-insert-mode)
-(define-key vimpulse-visual-mode-map "u" 'vimpulse-visual-mode)
-(define-key vimpulse-visual-mode-map "R" 'vimpulse-visual-change)
-(define-key vimpulse-visual-mode-map "r" 'vimpulse-visual-replace-region)
-(define-key vimpulse-visual-mode-map "c" 'vimpulse-visual-change)
-(define-key vimpulse-visual-mode-map "C" 'vimpulse-visual-change)
-(define-key vimpulse-visual-mode-map "s" 'vimpulse-visual-change)
-(define-key vimpulse-visual-mode-map "S" 'vimpulse-visual-change)
-(define-key vimpulse-visual-mode-map "\"" 'vimpulse-visual-set-current-register)
-(define-key vimpulse-visual-mode-map "o" 'vimpulse-visual-exchange-point-and-mark)
-(define-key vimpulse-visual-mode-map "O" 'vimpulse-visual-jump-point)
-(define-key vimpulse-visual-mode-map "I" 'vimpulse-visual-insert)
-(define-key vimpulse-visual-mode-map "A" 'vimpulse-visual-append)
-(define-key vimpulse-visual-mode-map "U" 'vimpulse-visual-make-upcase)
-(define-key vimpulse-visual-mode-map "u" 'vimpulse-visual-make-downcase)
-(define-key vimpulse-visual-mode-map "~" 'vimpulse-visual-toggle-case)
-(define-key vimpulse-visual-mode-map "J" 'vimpulse-visual-join)
-(define-key vimpulse-visual-mode-map "<" 'vimpulse-visual-shift-left)
-(define-key vimpulse-visual-mode-map ">" 'vimpulse-visual-shift-right)
-(define-key vimpulse-visual-mode-map "=" 'vimpulse-visual-indent)
-(define-key vimpulse-visual-mode-map "a" 'vimpulse-select-text-object)
-(define-key vimpulse-visual-mode-map "i" 'vimpulse-select-text-object)
+(define-key vimpulse-visual-basic-map "v" 'vimpulse-visual-toggle-normal)
+(define-key vimpulse-visual-basic-map "V" 'vimpulse-visual-toggle-line)
+(define-key vimpulse-visual-basic-map "\C-v" 'vimpulse-visual-toggle-block)
+(define-key vimpulse-visual-basic-map "d" 'vimpulse-visual-delete)
+(define-key vimpulse-visual-basic-map "x" 'vimpulse-visual-delete)
+(define-key vimpulse-visual-basic-map "D" 'vimpulse-visual-delete)
+(define-key vimpulse-visual-basic-map "d" 'vimpulse-visual-delete)
+(define-key vimpulse-visual-basic-map "y" 'vimpulse-visual-yank)
+(define-key vimpulse-visual-basic-map "i" 'vimpulse-visual-mode-to-insert-mode)
+(define-key vimpulse-visual-basic-map "u" 'vimpulse-visual-mode)
+(define-key vimpulse-visual-basic-map "R" 'vimpulse-visual-change)
+(define-key vimpulse-visual-basic-map "r" 'vimpulse-visual-replace-region)
+(define-key vimpulse-visual-basic-map "c" 'vimpulse-visual-change)
+(define-key vimpulse-visual-basic-map "C" 'vimpulse-visual-change)
+(define-key vimpulse-visual-basic-map "s" 'vimpulse-visual-change)
+(define-key vimpulse-visual-basic-map "S" 'vimpulse-visual-change)
+(define-key vimpulse-visual-basic-map "\"" 'vimpulse-visual-set-current-register)
+(define-key vimpulse-visual-basic-map "o" 'vimpulse-visual-exchange-point-and-mark)
+(define-key vimpulse-visual-basic-map "O" 'vimpulse-visual-jump-point)
+(define-key vimpulse-visual-basic-map "I" 'vimpulse-visual-insert)
+(define-key vimpulse-visual-basic-map "A" 'vimpulse-visual-append)
+(define-key vimpulse-visual-basic-map "U" 'vimpulse-visual-make-upcase)
+(define-key vimpulse-visual-basic-map "u" 'vimpulse-visual-make-downcase)
+(define-key vimpulse-visual-basic-map "~" 'vimpulse-visual-toggle-case)
+(define-key vimpulse-visual-basic-map "J" 'vimpulse-visual-join)
+(define-key vimpulse-visual-basic-map "<" 'vimpulse-visual-shift-left)
+(define-key vimpulse-visual-basic-map ">" 'vimpulse-visual-shift-right)
+(define-key vimpulse-visual-basic-map "=" 'vimpulse-visual-indent)
+(define-key vimpulse-visual-basic-map "a" 'vimpulse-select-text-object)
+(define-key vimpulse-visual-basic-map "i" 'vimpulse-select-text-object)
 ;; Keys that have no effect in visual mode
-(define-key vimpulse-visual-mode-map "." 'undefined)
+(define-key vimpulse-visual-basic-map "." 'undefined)
 
 ;; Advice viper-intercept-ESC-key to exit visual mode with ESC
 (defadvice viper-intercept-ESC-key
@@ -317,26 +450,6 @@ Otherwise deactivates visual mode."
            (not (input-pending-p)))
       (vimpulse-visual-mode -1)
     ad-do-it))
-
-;; This thing is just to silence the byte compiler
-;; and stop it bugging about free variable
-;; `viper--key-maps' in Emacs 21 :)
-;; Update: and to stop Emacs 23 bugging about the old macro.
-(defmacro vimpulse-add-visual-maps-macro (keymap)
-  `(defadvice viper-normalize-minor-mode-map-alist
-     (after ,keymap activate)
-     ,(format "Modifies `%s' to include visual keymaps." keymap)
-     (add-to-list ',keymap
-                  (cons 'vimpulse-visual-mode
-                        vimpulse-visual-mode-map))))
-
-(cond
- ((>= emacs-major-version 22)
-  (vimpulse-add-visual-maps-macro viper--key-maps))
- (t
-  (vimpulse-add-visual-maps-macro minor-mode-map-alist)))
-
-(viper-normalize-minor-mode-map-alist)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Visual selection visualization ;;;
@@ -428,7 +541,7 @@ Otherwise deactivates visual mode."
             (viper-move-overlay (car vimpulse-visual-overlays)
                                 start (1+ end)))
         (let ((ov (viper-make-overlay start (1+ end))))
-          (viper-overlay-put ov 'face (vimpulse-visual-face))
+          (viper-overlay-put ov 'face (vimpulse-region-face))
           (viper-overlay-put ov 'priority 99)
           (setq vimpulse-visual-overlays (list ov)))))
      ((eq 'line vimpulse-visual-mode)
@@ -450,7 +563,7 @@ Otherwise deactivates visual mode."
                                   start-line (1+ end-line)))
           (let ((ov (viper-make-overlay start-line (1+ end-line))))
             (vimpulse-visual-hide-region)
-            (viper-overlay-put ov 'face (vimpulse-visual-face))
+            (viper-overlay-put ov 'face (vimpulse-region-face))
             (viper-overlay-put ov 'priority 99)
             (setq vimpulse-visual-overlays (list ov))))))
      ((eq 'block vimpulse-visual-mode)
@@ -535,7 +648,7 @@ Adapted from: rm-highlight-rectangle"
                   (setq new (cons overlay new)
                         old (cdr old)))
               (setq overlay (viper-make-overlay row-start row-end))
-              (viper-overlay-put overlay 'face (vimpulse-visual-face))
+              (viper-overlay-put overlay 'face (vimpulse-region-face))
               (viper-overlay-put overlay 'priority 99)
               (setq new (cons overlay new))))
           (forward-line 1))
