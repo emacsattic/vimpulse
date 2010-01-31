@@ -43,6 +43,35 @@ Works like Vim's \"G\"."
 (when vimpulse-goto-line
   (fset 'viper-goto-line 'vimpulse-goto-line))
 
+(defun vimpulse-modify-major-mode (mode state keymap)
+  "Modify key bindings in a major-mode in a Viper state using a keymap.
+
+If the default for a major mode is emacs-state, then modifications to this
+major mode may not take effect until the buffer switches state to Vi,
+Insert or Emacs.  If this happens, add `viper-change-state-to-emacs' to this
+major mode's hook.  If no such hook exists, you may have to put an advice on
+the function that invokes the major mode.  See `viper-set-hooks' for hints.
+
+The above needs not to be done for major modes that come up in Vi or Insert
+state by default."
+  (let ((alist
+	 (cond ((eq state 'vi-state)
+                'viper-vi-state-modifier-alist)
+	       ((eq state 'insert-state)
+                'viper-insert-state-modifier-alist)
+	       ((eq state 'emacs-state)
+                'viper-emacs-state-modifier-alist)
+               ((eq state 'visual-state)
+                'vimpulse-visual-state-modifier-alist)))
+	elt)
+    (if (setq elt (assoc mode (eval alist)))
+	(set alist (delq elt (eval alist))))
+    (set alist (cons (cons mode keymap) (eval alist)))
+    (viper-normalize-minor-mode-map-alist)
+    (viper-set-mode-vars-for viper-current-state)))
+
+(fset 'viper-modify-major-mode 'vimpulse-modify-major-mode)
+
 ;;
 ;; Thanks to the anonymous poster for the idea on how to modify the viper
 ;; function to add the di da ci and ca partial commands.

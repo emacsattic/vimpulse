@@ -126,6 +126,7 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
 (define-key viper-vi-basic-map "V" 'vimpulse-visual-mode-linewise)
 
 (define-key viper-vi-global-user-map "K"    'woman)
+(define-key viper-vi-global-user-map "gd"   'vimpulse-goto-definition)
 (define-key viper-vi-global-user-map "gf"   'find-file-at-point)
 (define-key viper-vi-global-user-map "gg"   'vimpulse-goto-first-line)
 (define-key viper-vi-global-user-map "zb"   'viper-line-to-bottom)
@@ -188,8 +189,10 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
   (interactive)
   (select-window (next-window)))
 
-(defun vimpulse-search-for-symbol-at-point (forward-p)
-  "Search forwards or backwards for the symbol under point."
+(defun vimpulse-search-for-symbol-at-point (forward-p &optional pos)
+  "Search forwards or backwards for the symbol under point.
+FORWARD-P specifies the direction, POS the position from where
+to start the search."
   (let ((str (thing-at-point 'symbol)))
     ;; If there's no symbol under point, go forwards
     ;; (or backwards) to find one
@@ -198,6 +201,7 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
                                 (and (not forward-p) (not (bobp)))))
         (if forward-p (forward-char) (backward-char))
         (setq str (thing-at-point 'symbol))))
+    (when pos (goto-char pos))
     (cond
      ((stringp str)
       (setq str (regexp-quote str))
@@ -219,6 +223,10 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
 (defun vimpulse-search-backward-for-symbol-at-point ()
   (interactive)
   (vimpulse-search-for-symbol-at-point nil))
+
+(defun vimpulse-goto-definition ()
+  (interactive)
+  (vimpulse-search-for-symbol-at-point t (point-min)))
 
 (defun vimpulse-jump-to-tag-at-point ()
   (interactive)
