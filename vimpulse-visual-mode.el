@@ -273,7 +273,14 @@ May also be used to change the Visual mode."
       (vimpulse-transient-mark -1))
      (t
       (vimpulse-transient-mark 1)
-      (vimpulse-activate-mark (point)))))
+      ;; If there is already an active Emacs region, we try to be
+      ;; "intuitive" when changing it to a Visual selection. If point
+      ;; follows mark, we leave it be, although this means that the
+      ;; selection increases with one character.
+      (if mark-active
+          (when (< (point) (mark t))
+            (vimpulse-visual-contract-region))
+        (vimpulse-activate-mark (point))))))
   ;; Set the Visual mode
   (setq mode (or mode 'normal))
   (setq vimpulse-visual-mode mode

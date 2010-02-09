@@ -1,23 +1,8 @@
 ;;; Bugs:
 
-;; (We would appreciate very much if you report bugs.)
+;; (We would appreciate it very much if you report bugs.)
 ;;
 ;; Known bugs:
-;;
-;; - (class of bugs) In visual or line visual mode, pressing things
-;;   like C-g or C-SPC tends to confuse Vimpulse and do weird things.
-;;
-;; - In visual mode, repeatedly pressing H, M, or L acts weirdly.  (I
-;;   wonder if there are other keys that act weirdly in that mode too.)
-;;      -in which way? it seems normal (at least with the current version
-;;       19/06/2009
-;;
-;; - One user who uses an ancient emacs-snapshot (from 2005) mentions
-;;   that this mode causes all the keys on his keyboard to stop
-;;   working unless he deletes the line that reads 'viper--key-maps
-;;   from the macro my-get-emulation-keymap in this file.
-;;         -Wasn't this already fixed? I think it is, as there's
-;;          the conditional for the emacs version.
 ;;
 ;; - cw with a count doesn't work the same as Vim when the point
 ;;   is just before a space between words
