@@ -9,7 +9,8 @@
 (unless (featurep 'redo)
   (load "redo" t))
 
-;; Load rect-mark.el if available
+;; Load rect.el and rect-mark.el if available
+(require 'rect)
 (unless (featurep 'rect-mark)
   (load "rect-mark" t))
 
