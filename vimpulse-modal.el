@@ -503,5 +503,10 @@ over mode-specific bindings."
       (viper-change-state old-state)
       (setq cursor-type old-cursor))))
 
+(defun vimpulse-map! (key def &rest modes)
+  "Bind KEY to DEF in vi (command) state and Visual state."
+  (vimpulse-map key def modes)
+  (vimpulse-vmap key def modes))
+
 (provide 'vimpulse-modal)
 
