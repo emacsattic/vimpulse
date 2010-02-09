@@ -196,7 +196,10 @@ lower bound of the position, LIME is the upper bound to the position."
   (save-excursion
     (goto-char pos)
     (vimpulse-text-object-bounds
-     'viper-backward-sentence
+     (lambda (arg)
+       (viper-backward-sentence arg)
+       (when (looking-at "[[:space:]]*$")
+         (forward-char)))
      (lambda (arg)
        (viper-forward-sentence arg)
        (backward-char)))))
@@ -308,9 +311,11 @@ char indicates 'inner' (?i) or 'a' (?a) behavior, 'motion' indicates the text-ob
    ((= char ?r) (list pos (+ pos (- (cadr motion) (car motion) 1))))
    ((= char ?l) (vimpulse-get-line-margins pos))
    (t (error "called with wrong arguments"))))
+
 (defun vimpulse-message-all-args (&rest args)
   "Helper function that prints all its arguments, plus some other values."
   (message "ARGS: %s, reg: %s" args (string viper-use-register)))
+
 (defun vimpulse-test-function (value)
   "This function is only defined for developing purposes."
   (viper-set-destructive-command (list 'vimpulse-message-all-args 'first-argument ?d viper-use-register "cane" nil)))
