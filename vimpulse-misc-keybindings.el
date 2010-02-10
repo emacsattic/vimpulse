@@ -340,12 +340,12 @@ The format is (POS . CHAR).")
 (defun vimpulse-replace-backspace ()
   "Restore character under cursor."
   (interactive)
+  (backward-char)
   (let ((oldchar (cdr (assq (point) vimpulse-replace-alist))))
     (when oldchar
       (save-excursion
         (delete-char 1)
-        (insert oldchar)))
-    (backward-char)))
+        (insert oldchar)))))
 
 (fset 'viper-del-backward-char-in-replace 'vimpulse-replace-backspace)
 
