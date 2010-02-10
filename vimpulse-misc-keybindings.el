@@ -96,10 +96,10 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
 ;;      (vimpulse-add-movement-cmds Info-mode-map)))
 
 (eval-after-load 'eldoc
-  (let (cmd)
-    (dolist (cmd (append vimpulse-viper-movement-cmds
-                         vimpulse-core-movement-cmds))
-      (eldoc-add-command cmd))))
+  '(let (cmd)
+     (dolist (cmd (append vimpulse-viper-movement-cmds
+                          vimpulse-core-movement-cmds))
+       (eldoc-add-command cmd))))
 
 ;;;;
 ;;;; Almost all of this code is taken from extended-viper
@@ -311,6 +311,43 @@ To go the other way, press \\[vimpulse-jump-backward]."
       (beginning-of-line))
      (t
       ad-do-it))))
+
+;; Replace backspace
+(viper-deflocalvar
+ vimpulse-replace-alist nil
+ "Alist of characters overwritten in Replace mode.
+Used by `vimpulse-replace-backspace' to restore text.
+The format is (POS . CHAR).")
+
+(defun vimpulse-replace-pre-command ()
+  "Remember the character under point."
+  (cond
+   (viper-replace-minor-mode
+    (unless (assq (point) vimpulse-replace-alist)
+      (add-to-list 'vimpulse-replace-alist
+                   (cons (point) (char-after)))))
+   ;; If not in Replace mode, remove itself
+   (t
+    (remove-hook 'pre-command-hook 'vimpulse-replace-pre-command))))
+
+(add-hook 'viper-replace-state-hook
+          (lambda ()
+            (setq vimpulse-replace-alist nil)
+            (vimpulse-replace-pre-command)
+            (add-hook 'pre-command-hook
+                      'vimpulse-replace-pre-command)))
+
+(defun vimpulse-replace-backspace ()
+  "Restore character under cursor."
+  (interactive)
+  (let ((oldchar (cdr (assq (point) vimpulse-replace-alist))))
+    (when oldchar
+      (save-excursion
+        (delete-char 1)
+        (insert oldchar)))
+    (backward-char)))
+
+(fset 'viper-del-backward-char-in-replace 'vimpulse-replace-backspace)
 
 ;;; cppjavaperl's code
 (defun vimpulse-abbrev-expand-after ()
