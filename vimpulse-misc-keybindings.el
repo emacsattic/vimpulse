@@ -98,7 +98,7 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
 (eval-after-load 'eldoc
   (let (cmd)
     (dolist (cmd (append vimpulse-viper-movement-cmds
-                        vimpulse-core-movement-cmds))
+                         vimpulse-core-movement-cmds))
       (eldoc-add-command cmd))))
 
 ;;;;
@@ -240,6 +240,66 @@ to start the search."
   (let ((tag (thing-at-point 'word)))
     (find-tag tag)))
 
+;; C-o/C-i
+(viper-deflocalvar
+ vimpulse-mark-list nil
+ "List of mark positions to jump to with `vimpulse-jump-forward'.
+They are stored as markers, the current position first:
+
+    (car vimpulse-mark-list)  = current position (last popped)
+    (cdr vimpulse-mark-list)  = future positions (previously popped)
+    (cadr vimpulse-mark-list) = next position (to jump to)
+
+In other words, a sort of \"reverse mark ring\": marks which are
+popped off the mark ring, are collected here.")
+
+(defadvice set-mark (after vimpulse activate)
+  "Clear `vimpulse-mark-list'."
+  (setq vimpulse-mark-list nil))
+
+(defadvice push-mark (after vimpulse activate)
+  "Clear `vimpulse-mark-list'."
+  (setq vimpulse-mark-list nil))
+
+(defun vimpulse-jump-backward (arg)
+  "Go to older position in jump list.
+To go the other way, press \\[vimpulse-jump-forward]."
+  (interactive "p")
+  (let ((current-pos (make-marker)))
+    (unless vimpulse-mark-list
+      (move-marker current-pos (point))
+      (add-to-list 'vimpulse-mark-list current-pos))
+    (dotimes (arg arg)
+      (setq current-pos (make-marker))
+      ;; Protect `vimpulse-mark-list'
+      (let (vimpulse-mark-list)
+        (set-mark-command 0))
+      (move-marker current-pos (point))
+      ;; Already there?
+      (unless (= current-pos (car vimpulse-mark-list))
+        (setq vimpulse-mark-list
+              (cons current-pos vimpulse-mark-list))))))
+
+(defun vimpulse-jump-forward (arg)
+  "Go to newer position in jump list.
+To go the other way, press \\[vimpulse-jump-backward]."
+  (interactive "p")
+  (let (current-pos next-pos)
+    (dotimes (arg arg)
+      (setq current-pos (car vimpulse-mark-list)
+            next-pos (cadr vimpulse-mark-list))
+      (when next-pos
+        ;; Protect `vimpulse-mark-list'
+        (let (vimpulse-mark-list)
+          (push-mark current-pos t nil))
+        (goto-char next-pos)
+        (setq vimpulse-mark-list (cdr vimpulse-mark-list))))))
+
+(define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
+(define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
+(global-set-key "\M-o" 'open-line) ; some may miss this command
+
+;; N%
 (defadvice viper-paren-match (around vimpulse activate)
   "Go to percentage in the file when ARG >= 10."
   (let ((val (viper-p-val arg)))

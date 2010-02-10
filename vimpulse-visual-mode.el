@@ -35,7 +35,8 @@ This keymap is active when in visual mode."
     (unless (memq vimpulse-visual-mode '(normal line block))
       (vimpulse-visual-activate 'normal)))
    (t
-    ;; Deactivate highlighting
+    ;; This is executed when we do (vimpulse-visual-mode -1).
+    ;; It must work even if Visual mode is not active.
     (vimpulse-visual-highlight -1)
     ;; Deactivate mark
     (viper-deactivate-mark)
@@ -195,8 +196,7 @@ If none, return an empty keymap (`viper-empty-keymap')."
     (unless (memq vimpulse-visual-mode '(normal line block))
       (vimpulse-visual-mode 1)))
    (t
-    (when (memq vimpulse-visual-mode '(normal line block))
-      (vimpulse-visual-mode -1)))))
+    (vimpulse-visual-mode -1))))
 
 (defadvice viper-set-mode-vars-for (after vimpulse-states activate)
   "Activate minor modes for Visual state."
