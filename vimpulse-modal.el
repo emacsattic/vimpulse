@@ -493,7 +493,7 @@ over mode-specific bindings."
             (vimpulse-define-key
              vimpulse-visual-global-user-map key def)
           (setq map
-                (or (cdr (assoc mode viper-visual-state-modifier-alist))
+                (or (cdr (assoc mode vimpulse-visual-state-modifier-alist))
                     (make-sparse-keymap)))
           (vimpulse-define-key map key def)
           (viper-modify-major-mode mode viper-current-state map))))

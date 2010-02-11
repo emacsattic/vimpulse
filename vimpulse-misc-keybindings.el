@@ -2,19 +2,24 @@
 ;;;; Utility code
 ;;;;
 (defvar vimpulse-viper-movement-cmds
-  '(viper-append viper-backward-Word viper-backward-char
-    viper-backward-paragraph viper-backward-sentence
-    viper-backward-word viper-beginning-of-line
+  '(viper-backward-Word viper-backward-char viper-backward-paragraph
+    viper-backward-sentence viper-backward-word
+    viper-beginning-of-line viper-command-argument
     viper-digit-argument viper-end-of-Word viper-end-of-word
     viper-exec-mapped-kbd-macro viper-find-char-backward
-    viper-find-char-forward viper-forward-Word
-    viper-forward-char viper-forward-paragraph
-    viper-forward-sentence viper-forward-word
-    viper-goto-char-backward viper-goto-char-forward
-    viper-goto-eol viper-goto-line viper-insert
-    viper-line-to-bottom viper-line-to-middle
+    viper-find-char-forward viper-forward-Word viper-forward-char
+    viper-forward-paragraph viper-forward-sentence viper-forward-word
+    viper-goto-char-backward viper-goto-char-forward viper-goto-eol
+    viper-goto-line viper-line-to-bottom viper-line-to-middle
     viper-line-to-top viper-next-line viper-previous-line
-    vimpulse-goto-first-line)
+    viper-scroll-down-one viper-scroll-down viper-scroll-up
+    viper-scroll-up-one viper-window-bottom viper-window-middle
+    viper-window-top vimpulse-goto-first-line
+    vimpulse-search-backward-for-symbol-at-point
+    vimpulse-search-forward-for-symbol-at-point
+    vimpulse-jump-backward vimpulse-jump-forward
+    vimpulse-visual-toggle-normal vimpulse-visual-toggle-line
+    vimpulse-visual-toggle-block)
   "List of Viper/Vimpulse movement commands.")
 
 (defvar vimpulse-core-movement-cmds
@@ -31,14 +36,21 @@ These should be present in every mode, to avoid confusion.")
 If REPLACE is non-nil, bindings in MAP may be overwritten.
 AUGMENT-ALIST has the format ((KEY . DEF) ...),
 where KEY and DEF are passed to `define-key'."
-  (let (binding key def)
+  (let (binding key def num)
     (dolist (binding augment-alist)
       (setq key (car binding)
-            def (cdr binding))
-      (when (or replace
-                (not (lookup-key map key))
-                (not (numberp (lookup-key map key))))
-        (define-key map key def)))))
+            def (cdr binding)
+            num (lookup-key map key))
+      (cond
+       (replace
+        (when (numberp num)
+          (define-key map (vimpulse-truncate key num) nil))
+        (define-key map key def))
+       (t
+        (when (numberp num)
+          (setq num (lookup-key map (vimpulse-truncate key num))))
+        (unless num
+          (define-key map key def)))))))
 
 (defun vimpulse-add-vi-bindings (map cmds &optional replace)
   "Add vi bindings for CMDS to MAP."
@@ -53,7 +65,8 @@ where KEY and DEF are passed to `define-key'."
                            viper-vi-basic-map))
         (setq keys (where-is-internal cmd vimap))
         (dolist (key keys)
-          (unless (lookup-key pmap key)
+          (when (or (not (lookup-key pmap key))
+                    (numberp (lookup-key pmap key)))
             (vimpulse-augment-keymap map
                                      `((,key . ,cmd))
                                      replace)
@@ -89,12 +102,80 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
               map '(([remap ,cmd] . viper-nil))
               replace)))))
 
-;; Info mode
-;; (eval-after-load 'info
-;;   '(progn
-;;      (vimpulse-add-core-movement-cmds Info-mode-map)
-;;      (vimpulse-add-movement-cmds Info-mode-map)))
+(defun vimpulse-inhibit-destructive-cmds (map &optional replace)
+  "Remap destructive Viper commands to `viper-nil' in MAP.
+This isn't complete since `viper-command-argument' is left out so
+that yanking may work, but as change and delete fail silently in
+read-only buffers anyway, it does the job."
+  (let (cmd)
+    (dolist (cmd '(viper-Append
+                   viper-Insert
+                   viper-append
+                   viper-change-to-eol
+                   viper-insert
+                   viper-kill-line
+                   viper-substitute
+                   viper-substitute-line
+                   vimpulse-visual-append
+                   vimpulse-visual-change
+                   vimpulse-visual-insert))
+      (eval `(vimpulse-augment-keymap
+              map '(([remap ,cmd] . viper-nil))
+              replace)))))
 
+;; Buffer-menu
+(defcustom vimpulse-want-vi-keys-in-buffmenu t
+  "Whether to use vi keys in Buffer menu, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(eval-after-load "buff-menu"
+  '(when vimpulse-want-vi-keys-in-buffmenu
+     (vimpulse-add-core-movement-cmds Buffer-menu-mode-map)
+     (vimpulse-add-movement-cmds Buffer-menu-mode-map)
+     (vimpulse-inhibit-destructive-cmds Buffer-menu-mode-map)))
+
+;; Dired
+(defcustom vimpulse-want-vi-keys-in-dired t
+  "Whether to use vi keys in Dired mode, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(eval-after-load 'dired
+  '(when vimpulse-want-vi-keys-in-dired
+     (vimpulse-add-core-movement-cmds dired-mode-map)
+     (vimpulse-add-movement-cmds dired-mode-map)
+     (vimpulse-inhibit-destructive-cmds dired-mode-map)))
+
+;; Info
+(defcustom vimpulse-want-vi-keys-in-Info t
+  "Whether to use vi keys in Info mode, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(eval-after-load 'info
+  '(when vimpulse-want-vi-keys-in-Info
+     (vimpulse-add-core-movement-cmds Info-mode-map)
+     (vimpulse-add-movement-cmds Info-mode-map)
+     (define-key Info-mode-map "\C-t" 'Info-history-back) ; l
+     (define-key Info-mode-map "\M-h" 'Info-help)         ; h
+     (define-key Info-mode-map " " 'Info-scroll-up)
+     (define-key Info-mode-map [backspace] 'Info-scroll-down)
+     (vimpulse-inhibit-destructive-cmds Info-mode-map)))
+
+;; Help
+(defcustom vimpulse-want-vi-keys-in-help t
+  "Whether to use vi keys in Help mode, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(eval-after-load 'help-mode
+  '(when vimpulse-want-vi-keys-in-help
+     (vimpulse-add-core-movement-cmds help-mode-map)
+     (vimpulse-add-movement-cmds help-mode-map)
+     (vimpulse-inhibit-destructive-cmds help-mode-map)))
+
+;; Eldoc compatibility
 (eval-after-load 'eldoc
   '(let (cmd)
      (dolist (cmd (append vimpulse-viper-movement-cmds
@@ -255,10 +336,16 @@ popped off the mark ring, are collected here.")
 
 (defadvice set-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
+  (mapc (lambda (marker)
+          (set-marker marker nil))
+        vimpulse-mark-list)
   (setq vimpulse-mark-list nil))
 
 (defadvice push-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
+  (mapc (lambda (marker)
+          (set-marker marker nil))
+        vimpulse-mark-list)
   (setq vimpulse-mark-list nil))
 
 (defun vimpulse-jump-backward (arg)
@@ -313,6 +400,12 @@ To go the other way, press \\[vimpulse-jump-backward]."
       ad-do-it))))
 
 ;; Replace backspace
+(defcustom vimpulse-backspace-restore t
+  "Whether Backspace restores the original text in Replace mode.
+On by default."
+  :group 'vimpulse
+  :type  'boolean)
+
 (viper-deflocalvar
  vimpulse-replace-alist nil
  "Alist of characters overwritten in Replace mode.
@@ -338,16 +431,24 @@ The format is (POS . CHAR).")
                       'vimpulse-replace-pre-command)))
 
 (defun vimpulse-replace-backspace ()
-  "Restore character under cursor."
+  "Restore character under cursor.
+If `vimpulse-backspace-restore' is nil,
+call `viper-del-backward-char-in-replace' instead."
   (interactive)
-  (backward-char)
-  (let ((oldchar (cdr (assq (point) vimpulse-replace-alist))))
-    (when oldchar
-      (save-excursion
-        (delete-char 1)
-        (insert oldchar)))))
+  (cond
+   (vimpulse-backspace-restore
+    (backward-char)
+    (let ((oldchar (cdr (assq (point) vimpulse-replace-alist))))
+      (when oldchar
+        (save-excursion
+          (delete-char 1)
+          (insert oldchar)))))
+   (t
+    (viper-del-backward-char-in-replace))))
 
-(fset 'viper-del-backward-char-in-replace 'vimpulse-replace-backspace)
+(defadvice viper-adjust-keys-for (after vimpulse activate)
+  "Map <backspace> to `vimpulse-replace-backspace' in Replace mode."
+  (define-key viper-replace-map [backspace] 'vimpulse-replace-backspace))
 
 ;;; cppjavaperl's code
 (defun vimpulse-abbrev-expand-after ()
