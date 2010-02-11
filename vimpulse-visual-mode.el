@@ -56,7 +56,12 @@ This keymap is active when in visual mode."
     ;; If Viper state is not already changed,
     ;; change it to vi state
     (when (eq viper-current-state 'visual-state)
-      (viper-change-state-to-vi)))))
+      (cond
+       ((eq 'emacs-state vimpulse-visual-previous-state)
+        (viper-change-state-to-emacs))
+       (t
+        (viper-change-state-to-vi))))
+    (kill-local-variable 'vimpulse-visual-previous-state))))
 
 ;; These become minor modes when `vimpulse-add-visual-maps-macro'
 ;; is called below
@@ -110,7 +115,12 @@ This keymap is active when in visual mode."
 
 (viper-deflocalvar
  vimpulse-visual-last nil
- "Last active visual mode: may be nil, `normal', `line' or `block'.")
+ "Last active Visual mode: may be nil, `normal', `line' or `block'.")
+
+(viper-deflocalvar
+ vimpulse-visual-previous-state 'viper-state
+ "Previous state before enabling Visual mode.
+This lets us revert to Emacs state in non-vi buffers.")
 
 (viper-deflocalvar
  vimpulse-visual-region-changed nil
@@ -152,12 +162,12 @@ If none, return an empty keymap (`viper-empty-keymap')."
      ,(format "Modifies `%s' to include visual keymaps." keymaps)
      (let (mode temp)
        (dolist (mode (list
-                      (cons 'vimpulse-visual-global-user-minor-mode
-                            vimpulse-visual-global-user-map)
+                      (cons 'vimpulse-visual-mode
+                            vimpulse-visual-basic-map)
                       (cons 'vimpulse-visual-state-modifier-minor-mode
                             (vimpulse-modifier-map 'visual-state))
-                      (cons 'vimpulse-visual-mode
-                            vimpulse-visual-basic-map)))
+                      (cons 'vimpulse-visual-global-user-minor-mode
+                            vimpulse-visual-global-user-map)))
          (setq temp (default-value ',keymaps))
          (setq temp (assq-delete-all (car mode) temp)) ; already there?
          (add-to-list 'temp mode)
@@ -196,7 +206,8 @@ If none, return an empty keymap (`viper-empty-keymap')."
     (unless (memq vimpulse-visual-mode '(normal line block))
       (vimpulse-visual-mode 1)))
    (t
-    (vimpulse-visual-mode -1))))
+    (vimpulse-visual-mode -1)))
+  (viper-normalize-minor-mode-map-alist))
 
 (defadvice viper-set-mode-vars-for (after vimpulse-states activate)
   "Activate minor modes for Visual state."
@@ -252,6 +263,7 @@ May also be used to change the Visual mode."
     ;; We are activating Visual mode for the first time
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
+    (setq vimpulse-visual-previous-state viper-current-state)
     ;; Make global variables buffer-local
     (setq vimpulse-visual-vars-alist nil)
     (mapcar (lambda (var)
@@ -273,10 +285,10 @@ May also be used to change the Visual mode."
       (vimpulse-transient-mark -1))
      (t
       (vimpulse-transient-mark 1)
-      ;; If there is already an active Emacs region, we try to be
-      ;; "intuitive" when changing it to a Visual selection. If point
-      ;; follows mark, we leave it be, although this means that the
-      ;; selection increases with one character.
+      ;; Convert active Emacs region to Visual selection, if any.
+      ;; To avoid confusion, do not move point, even if this means the
+      ;; selection increases by one character when mark is before
+      ;; point.
       (if mark-active
           (when (< (point) (mark t))
             (vimpulse-visual-contract-region))
@@ -1239,10 +1251,12 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
 
 (defadvice viper-Put-back (around vimpulse-visual activate)
   "Delete selection before pasting in Visual mode."
-  (let (inserted-text replaced-text)
+  (let (inserted-text replaced-text mode)
     (setq yank-window-start (window-start))
-    (when vimpulse-visual-mode
-      (unless (eq 'block vimpulse-visual-mode)
+    (cond
+     (vimpulse-visual-mode
+      (setq mode vimpulse-visual-mode)
+      (unless (eq 'block mode)
         ;; Add replaced text to the kill-ring before the current kill
         (setq inserted-text (current-kill 0))
         (setq replaced-text
@@ -1250,8 +1264,11 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
         (kill-new replaced-text t)
         (kill-new inserted-text))
       (vimpulse-visual-delete (region-beginning) (region-end) t)
-      (when (viper-end-with-a-newline-p inserted-text)
-        (newline)))
+      (and (eq 'normal mode)
+           (viper-end-with-a-newline-p inserted-text)
+           (newline)))
+     (mark-active
+      (delete-region (region-beginning) (region-end))))
     (if (and killed-rectangle
              (eq (current-kill 0)
                  (get 'killed-rectangle 'previous-kill)))
@@ -1263,6 +1280,8 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
   (setq yank-window-start (window-start))
   (cond
    (vimpulse-visual-mode
+    (viper-Put-back arg))
+   (mark-active
     (viper-Put-back arg))
    (t
     (if (and killed-rectangle
