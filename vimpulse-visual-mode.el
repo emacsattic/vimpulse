@@ -289,7 +289,7 @@ May also be used to change the Visual mode."
       ;; To avoid confusion, do not move point, even if this means the
       ;; selection increases by one character when mark is before
       ;; point.
-      (if mark-active
+      (if (vimpulse-mark-active)
           (when (< (point) (mark t))
             (vimpulse-visual-contract-region))
         (vimpulse-activate-mark (point))))))
@@ -824,6 +824,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     (cond
      ((eq 'insert-state viper-current-state)
       nil)
+     ((eq 'exchange-point-and-mark this-command)
+      (setq vimpulse-visual-region-changed nil))
      (vimpulse-visual-region-changed
       (vimpulse-visual-expand-region))
      ((vimpulse-region-cmd-p this-command)
@@ -901,12 +903,15 @@ If DONT-SAVE is non-nil, just delete it."
 If DONT-SAVE is non-nil, just delete it."
   (interactive "r")
   (let ((length (- end beg)))
-    (vimpulse-visual-delete beg end dont-save)
+    (vimpulse-visual-delete beg end)
     (cond
      ((eq 'block vimpulse-visual-mode)
       (viper-insert nil))
      (t
-      (viper-insert nil)
+      ;; If at last character on line, append
+      (if (or (eolp) (save-excursion (forward-char) (eolp)))
+          (viper-append nil)
+        (viper-insert nil))
       (viper-set-destructive-command
        (list 'viper-forward-char
              length ?c viper-use-register nil nil))))))
@@ -1267,7 +1272,7 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
       (and (eq 'normal mode)
            (viper-end-with-a-newline-p inserted-text)
            (newline)))
-     (mark-active
+     ((vimpulse-mark-active)
       (delete-region (region-beginning) (region-end))))
     (if (and killed-rectangle
              (eq (current-kill 0)
@@ -1281,7 +1286,7 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
   (cond
    (vimpulse-visual-mode
     (viper-Put-back arg))
-   (mark-active
+   ((vimpulse-mark-active)
     (viper-Put-back arg))
    (t
     (if (and killed-rectangle
