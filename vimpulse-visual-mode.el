@@ -160,7 +160,7 @@ If none, return an empty keymap (`viper-empty-keymap')."
   `(defadvice viper-normalize-minor-mode-map-alist
      (after ,keymaps activate)
      ,(format "Modifies `%s' to include visual keymaps." keymaps)
-     (let (mode temp)
+     (let (temp)
        (dolist (mode (list
                       (cons 'vimpulse-visual-mode
                             vimpulse-visual-basic-map)
