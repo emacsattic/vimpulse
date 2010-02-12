@@ -130,7 +130,7 @@
   "Value for overwriting `last-command-event'.
 Used by `vimpulse-modal-pre-hook'.")
 
-(defvar vimpulse-modal-alist '()
+(defvar vimpulse-modal-alist nil
   "Key bindings for which `vimpulse-modal-pre-hook' is active.
 That is, `last-command-event' and `read-char' work differently
 for these bindings. The format is (KEY-VECTOR . COMMAND).")
@@ -220,13 +220,12 @@ but only for bindings listed in `vimpulse-modal-alist'."
 If RECURSIVE is non-nil, also delete entries whose key-vectors
 start with KEY-VECTOR."
   (if recursive
-      (let (entry)
-        (dolist (entry vimpulse-modal-alist)
-          (when (equal key-vector
-                       (vimpulse-truncate (car entry)
-                                          (length key-vector)))
-            (setq vimpulse-modal-alist
-                  (delq entry vimpulse-modal-alist)))))
+      (dolist (entry vimpulse-modal-alist)
+        (when (equal key-vector
+                     (vimpulse-truncate (car entry)
+                                        (length key-vector)))
+          (setq vimpulse-modal-alist
+                (delq entry vimpulse-modal-alist))))
     (assq-delete-all key-vector vimpulse-modal-alist)))
 
 (defun vimpulse-xemacs-def-binding
@@ -416,7 +415,7 @@ Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
   (let ((old-state viper-current-state)
         (old-cursor cursor-type)
-        mode map)
+        map)
     (viper-change-state-to-vi)
     (cond
      (modes
@@ -450,7 +449,7 @@ Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
   (let ((old-state viper-current-state)
         (old-cursor cursor-type)
-        mode map)
+        map)
     (viper-change-state-to-insert)
     (cond
      (modes
@@ -484,7 +483,7 @@ Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
   (let ((old-state viper-current-state)
         (old-cursor cursor-type)
-        mode map)
+        map)
     (vimpulse-change-state-to-visual)
     (cond
      (modes

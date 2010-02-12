@@ -36,7 +36,7 @@ These should be present in every mode, to avoid confusion.")
 If REPLACE is non-nil, bindings in MAP may be overwritten.
 AUGMENT-ALIST has the format ((KEY . DEF) ...),
 where KEY and DEF are passed to `define-key'."
-  (let (binding key def num)
+  (let (key def num)
     (dolist (binding augment-alist)
       (setq key (car binding)
             def (cdr binding)
@@ -54,7 +54,7 @@ where KEY and DEF are passed to `define-key'."
 
 (defun vimpulse-add-vi-bindings (map cmds &optional replace)
   "Add vi bindings for CMDS to MAP."
-  (let (cmd vimap pmap keys key)
+  (let (pmap keys)
     (setq pmap (make-sparse-keymap))
     (dolist (cmd cmds map)
       (dolist (vimap (list viper-vi-intercept-map
@@ -96,32 +96,30 @@ If AUGMENT is non-nil, don't overwrite bindings in MAP."
   "Remap Viper movement commands to `viper-nil' in MAP.
 The commands are taken from `vimpulse-viper-movement-cmds'.
 If REPLACE is non-nil, may overwrite bindings in MAP."
-  (let (cmd)
-    (dolist (cmd vimpulse-viper-movement-cmds)
-      (eval `(vimpulse-augment-keymap
-              map '(([remap ,cmd] . viper-nil))
-              replace)))))
+  (dolist (cmd vimpulse-viper-movement-cmds)
+    (eval `(vimpulse-augment-keymap
+            map '(([remap ,cmd] . viper-nil))
+            replace))))
 
 (defun vimpulse-inhibit-destructive-cmds (map &optional replace)
   "Remap destructive Viper commands to `viper-nil' in MAP.
 This isn't complete since `viper-command-argument' is left out so
 that yanking may work, but as change and delete fail silently in
 read-only buffers anyway, it does the job."
-  (let (cmd)
-    (dolist (cmd '(viper-Append
-                   viper-Insert
-                   viper-append
-                   viper-change-to-eol
-                   viper-insert
-                   viper-kill-line
-                   viper-substitute
-                   viper-substitute-line
-                   vimpulse-visual-append
-                   vimpulse-visual-change
-                   vimpulse-visual-insert))
-      (eval `(vimpulse-augment-keymap
-              map '(([remap ,cmd] . viper-nil))
-              replace)))))
+  (dolist (cmd '(viper-Append
+                 viper-Insert
+                 viper-append
+                 viper-change-to-eol
+                 viper-insert
+                 viper-kill-line
+                 viper-substitute
+                 viper-substitute-line
+                 vimpulse-visual-append
+                 vimpulse-visual-change
+                 vimpulse-visual-insert))
+    (eval `(vimpulse-augment-keymap
+            map '(([remap ,cmd] . viper-nil))
+            replace))))
 
 ;; Buffer-menu
 (defcustom vimpulse-want-vi-keys-in-buffmenu t
