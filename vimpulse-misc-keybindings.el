@@ -175,13 +175,11 @@ read-only buffers anyway, it does the job."
      (vimpulse-add-movement-cmds help-mode-map)
      (vimpulse-inhibit-destructive-cmds help-mode-map)))
 
-;; Eldoc compatibility
+;; ElDoc compatibility
 (eval-after-load 'eldoc
-  '(let (cmd)
-     (dolist (cmd (append vimpulse-viper-movement-cmds
-                          vimpulse-core-movement-cmds))
-       (eldoc-add-command cmd))))
-
+  '(apply 'eldoc-add-command
+          (append vimpulse-viper-movement-cmds
+                  vimpulse-core-movement-cmds)))
 ;;;;
 ;;;; Almost all of this code is taken from extended-viper
 ;;;; coded by Brad Beveridge (bradbev@gmail.com)
@@ -205,12 +203,6 @@ read-only buffers anyway, it does the job."
               (define-key viper-vi-basic-map "zO" 'vimpulse-hs-Open)
               (define-key viper-vi-basic-map "zo" 'hs-show-block)
               (define-key viper-vi-basic-map "zc" 'hs-hide-block))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;; VISUAL MODE BINDINGS ;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(define-key viper-vi-basic-map "v" 'vimpulse-visual-mode)
-(define-key viper-vi-basic-map "V" 'vimpulse-visual-mode-linewise)
 
 (define-key viper-vi-basic-map "K" 'woman)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding
@@ -352,16 +344,20 @@ popped off the mark ring, are collected here.")
   "Go to older position in jump list.
 To go the other way, press \\[vimpulse-jump-forward]."
   (interactive "p")
-  (let ((current-pos (make-marker)))
+  (let ((current-pos (make-marker)) i)
     (unless vimpulse-mark-list
       (move-marker current-pos (point))
       (add-to-list 'vimpulse-mark-list current-pos))
     (dotimes (arg arg)
       (setq current-pos (make-marker))
-      ;; Protect `vimpulse-mark-list'
-      (let (vimpulse-mark-list)
-        (set-mark-command 0))
-      (move-marker current-pos (point))
+      ;; Skip past duplicate entries in the mark ring
+      (setq i (length mark-ring))
+      (while (progn (move-marker current-pos (point))
+                    (let (vimpulse-mark-list)
+                      ;; Protect `vimpulse-mark-list'
+                      (set-mark-command 0))
+                    (setq i (1- i))
+                    (and (= (point) current-pos) (< 0 i))))
       ;; Already there?
       (unless (= current-pos (car vimpulse-mark-list))
         (setq vimpulse-mark-list
