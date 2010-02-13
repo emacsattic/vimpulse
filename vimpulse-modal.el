@@ -175,7 +175,7 @@ If OFFSET is specified, skip first elements of VECTOR."
   (if offset
       (setq length (- length offset))
     (setq offset 0))
-  (let ((result (make-vector length t)) idx)
+  (let ((result (make-vector length t)))
     (dotimes (idx length result)
       (aset result idx (aref vector (+ idx offset))))))
 
@@ -344,7 +344,7 @@ which is active only in a certain state (say, Insert mode), this
 function could detect that binding only if called in the same
 state. The functions `vimpulse-map', `vimpulse-imap' and
 `vimpulse-vmap' take care of this."
-  (let (temp-sequence current-binding previous-binding i)
+  (let (temp-sequence current-binding previous-binding)
     ;; For each subset of KEY (stored in `temp-sequence'), check
     ;; the binding (stored in `current-binding'); if it isn't bound,
     ;; use `previous-binding'.

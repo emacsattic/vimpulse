@@ -47,12 +47,16 @@ This keymap is active when in visual mode."
               (when (memq var vimpulse-visual-global-vars)
                 (kill-local-variable var)))
             vimpulse-visual-local-vars)
+    (vimpulse-visual-transient-restore)
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
     ;; Remove hooks
     (remove-hook 'pre-command-hook 'vimpulse-visual-pre-command)
     (remove-hook 'post-command-hook 'vimpulse-visual-post-command)
-    (remove-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook)
+    (if (featurep 'xemacs)
+        (remove-hook 'zmacs-deactivate-region-hook
+                     'vimpulse-visual-deactivate-hook)
+      (remove-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
     ;; If Viper state is not already changed,
     ;; change it to vi state
     (when (eq viper-current-state 'visual-state)
@@ -83,7 +87,7 @@ This keymap is active when in visual mode."
 
 (defun vimpulse-region-face ()
   "Return face of region."
-  (if (featurep 'xemacs) 'highlight 'region))
+  (if (featurep 'xemacs) 'zmacs-region 'region))
 
 (defvar vimpulse-visual-mode nil
   "Current visual mode: may be nil, `normal', `line' or `block'.")
@@ -106,6 +110,7 @@ This keymap is active when in visual mode."
  vimpulse-visual-local-vars
  '(cua-mode
    transient-mark-mode
+   zmacs-regions
    vimpulse-visual-region-changed)
  "System variables which are reset for each Visual session.")
 
@@ -267,8 +272,9 @@ May also be used to change the Visual mode."
     ;; Make global variables buffer-local
     (setq vimpulse-visual-vars-alist nil)
     (mapcar (lambda (var)
-              (add-to-list 'vimpulse-visual-vars-alist
-                           (cons var (eval var)))
+              (when (boundp var)
+                (add-to-list 'vimpulse-visual-vars-alist
+                             (cons var (eval var))))
               (unless (assoc var (buffer-local-variables))
                 (make-local-variable var)
                 (add-to-list 'vimpulse-visual-global-vars var)))
@@ -276,7 +282,10 @@ May also be used to change the Visual mode."
     ;; Add hooks
     (add-hook 'pre-command-hook 'vimpulse-visual-pre-command)
     (add-hook 'post-command-hook 'vimpulse-visual-post-command)
-    (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook)
+    (if (featurep 'xemacs)
+        (add-hook 'zmacs-deactivate-region-hook
+                  'vimpulse-visual-deactivate-hook)
+      (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
     ;; Activate mark at point
     (cond
      ((eq 'block mode)
@@ -368,14 +377,14 @@ Deactivates visual mode otherwise."
     backward-sexp backward-up-list backward-word beginning-of-buffer
     beginning-of-defun beginning-of-line beginning-of-visual-line
     down-list end-of-buffer end-of-defun end-of-line
-    end-of-visual-line exchange-point-and-mark
-    forward-char forward-list forward-paragraph
-    forward-sentence forward-sexp forward-word move-beginning-of-line
-    move-end-of-line next-line previous-line up-list
-    vimpulse-goto-first-line viper-backward-Word viper-backward-char
-    viper-backward-paragraph viper-backward-sentence
-    viper-backward-word viper-beginning-of-line viper-end-of-Word
-    viper-end-of-word viper-find-char-backward viper-find-char-forward
+    end-of-visual-line exchange-point-and-mark forward-char
+    forward-list forward-paragraph forward-sentence forward-sexp
+    forward-word move-beginning-of-line move-end-of-line next-line
+    previous-line up-list vimpulse-goto-first-line viper-backward-Word
+    viper-backward-char viper-backward-paragraph
+    viper-backward-sentence viper-backward-word
+    viper-beginning-of-line viper-end-of-Word viper-end-of-word
+    viper-find-char-backward viper-find-char-forward
     viper-forward-Word viper-forward-char viper-forward-paragraph
     viper-forward-sentence viper-forward-word viper-goto-char-backward
     viper-goto-eol viper-goto-char-forward viper-goto-line
@@ -383,15 +392,15 @@ Deactivates visual mode otherwise."
     viper-next-line viper-previous-line viper-search-backward
     viper-search-forward viper-search-Next viper-search-next
     viper-window-bottom viper-window-middle viper-window-top
-    vimpulse-visual-exchange-corners vimpulse-visual-select-text-object)
+    vimpulse-visual-exchange-corners
+    vimpulse-visual-select-text-object)
   "List of commands that move point.
 If a command is listed here, or in `vimpulse-boundaries-cmds', or in
 `vimpulse-misc-cmds', the region is not expanded to the visual selection
 before executing it.")
 
 (defvar vimpulse-boundaries-cmds
-  '(mark-defun mark-end-of-sentence
-    mark-paragraph mark-sexp mark-word)
+  '(mark-defun mark-end-of-sentence mark-paragraph mark-sexp mark-word)
   "List of commands that change boundaries of region.
 If a command is listed here, or in `vimpulse-movement-cmds', or in
 `vimpulse-misc-cmds', the region is not expanded to the visual selection
@@ -399,12 +408,9 @@ before executing it. It may, however, be adjusted afterwards.")
 
 (defvar vimpulse-misc-cmds
   '(cua-cancel keyboard-quit scroll-down scroll-up undo
-    viper-exec-mapped-kbd-macro viper-insert
-    viper-intercept-ESC-key
-    vimpulse-visual-toggle-normal
-    vimpulse-visual-toggle-line
-    vimpulse-visual-toggle-block
-    vimpulse-visual-restore)
+    viper-exec-mapped-kbd-macro viper-insert viper-intercept-ESC-key
+    vimpulse-visual-toggle-normal vimpulse-visual-toggle-line
+    vimpulse-visual-toggle-block vimpulse-visual-restore)
   "List of miscellaneous commands not acting on region.
 If a command is listed here, or in `vimpulse-movement-cmds', or in
 `vimpulse-boundaries-cmds', the region is not expanded to the visual selection
@@ -522,25 +528,59 @@ If POS if specified, set mark at POS instead."
       (push-mark pos t t)))))
 
 (defun vimpulse-transient-mark (&optional arg)
-  "Enable Transient Mark mode (and Cua mode).
-Disable with negative ARG."
+  "Enable Transient Mark mode (and Cua mode) if not already enabled.
+ Enable forcefully with positive ARG. Disable with negative ARG."
   (let (deactivate-mark)
     (cond
      ;; Disable Transient Mark/Cua
      ((and (integerp arg) (> 1 arg))
-      (and (boundp 'cua-mode)
+      (and (fboundp 'cua-mode)
            cua-mode
            (cua-mode -1))
-      (and (boundp 'transient-mark-mode)
+      (and (fboundp 'transient-mark-mode)
            transient-mark-mode
-           (transient-mark-mode -1)))
+           (transient-mark-mode -1))
+      (and (boundp 'zmacs-regions)
+           (setq zmacs-regions nil)))
      ;; Enable Transient Mark/Cua
-     ((and (boundp 'cua-mode)
-           (not cua-mode))
+     ((and (fboundp 'cua-mode)
+           (vimpulse-visual-before (eq cua-mode t))
+           (or (not cua-mode) (numberp arg)))
       (cua-mode 1))
-     ((and (boundp 'transient-mark-mode)
-           (not transient-mark-mode))
-      (transient-mark-mode 1)))))
+     ((and (fboundp 'transient-mark-mode)
+           (or (not transient-mark-mode) (numberp arg)))
+      (transient-mark-mode 1))
+     ((and (boundp 'zmacs-regions)
+           (or (not zmacs-regions) (numberp arg)))
+      (setq zmacs-regions t)))))
+
+
+(defun vimpulse-visual-transient-restore ()
+  "Restore Transient Mark mode to what is was before Visual mode.
+ Also restores Cua mode."
+  (when (boundp 'transient-mark-mode)
+    (when (vimpulse-visual-before (eq transient-mark-mode t))
+      (transient-mark-mode 1))
+    (when (vimpulse-visual-before (eq transient-mark-mode nil))
+      (transient-mark-mode -1)))
+  (when (boundp 'cua-mode)
+    (when (vimpulse-visual-before (eq cua-mode t))
+      (cua-mode 1))
+    (when (vimpulse-visual-before (eq cua-mode nil))
+      (cua-mode -1)))
+  (when (boundp 'zmacs-regions)
+    (when (vimpulse-visual-before (eq zmacs-regions t))
+      (setq zmacs-regions t))
+    (when (vimpulse-visual-before (eq zmacs-regions nil))
+      (setq zmacs-regions nil))))
+
+(defmacro vimpulse-visual-before (&rest body)
+  "Evaluate BODY with original system values from before Visual mode.
+This is based on `vimpulse-visual-vars-alist'."
+  `(let ,(mapcar (lambda (elt)
+                   (list (car elt) (cdr elt)))
+                 vimpulse-visual-vars-alist)
+     ,@body))
 
 (defun vimpulse-visual-beginning (&optional mode)
   "Return beginning of Visual selection,
@@ -704,13 +744,13 @@ Emacs region."
 With negative ARG, removes highlighting."
   (cond
    ((and (numberp arg) (> 1 arg))
-    (when vimpulse-visual-overlay
+    (when (viper-overlay-live-p vimpulse-visual-overlay)
       (vimpulse-delete-overlay vimpulse-visual-overlay))
     (mapcar 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
     (setq vimpulse-visual-block-overlays nil))
    ((eq 'block vimpulse-visual-mode)
     ;; Remove any normal/line highlighting
-    (when vimpulse-visual-overlay
+    (when (viper-overlay-live-p vimpulse-visual-overlay)
       (vimpulse-delete-overlay vimpulse-visual-overlay))
     ;; Block highlighting isn't perfect
     (condition-case nil
@@ -723,7 +763,7 @@ With negative ARG, removes highlighting."
     (mapcar 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
     (setq vimpulse-visual-block-overlays nil)
     ;; Reuse overlay if possible
-    (if vimpulse-visual-overlay
+    (if (viper-overlay-live-p vimpulse-visual-overlay)
         (viper-move-overlay vimpulse-visual-overlay
                             (vimpulse-visual-beginning)
                             (vimpulse-visual-end))
@@ -924,8 +964,7 @@ If DONT-SAVE is non-nil, just delete it."
     (goto-char beg)
     (viper-replace-char arg)
     (let ((c (char-after (point))))
-      (dotimes
-          (i (- end beg))
+      (dotimes (i (- end beg))
         (cond
          ((member (char-after (point)) '(?\r ?\n))
           (forward-char))
