@@ -14,6 +14,10 @@
 (unless (featurep 'rect-mark)
   (load "rect-mark" t))
 
+;; Load paren.el if available
+(unless (featurep 'paren)
+  (load "paren" t))
+
 ;; Customization group for Vimpulse
 (defgroup vimpulse nil
   "Vim emulation within Emacs."
