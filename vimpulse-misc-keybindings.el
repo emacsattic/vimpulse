@@ -207,6 +207,10 @@ read-only buffers anyway, it does the job."
 (define-key viper-vi-basic-map "gd" 'vimpulse-goto-definition)
 (define-key viper-vi-basic-map "gf" 'find-file-at-point)
 (define-key viper-vi-basic-map "gg" 'vimpulse-goto-first-line)
+(define-key viper-vi-basic-map "gh" 'backward-char)
+(define-key viper-vi-basic-map "gj" 'next-line)
+(define-key viper-vi-basic-map "gk" 'previous-line)
+(define-key viper-vi-basic-map "gl" 'forward-char)
 (define-key viper-vi-basic-map "zb" 'viper-line-to-bottom)
 (define-key viper-vi-basic-map "zh" 'scroll-right)
 (define-key viper-vi-basic-map "zl" 'scroll-left)
@@ -310,6 +314,13 @@ to start the search."
   (interactive)
   (let ((tag (thing-at-point 'word)))
     (find-tag tag)))
+
+;; Auto-indent
+(defadvice viper-line (after vimpulse activate)
+  "Indent if `viper-auto-indent' is t."
+  (and (boundp 'viper-auto-indent) viper-auto-indent
+       (eq ?C (cdr arg))
+       (indent-according-to-mode)))
 
 ;; C-o/C-i
 (viper-deflocalvar

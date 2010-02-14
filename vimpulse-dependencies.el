@@ -1,3 +1,5 @@
+;;; Code:
+
 ;; Load Viper
 (unless (boundp 'viper-mode)
   (setq viper-mode t))
@@ -39,14 +41,14 @@ Turned on by default, so you will give feedback :P"
       (get symbol 'customized-face)
       (get symbol 'saved-value)))
 
-(defmacro vimpulse-custom-setq (sym val)
+(defmacro vimpulse-setq-custom (sym val)
   "Set the customized value of SYM to VAL."
   `(prog1 (setq ,sym ,val)              ; return VAL
      (when (get ',sym 'custom-autoload)
        (custom-load-symbol ',sym))
      (put ',sym 'customized-value (list (custom-quote ,val)))))
 
-(defmacro vimpulse-custom-setq-default (symbol value)
+(defmacro vimpulse-setq-custom-default (symbol value)
   "Set the customized default value of SYMBOL to VALUE."
   `(prog1 ,value                        ; return VALUE
      (when (get ',symbol 'custom-autoload)
@@ -59,11 +61,11 @@ SYM is unquoted. Returns VAL."
   `(cond
     ;; Customized value: just set custom standard value
     ((vimpulse-custom-value-p ',sym)
-     (vimpulse-custom-setq-default ,sym ,val))
+     (vimpulse-setq-custom-default ,sym ,val))
     ;; Customized variable: set custom and regular values
     ((custom-variable-p ',sym)
-     (vimpulse-custom-setq-default ,sym ,val)
-     (vimpulse-custom-setq ,sym ,val)
+     (vimpulse-setq-custom-default ,sym ,val)
+     (vimpulse-setq-custom ,sym ,val)
      (setq-default ,sym ,val)
      (setq ,sym ,val))
     ;; Regular variable; set default and local values
@@ -74,6 +76,8 @@ SYM is unquoted. Returns VAL."
 ;; Carefully set Viper/woman variables
 (defun vimpulse-initialize-variables ()
   "Set various non-Vimpulse variables, unless customized."
+  ;; Fast paren-matching
+  (vimpulse-setq show-paren-delay 0)
   ;; Can backspace past start of insert/line
   (vimpulse-setq viper-ex-style-editing nil)
   ;; Don't create new frame for manpages
