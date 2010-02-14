@@ -1,14 +1,17 @@
 ;;;;
-;;;; This file contains an alternate paren matching function used when
-;;;; viper is in vi mode, so that the paren under the cursor is matched,
-;;;; instead of the paren before the cursor. This visually makes checking
-;;;; parens at the end of the line possible.
+;;;; When highlighting matching parentheses, Emacs matches the closing
+;;;; parenthesis before the cursor instead of under it (like in Vim).
+;;;; This file provides an alternate parenthesis matching function
+;;;; used when Viper is in vi (command) mode, so that the parenthesis
+;;;; under the cursor is matched. This makes it possible to visually
+;;;; inspect a closing parenthesis at the end of the line.
 ;;;;
-
-;;;
-;;; paren matching LOADED BY DEFAULT
-;;; set vimpulse-enhanced-paren-matching nil in your .emacs before requiring vimpulse to avoid loading it
-;;;
+;;;; In Insert mode, Emacs' scheme is deemed best and kept as is.
+;;;;
+;;;; Custom paren-matching LOADED BY DEFAULT.
+;;;; Set `vimpulse-enhanced-paren-matching' to nil in your .emacs
+;;;; before requiring Vimpulse to avoid loading it.
+;;;;
 
 ;;; Begin Paren Matching Code {{{
 
@@ -18,108 +21,123 @@
   :group 'vimpulse
   :type  'boolean)
 
-(when vimpulse-enhanced-paren-matching
-  (require 'paren)
-  (show-paren-mode 't) ;; enable the normal paren match highlight
+;; Safely enable show-paren-mode (normal highlighting)
+(and (fboundp 'show-paren-mode)
+     (show-paren-mode 1))
 
-  (defvar vimpulse-paren-overlay-open nil) ;; overlay used to highlight the opening paren
-  (defvar vimpulse-paren-overlay-close nil) ;; overlay used to highlight the closing paren
-  (make-variable-buffer-local 'vimpulse-paren-overlay-open) ;; overlays are buffer local
-  (make-variable-buffer-local 'vimpulse-paren-overlay-close)
+;; Overlays are buffer-local
+(viper-deflocalvar
+ vimpulse-paren-overlay-open nil
+ "Overlay used to highlight the opening paren.")
 
-  (defun vimpulse-pm-parenp (pos)
-    (let ((class (syntax-class (syntax-after pos))))
-      (or (= class 4) (= class 5))))
-  (defun vimpulse-pm-open-parenp (pos)
-    "Returns t if the character at position `pos' is an opening paren."
-    (let ((class (syntax-class (syntax-after pos))))
-      (= 4 class)))
-  (defun vimpulse-pm-close-parenp (pos)
-    "Returns t if the character at position `pos' is an closing paren."
-    (let ((class (syntax-class (syntax-after pos))))
-      (= 5 class)))
+(viper-deflocalvar
+ vimpulse-paren-overlay-close nil
+ "Overlay used to highlight the closing paren.")
 
-  (defun vimpulse-pm-get-candidate-pos (pos)
-    "Returns the position of the possible matching paren of the character at position `pos'
-if it's a paren, 'not-a-paren if it's not a paren, nil if no match is found."
-    (let ((result nil))
-      (condition-case ()
-          (cond
-           ((vimpulse-pm-open-parenp pos)
-            (setq result (1- (scan-sexps pos 1))))
-           ((vimpulse-pm-close-parenp pos)
-            (setq result (scan-sexps (1+ pos) -1)))
-           (t
-            (setq result 'not-a-paren)))
-        (error (setq result nil)))
-      result))
+(defun vimpulse-paren-open-p (&optional pos)
+  "Return t if the character at POS or point is an opening paren."
+  (setq pos (or pos (point)))
+  (let ((class (syntax-class (syntax-after pos))))
+    (= 4 class)))
 
-  (defun vimpulse-pm-is-real-match (pos1 pos2)
-    "Return t if POS1 and POS2 are matching characters.
+(defun vimpulse-paren-close-p (&optional pos)
+  "Returns t if the character at POS or point is an closing paren."
+  (setq pos (or pos (point)))
+  (let ((class (syntax-class (syntax-after pos))))
+    (= 5 class)))
+
+(defun vimpulse-paren-match (&optional pos)
+  "Return the position of possible matching paren at POS or point.
+If not a paren, return `not-a-paren'. If not found, return nil."
+  (setq pos (or pos (point)))
+  (condition-case nil
+      (cond
+       ((vimpulse-paren-open-p pos)
+        (1- (scan-sexps pos 1)))
+       ((vimpulse-paren-close-p pos)
+        (scan-sexps (1+ pos) -1))
+       (t
+        'not-a-paren))
+    (error nil)))
+
+(defun vimpulse-paren-match-p (pos1 pos2)
+  "Return t if POS1 and POS2 are matching characters.
 Checks the characters at position POS1 and POS2 and returns t
 if they are matching characters (in a paren match meaning),
 nil otherwise."
-    (let ((class1 (car (syntax-after pos1)))
-          (match1 (cdr (syntax-after pos1)))
-          (class2 (car (syntax-after pos2)))
-          (match2 (cdr (syntax-after pos2))))
-      (or (eq match1 (char-after pos2))
-          (eq match2 (char-after pos1))
-          (eq match1 match2))))
+  (let ((class1 (car (syntax-after pos1)))
+        (match1 (cdr (syntax-after pos1)))
+        (class2 (car (syntax-after pos2)))
+        (match2 (cdr (syntax-after pos2))))
+    (or (eq match1 (char-after pos2))
+        (eq match2 (char-after pos1))
+        (eq match1 match2))))
 
-  (defun vimpulse-pm-highlight-pos (pos face)
-    "Highlights the paren at pos `pos' using `face'."
-    (let ((ovl (if (vimpulse-pm-open-parenp pos)
-                   vimpulse-paren-overlay-open
-                 vimpulse-paren-overlay-close)))
-      (overlay-put ovl 'face face)
-      (move-overlay ovl pos (1+ pos))))
+(defun vimpulse-paren-highlight (face &optional pos)
+  "Highlight the paren at POS with FACE."
+  (setq pos (or pos (point)))
+  (let ((ovl (if (vimpulse-paren-open-p pos)
+                 vimpulse-paren-overlay-open
+               vimpulse-paren-overlay-close)))
+    (overlay-put ovl 'face face)
+    (move-overlay ovl pos (1+ pos))))
 
-  (defun vimpulse-pm-show-paren ()
-    "Paren matching routine. Highlights the paren at (point) and the eventual
-matching paren, or mismatched paren." ;; FIXME: this description sucks.
-    (let ((candidate-pos (vimpulse-pm-get-candidate-pos (point))))
-      (cond
-       ((not candidate-pos)
-        (vimpulse-pm-highlight-pos (point) 'show-paren-mismatch))
-       ((eq candidate-pos 'not-a-paren)
-        (delete-overlay vimpulse-paren-overlay-open)
-        (delete-overlay vimpulse-paren-overlay-close))
-       (t
-        (let ((pos-1 (vimpulse-pm-get-candidate-pos candidate-pos)))
-          (cond
-           ((/= (point) pos-1)
-            (vimpulse-pm-highlight-pos (point) 'show-paren-mismatch))
-           ((vimpulse-pm-is-real-match candidate-pos pos-1)
-            (vimpulse-pm-highlight-pos (point) 'show-paren-match)
-            (vimpulse-pm-highlight-pos candidate-pos 'show-paren-match))
-           (t
-            (vimpulse-pm-highlight-pos (point) 'show-paren-mismatch)
-            (vimpulse-pm-highlight-pos candidate-pos 'show-paren-mismatch))))))))
+;; FIXME: this description sucks
+(defun vimpulse-paren-highlight-pair (&optional pos)
+  "Highlight paren pair.
+Highlights the paren at POS and eventual matching
+or mismatched paren."
+  (setq pos (or pos (point)))
+  (let ((match (vimpulse-paren-match pos)))
+    (cond
+     ((not match)
+      (vimpulse-paren-highlight 'show-paren-mismatch pos))
+     ((eq match 'not-a-paren)
+      (delete-overlay vimpulse-paren-overlay-open)
+      (delete-overlay vimpulse-paren-overlay-close))
+     ((/= pos (vimpulse-paren-match match))
+      (vimpulse-paren-highlight 'show-paren-mismatch pos))
+     ((vimpulse-paren-match-p pos match)
+      (vimpulse-paren-highlight 'show-paren-match pos)
+      (vimpulse-paren-highlight 'show-paren-match match))
+     (t
+      (vimpulse-paren-highlight 'show-paren-mismatch pos)
+      (vimpulse-paren-highlight 'show-paren-mismatch match)))))
 
-;;;
-;;; We advice show-paren-function and use it for insert mode
-;;;
-;;; TODO: check if using this paren matching function in replace mode is a problem
-;;;
-  (defadvice show-paren-function (around vimpulse-parenmatching activate)
-    (unless vimpulse-paren-overlay-open ;; define overlays if they don't exist
-      (setq vimpulse-paren-overlay-open (make-overlay (point) (point)))
-      (setq vimpulse-paren-overlay-close (make-overlay (point) (point)))
+;;; We advice `show-paren-function' and use it for Insert mode.
+;;; TODO: check if using this in Replace mode is a problem.
+(defadvice show-paren-function (around vimpulse-paren activate)
+  "Use custom highlighting if `vimpulse-enhanced-paren-matching' is t."
+  ;; Define overlays if they don't exist
+  (cond
+   (vimpulse-enhanced-paren-matching
+    (unless vimpulse-paren-overlay-open
+      (setq vimpulse-paren-overlay-open
+            (make-overlay (point) (point))
+            vimpulse-paren-overlay-close
+            (make-overlay (point) (point)))
       (delete-overlay vimpulse-paren-overlay-open)
       (delete-overlay vimpulse-paren-overlay-close))
     (cond
-     ((and show-paren-mode viper-mode (not (eq viper-current-state 'insert-state))) ;; viper not in insert mode
-      (when (boundp 'show-paren-overlay) ;; we delete the overlays used by show-paren-function
-        (delete-overlay show-paren-overlay) ;; and call the custom paren-matching function
-        (delete-overlay show-paren-overlay-1))
-      (vimpulse-pm-show-paren))
-     (t ;; viper in insert mode
-      (delete-overlay vimpulse-paren-overlay-open) ;; delete the overlays used by the custom function
+     ;; Viper not in Insert mode
+     ((and (not (eq viper-current-state 'insert-state))
+           show-paren-mode viper-mode)
+      ;; Safely delete the overlays used by `show-paren-function'
+      ;; and call our custom function instead
+      (and (viper-overlay-live-p show-paren-overlay)
+           (delete-overlay show-paren-overlay))
+      (and (viper-overlay-live-p show-paren-overlay-1)
+           (delete-overlay show-paren-overlay-1))
+      (vimpulse-paren-highlight-pair))
+     ;; Viper in Insert mode
+     (t
+      ;; Delete the overlays used by our custom function
+      (delete-overlay vimpulse-paren-overlay-open)
       (delete-overlay vimpulse-paren-overlay-close)
-      ad-do-it))) ;; call the adviced function
+      ad-do-it)))
+   (t
+    ad-do-it)))
 
-  )
 ;;; }}} End Paren Matching code
 
 (provide 'vimpulse-paren-matching)

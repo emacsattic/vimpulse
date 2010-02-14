@@ -942,19 +942,25 @@ If DONT-SAVE is non-nil, just delete it."
   "Change the Visual selection to the kill-ring.
 If DONT-SAVE is non-nil, just delete it."
   (interactive "r")
-  (let ((length (- end beg)))
-    (vimpulse-visual-delete beg end)
-    (cond
-     ((eq 'block vimpulse-visual-mode)
-      (viper-insert nil))
-     (t
-      ;; If at last character on line, append
-      (if (or (eolp) (save-excursion (forward-char) (eolp)))
-          (viper-append nil)
+  (let ((length (- end beg))
+        (mode vimpulse-visual-mode))
+    (vimpulse-visual-delete beg end dont-save)
+    (setq length (min length (- (buffer-size) (point))))
+    (let (viper-d-com)
+      (cond
+       ((eq 'block mode)
         (viper-insert nil))
-      (viper-set-destructive-command
-       (list 'viper-forward-char
-             length ?c viper-use-register nil nil))))))
+       ((eq 'line mode)
+        (viper-Open-line nil))
+       (t
+        ;; If at last character on line, append
+        (if (or (eolp) (save-excursion (forward-char) (eolp)))
+            (viper-append nil)
+          (viper-insert nil)))))
+    (if (eq 'line mode)
+        (setcar (nthcdr 2 viper-d-com) ?C)
+      (setcar (nthcdr 1 viper-d-com) length)
+      (setcar (nthcdr 2 viper-d-com) ?c))))
 
 (defun vimpulse-visual-replace-region (beg end &optional arg)
   "Replace all selected characters with ARG."
