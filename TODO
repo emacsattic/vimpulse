@@ -53,11 +53,10 @@
 ;;   typed in the netrw syntax, i.e., http:// etc.  But first ask tramp
 ;;   upstream if they could please make those changes themselves.
 ;;
-;; - Add CTRL-O for jumping back in the jumplist and CTRL-I for
-;;   jumping forwards (for undoing one CTRL-O).  I wonder if emacs'
-;;   tags functionality allows a jumplist.  I wonder if viper does
-;;   tags like nvi does.
-;;     - The global mark ring is not what I want.
+;; - Improve CTRL-O for jumping back in the jumplist and CTRL-I for
+;;   jumping forwards (for undoing one CTRL-O).  The global mark ring
+;;   is not what I want.  I wonder if emacs' tags functionality allows
+;;   a jumplist.  I wonder if viper does tags like nvi does.
 ;;     - Try code.google.com/p/ejumplist/source/browse/trunk/jumplist.el
 ;;
 ;; - On my PC (I run Ubuntu), if you start plain Vim then press CTRL-O
@@ -126,10 +125,6 @@
 ;;   "something else" is reverse i-search.)  Should it do reverse
 ;;   i-search in insert mode too?
 ;;
-;; - When you press "v" for visual mode, Vimpulse modifies the mode
-;;   section of the modeline, so it reads e.g. "(Emacs-Lisp visual)".
-;;   Shouldn't it do something to the <V> indicator instead?
-;;
 ;; - In Vim, when a line starts with a "// " or ";; " comment and I
 ;;   press enter, Vim extends the comment onto the next line.  What
 ;;   Vim function is it that does this?  Is the function enabled in
@@ -138,13 +133,6 @@
 ;;   Is it mostly useful or mostly annoying?  Is it worth implementing
 ;;   in Emacs considering there are other easy ways to create
 ;;   comments?
-;;
-;; - In v / V mode, Vim makes sure there is always at least 1 char /
-;;   line selected.  IMO it provides nice feedback as to whether
-;;   visual mode is on or not.  Is this worth implementing?  This is
-;;   especially important for the block mode because currently it's
-;;   impossible to select the last character in a line.
-;;       19/06/2009: we only need to fix block mode.
 ;;
 ;; - Sometimes when you use C (viper-change-to-eol) or other change
 ;;   commands, Jason's new viper-exec-change function shows a message
@@ -174,10 +162,6 @@
 ;; - Would it be bad to edit users' .viminfo files without asking
 ;;   permission, or should some variable have to be customized on to do
 ;;   such a thing?
-;;
-;; - Should gj and gk do longlines-style movement like in Vim?  I
-;;   really must resolve my Windows vs. Unix line-length hangups by
-;;   Googling or asking before I even think about this.
 ;;
 ;; - Is there any need to implement Vim's new
 ;;   [count]dk-can-go-past-top-of-file-without-error functionality (to

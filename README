@@ -5,8 +5,8 @@
 ;; change, r to replace, or y to copy.  You can use p to paste. For
 ;; line selection, press V instead of v.  Then you can copy and paste
 ;; whole lines.  For block selection, press C-v.  Now you can copy and
-;; paste the selected rectangle.  In block selection, you may use I or
-;; A to insert or append text before or after the selection on each
+;; paste the selected rectangle.  In block selection, you may use I
+;; or A to insert or append text before or after the selection on each
 ;; line.
 ;;
 ;; Other features:
@@ -16,11 +16,8 @@
 ;;
 ;; http://my-trac.assembla.com/vimpulse/wiki/Documentation
 ;;
-;; Also see the definition of `viper-vi-global-user-map' right near
-;; the beginning of the code.  You'll see a list of keys and what
-;; function each one calls.  The documentation that comes with Vim
-;; -- which is also online at http://vimdoc.sf.net/ -- may also be
-;; helpful.
+;; The documentation that comes with Vim -- which is online at
+;; http://vimdoc.sf.net/ -- may also be helpful.
 ;;
 ;; Tips:
 ;;
