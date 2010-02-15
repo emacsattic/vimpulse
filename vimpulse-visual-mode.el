@@ -39,7 +39,8 @@ This keymap is active when in visual mode."
     ;; It must work even if Visual mode is not active.
     (vimpulse-visual-highlight -1)
     ;; Deactivate mark
-    (viper-deactivate-mark)
+    (when vimpulse-visual-vars-alist
+      (viper-deactivate-mark))
     ;; Clean up local variables
     (mapcar (lambda (var)
               (when (assq var vimpulse-visual-vars-alist)
@@ -50,13 +51,6 @@ This keymap is active when in visual mode."
     (vimpulse-visual-transient-restore)
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
-    ;; Remove hooks
-    (remove-hook 'pre-command-hook 'vimpulse-visual-pre-command)
-    (remove-hook 'post-command-hook 'vimpulse-visual-post-command)
-    (if (featurep 'xemacs)
-        (remove-hook 'zmacs-deactivate-region-hook
-                     'vimpulse-visual-deactivate-hook)
-      (remove-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
     ;; If Viper state is not already changed,
     ;; change it to vi state
     (when (eq viper-current-state 'visual-state)
@@ -279,7 +273,7 @@ May also be used to change the Visual mode."
                 (make-local-variable var)
                 (add-to-list 'vimpulse-visual-global-vars var)))
             vimpulse-visual-local-vars)
-    ;; Add hooks
+    ;; Re-add hooks in case they were cleared
     (add-hook 'pre-command-hook 'vimpulse-visual-pre-command)
     (add-hook 'post-command-hook 'vimpulse-visual-post-command)
     (if (featurep 'xemacs)
@@ -299,9 +293,9 @@ May also be used to change the Visual mode."
       ;; selection increases by one character when mark is before
       ;; point.
       (if (vimpulse-mark-active)
-          (when (< (point) (mark t))
-            (vimpulse-visual-contract-region))
-        (vimpulse-activate-mark (point))))))
+          (vimpulse-visual-contract-region)
+        (vimpulse-activate-mark (point)))
+      (vimpulse-visual-highlight))))
   ;; Set the Visual mode
   (setq mode (or mode 'normal))
   (setq vimpulse-visual-mode mode
@@ -484,10 +478,12 @@ That is, whether it is listed in `vimpulse-movement-cmds'."
 (defadvice viper-intercept-ESC-key
   (around vimpulse-ESC-exit-visual-mode activate)
   "Exit Visual mode with ESC."
-  (if (and vimpulse-visual-mode
-           (not (input-pending-p)))
-      (vimpulse-visual-mode -1)
-    ad-do-it))
+  (let ((viper-ESC-moves-cursor-back (not (vimpulse-mark-active)))
+        deactivate-mark)
+    (if (and vimpulse-visual-mode
+             (not (input-pending-p)))
+        (vimpulse-visual-mode -1)
+      ad-do-it)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Visual selection visualization ;;;
@@ -691,10 +687,12 @@ the current Visual mode."
         ;; `vimpulse-visual-end' is always 1 larger than region's end
         ;; to ensure at least one character is selected. Therefore,
         ;; subtract 1 from region's end.
-        (set-mark  (1- (max beg end))))
+        (set-mark  (max (min beg end)
+                        (1- (max beg end)))))
        (t
         (set-mark  (min beg end))
-        (goto-char (1- (max beg end)))))
+        (goto-char (max (min beg end)
+                        (1- (max beg end))))))
       ;; Was selection changed?
       (not (and (eq opoint (point))
                 (eq omark  (mark t))))))))
@@ -874,7 +872,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
 
 (defun vimpulse-visual-post-command ()
   "Run after each command in Visual mode."
-  (when vimpulse-visual-mode
+  (cond
+   (vimpulse-visual-mode
     (cond
      (quit-flag                         ; C-g
       (vimpulse-visual-mode -1))
@@ -895,7 +894,11 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
        (vimpulse-visual-region-changed
         (vimpulse-visual-restore)
         (setq vimpulse-visual-region-changed nil)))
-      (vimpulse-visual-highlight)))))
+      (vimpulse-visual-highlight))))
+   ((and (vimpulse-mark-active)
+         (eq 'vi-state viper-current-state)
+         (if (boundp 'deactivate-mark) (not deactivate-mark) t))
+    (vimpulse-visual-mode 1))))
 
 (defun vimpulse-visual-deactivate-hook ()
   "Hook run when mark is deactivated in visual mode."
@@ -904,6 +907,13 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
          (vimpulse-region-cmd-p this-command)
          ;; (not (eq 'block vimpulse-visual-mode))
          (vimpulse-visual-mode -1))))
+
+(add-hook 'pre-command-hook 'vimpulse-visual-pre-command)
+(add-hook 'post-command-hook 'vimpulse-visual-post-command)
+(if (featurep 'xemacs)
+    (add-hook 'zmacs-deactivate-region-hook
+              'vimpulse-visual-deactivate-hook)
+  (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Destructive commands ;;;
@@ -1415,7 +1425,6 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
                        viper-window-top)))
     ad-do-it))
 
-;; CHECKME: is this still needed?
 (defadvice viper-deactivate-mark
   (around vimpulse-deactivate-mark-wrap activate)
   "Don't deactivate mark in Visual mode."

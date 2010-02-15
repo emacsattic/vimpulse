@@ -218,6 +218,8 @@ read-only buffers anyway, it does the job."
 (define-key viper-vi-basic-map "zz" 'viper-line-to-middle)
 (define-key viper-vi-basic-map "*" 'vimpulse-search-forward-for-symbol-at-point)
 (define-key viper-vi-basic-map "#" 'vimpulse-search-backward-for-symbol-at-point)
+(define-key viper-vi-basic-map "+" 'vimpulse-previous-line-skip-white)
+(define-key viper-vi-basic-map "_" 'vimpulse-next-line-skip-white)
 (define-key viper-vi-basic-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-basic-map "\C-t" 'pop-tag-mark)
 ;; Map undo and redo from XEmacs' redo.el
@@ -252,6 +254,15 @@ read-only buffers anyway, it does the job."
                                         ; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
+;; C-u
+(defcustom vimpulse-want-C-u-like-Vim nil
+  "Whether C-u scrolls like in Vim, off by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(unless vimpulse-want-C-u-like-Vim
+  (define-key viper-vi-basic-map "\C-u" 'universal-argument))
+
 ;;; My code (Alessandro)
 (defun vimpulse-indent-lines (count)
   (save-excursion
@@ -270,45 +281,126 @@ read-only buffers anyway, it does the job."
   (interactive)
   (select-window (next-window)))
 
-(defun vimpulse-search-for-symbol-at-point (forward-p &optional pos force)
+(defun vimpulse-previous-line-skip-white (&optional arg)
+  "Go ARG lines backward and to the first non-blank character."
+  (interactive "P")
+  (let ((val (viper-p-val arg))
+        (com (viper-getcom arg)))
+    (when com
+      (viper-move-marker-locally 'viper-com-point (point)))
+    (forward-line (- val))
+    (back-to-indentation)
+    (when com
+      (viper-execute-com 'vimpulse-previous-line-nonblank val com))))
+
+(defun vimpulse-next-line-skip-white (&optional arg)
+  "Go ARG lines forward and to the first non-blank character."
+  (interactive "P")
+  (let ((val (viper-p-val arg))
+        (com (viper-getcom arg)))
+    (when com
+      (viper-move-marker-locally 'viper-com-point (point)))
+    (forward-line val)
+    (back-to-indentation)
+    (when com
+      (viper-execute-com 'vimpulse-next-line-nonblank val com))))
+
+(defun vimpulse-search-string (&optional pos thing backward regexp)
+  "Find something to search for near POS or point.
+THING is a `thing-at-point', default `symbol'.
+BACKWARD, if t, specifies reverse direction.
+REGEXP, if t, means the string is `regexp-quote'd.
+Returns the empty string if nothing is found."
+  (save-excursion
+    (setq pos (or pos (point))
+          thing (or thing 'symbol))
+    (goto-char pos)
+    (let ((str (thing-at-point thing)))
+      ;; If there's nothing under point, go forwards
+      ;; (or backwards) to find it
+      (while (and (not str) (or (and backward (not (bobp)))
+                                (and (not backward) (not (eobp)))))
+        (if backward (backward-char) (forward-char))
+        (setq str (thing-at-point 'symbol)))
+      (setq str (or str ""))
+      ;; We don't want any text properties, thank you very much
+      (set-text-properties 0 (length str) nil str)
+      (when regexp
+        (setq str (regexp-quote str)))
+      str)))
+
+(defun vimpulse-search-for-symbol (&optional backward pos search)
   "Search forwards or backwards for the symbol under point.
-FORWARD-P specifies the direction, POS the position from where
-to start the search."
-  (let ((str (thing-at-point 'symbol)))
-    ;; If there's no symbol under point, go forwards
-    ;; (or backwards) to find one
-    (save-excursion
-      (while (and (not str) (or (and forward-p (not (eobp)))
-                                (and (not forward-p) (not (bobp)))))
-        (if forward-p (forward-char) (backward-char))
-        (setq str (thing-at-point 'symbol))))
-    (when pos (goto-char pos))
+If BACKWARD is t, search in the reverse direction.
+SEARCH is a regular expression to use for searching instead of
+the symbol under point; it is wrapped in \"\\\\_<\" and \"\\\\_>\".
+POS specifies an alternative position to search from. Note that
+if POS is specified and at the beginning of a match, that match
+is highlighted rather than skipped past."
+  (setq search (or search (vimpulse-search-string
+                           (point) 'symbol backward t)))
+  (cond
+   ((string= "" search)
+    (error "No string under cursor"))
+   (t
+    (setq viper-s-string  (concat "\\_<" search "\\_>")
+          viper-s-forward (not backward))
     (cond
-     ((stringp str)
-      (setq str (regexp-quote str))
-      (setq str (concat "\\_<" str "\\_>"))
-      ;; If searching several times in a row,
-      ;; use the same search string each time
-      (when (or force
-                (string= "" viper-s-string)
-                (not (looking-at-p viper-s-string)))
-        (setq viper-s-string str))
-      (setq viper-s-forward forward-p)
-      (viper-search viper-s-string forward-p 1))
+     (pos
+      (unless (vimpulse-mark-active)
+        (push-mark nil t))
+      (goto-char pos)
+      (cond
+       ((looking-at search)
+        (save-excursion
+          (search-forward search))
+        (viper-flash-search-pattern))
+       (t
+        (viper-search viper-s-string (not backward) 1)
+        (unless (vimpulse-mark-active)
+          (pop-mark)))))
      (t
-      (error "No string under cursor")))))
+      (viper-search viper-s-string (not backward) 1))))))
 
 (defun vimpulse-search-forward-for-symbol-at-point ()
   (interactive)
-  (vimpulse-search-for-symbol-at-point t nil t))
+  (vimpulse-search-for-symbol))
 
 (defun vimpulse-search-backward-for-symbol-at-point ()
   (interactive)
-  (vimpulse-search-for-symbol-at-point nil nil t))
+  (vimpulse-search-for-symbol t))
 
 (defun vimpulse-goto-definition ()
+  "Go to definition or first occurrence of symbol under cursor."
   (interactive)
-  (vimpulse-search-for-symbol-at-point t (point-min)))
+  (let ((str (vimpulse-search-string (point) 'symbol))
+        ientry ipos)
+    (cond
+     ((string= "" str)
+      (error "No string under cursor"))
+     ;; If imenu is available, try it
+     ((or (featurep 'imenu)
+          (load "imenu" t))
+      (setq ientry
+            (condition-case nil
+                (imenu--make-index-alist)
+              (error nil)))
+      (setq ientry (assoc str ientry))
+      (setq ipos (cdr ientry))
+      (unless (markerp ipos)
+        (setq ipos (cadr ientry)))
+      (cond
+       ;; imenu found a position, so go there and
+       ;; highlight the occurrence
+       ((and (markerp ipos)
+             (eq (current-buffer) (marker-buffer ipos)))
+        (vimpulse-search-for-symbol nil ipos str))
+       ;; imenu failed, so just go to first occurrence in buffer
+       (t
+        (vimpulse-search-for-symbol nil (point-min)))))
+     ;; No imenu, so just go to first occurrence in buffer
+     (t
+      (vimpulse-search-for-symbol nil (point-min))))))
 
 (defun vimpulse-jump-to-tag-at-point ()
   (interactive)
