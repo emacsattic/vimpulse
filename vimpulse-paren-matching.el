@@ -25,29 +25,30 @@
 (and (fboundp 'show-paren-mode)
      (show-paren-mode 1))
 
-;; Overlays are buffer-local
-(viper-deflocalvar
- vimpulse-paren-overlay-open nil
- "Overlay used to highlight the opening paren.")
+(defvar vimpulse-paren-overlay-open nil
+  "Overlay used to highlight the opening paren.")
 
-(viper-deflocalvar
- vimpulse-paren-overlay-close nil
- "Overlay used to highlight the closing paren.")
+(defvar vimpulse-paren-overlay-close nil
+  "Overlay used to highlight the closing paren.")
 
 (defun vimpulse-paren-open-p (&optional pos)
-  "Return t if the character at POS or point is an opening paren."
+  "Return t if the character at point (or POS) is an opening paren."
   (setq pos (or pos (point)))
-  (let ((class (syntax-class (syntax-after pos))))
-    (= 4 class)))
+  (let ((class (syntax-after pos)))
+    (when class
+      (setq class (syntax-class class))
+      (= 4 class))))
 
 (defun vimpulse-paren-close-p (&optional pos)
-  "Returns t if the character at POS or point is an closing paren."
+  "Return t if the character at point (or POS) is an closing paren."
   (setq pos (or pos (point)))
-  (let ((class (syntax-class (syntax-after pos))))
-    (= 5 class)))
+  (let ((class (syntax-after pos)))
+    (when class
+      (setq class (syntax-class class))
+      (= 5 class))))
 
 (defun vimpulse-paren-match (&optional pos)
-  "Return the position of possible matching paren at POS or point.
+  "Return the position of possible matching paren at point (or POS).
 If not a paren, return `not-a-paren'. If not found, return nil."
   (setq pos (or pos (point)))
   (condition-case nil
@@ -63,7 +64,7 @@ If not a paren, return `not-a-paren'. If not found, return nil."
 (defun vimpulse-paren-match-p (pos1 pos2)
   "Return t if POS1 and POS2 are matching characters.
 Checks the characters at position POS1 and POS2 and returns t
-if they are matching characters (in a paren match meaning),
+if they are matching characters (in a paren-match meaning),
 nil otherwise."
   (let ((class1 (car (syntax-after pos1)))
         (match1 (cdr (syntax-after pos1)))
@@ -74,7 +75,7 @@ nil otherwise."
         (eq match1 match2))))
 
 (defun vimpulse-paren-highlight (face &optional pos)
-  "Highlight the paren at POS with FACE."
+  "Highlight the paren at point (or POS) with FACE."
   (setq pos (or pos (point)))
   (let ((ovl (if (vimpulse-paren-open-p pos)
                  vimpulse-paren-overlay-open
@@ -85,7 +86,7 @@ nil otherwise."
 ;; FIXME: this description sucks
 (defun vimpulse-paren-highlight-pair (&optional pos)
   "Highlight paren pair.
-Highlights the paren at POS and eventual matching
+Highlights the paren at point (or POS) and eventual matching
 or mismatched paren."
   (setq pos (or pos (point)))
   (let ((match (vimpulse-paren-match pos)))
@@ -111,7 +112,7 @@ or mismatched paren."
   ;; Define overlays if they don't exist
   (cond
    (vimpulse-enhanced-paren-matching
-    (unless vimpulse-paren-overlay-open
+    (unless (viper-overlay-live-p vimpulse-paren-overlay-open)
       (setq vimpulse-paren-overlay-open
             (make-overlay (point) (point))
             vimpulse-paren-overlay-close
