@@ -11,10 +11,9 @@
 (unless (featurep 'redo)
   (load "redo" t))
 
-;; Load rect.el and rect-mark.el if available
-(require 'rect)
-(unless (featurep 'rect-mark)
-  (load "rect-mark" t))
+;; Load rect.el
+(eval-when-compile
+  (require 'rect))
 
 ;; Load paren.el if available
 (unless (featurep 'paren)

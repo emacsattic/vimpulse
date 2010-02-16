@@ -19,9 +19,6 @@
 ;;    http://wonderworks.com/download/redo.el to get C-r
 ;;    (redo key) to work.  redo.el is included with XEmacs.
 ;;
-;; 4. For block selection (C-v), download and install
-;;    http://www.emacswiki.org/emacs/rect-mark.el.
-;;
 ;; We would appreciate it if you e-mailed us saying whether you liked
 ;; or disliked Vimpulse and why, and which new features you would like
 ;; to see.  Also, if you stop using Emacs or Vimpulse, please tell us

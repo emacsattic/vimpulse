@@ -1,11 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; This file contains all the code relative to Visual mode.  ;;;;;
-;;;; Visual mode is implemented as a minor mode.               ;;;;;
-;;;; Currently, Visual selection highlighting is done through  ;;;;;
-;;;; the use of overlays for linewise and characterwise modes, ;;;;;
-;;;; while for blockwise mode, rect-mark.el is needed (see     ;;;;;
-;;;; installation instructions).                               ;;;;;
+;;;; Visual mode is implemented as a Viper state.              ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
