@@ -627,26 +627,22 @@ If POS if specified, set mark at POS instead."
   "Restore Transient Mark mode to what is was before Visual mode.
  Also restores Cua mode."
   (when (boundp 'transient-mark-mode)
-    (when (vimpulse-visual-before (eq transient-mark-mode t))
-      (transient-mark-mode 1))
-    (when (vimpulse-visual-before (eq transient-mark-mode nil))
+    (if (vimpulse-visual-before transient-mark-mode)
+        (transient-mark-mode 1)
       (transient-mark-mode -1)))
   (when (boundp 'cua-mode)
-    (when (vimpulse-visual-before (eq cua-mode t))
-      (cua-mode 1))
-    (when (vimpulse-visual-before (eq cua-mode nil))
+    (if (vimpulse-visual-before cua-mode)
+        (cua-mode 1)
       (cua-mode -1)))
   (when (boundp 'zmacs-regions)
-    (when (vimpulse-visual-before (eq zmacs-regions t))
-      (setq zmacs-regions t))
-    (when (vimpulse-visual-before (eq zmacs-regions nil))
-      (setq zmacs-regions nil))))
+    (let ((oldval (vimpulse-visual-before zmacs-regions)))
+      (setq zmacs-regions oldval))))
 
 (defmacro vimpulse-visual-before (&rest body)
   "Evaluate BODY with original system values from before Visual mode.
 This is based on `vimpulse-visual-vars-alist'."
   `(let ,(mapcar (lambda (elt)
-                   (list (car elt) (cdr elt)))
+                   (list (car elt) `(quote ,(cdr elt))))
                  vimpulse-visual-vars-alist)
      ,@body))
 
