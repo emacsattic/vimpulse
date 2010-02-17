@@ -1,8 +1,10 @@
 ;;; Code:
 
 ;; Load Viper
-(unless (boundp 'viper-mode)
-  (setq viper-mode t))
+(unless (and (boundp 'viper-mode) viper-mode)
+  (setq viper-mode t)
+  (setq viper-inhibit-startup-message t)
+  (setq viper-expert-level 5))
 (require 'viper)
 
 ;; Load redo.el if available. Sadly we can't use APEL's require
@@ -74,7 +76,7 @@ SYM is unquoted. Returns VAL."
 
 ;; Carefully set Viper/woman variables
 (defun vimpulse-initialize-variables ()
-  "Set various non-Vimpulse variables, unless customized."
+  "Set various variables, unless customized."
   ;; Fast paren-matching
   (vimpulse-setq show-paren-delay 0)
   ;; Can backspace past start of insert/line
@@ -83,6 +85,10 @@ SYM is unquoted. Returns VAL."
   (vimpulse-setq woman-use-own-frame nil)
   ;; Don't prompt upon K key (manpage display)
   (vimpulse-setq woman-use-topic-at-point t)
+  ;; No start-up message
+  (vimpulse-setq viper-inhibit-startup-message t)
+  ;; Viper expert level 5
+  (vimpulse-setq viper-expert-level 5)
   ;; Make cursor color consistent
   (vimpulse-setq viper-insert-state-cursor-color
                  viper-vi-state-cursor-color)

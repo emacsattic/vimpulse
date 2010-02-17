@@ -156,8 +156,10 @@ read-only buffers anyway, it does the job."
      (vimpulse-add-core-movement-cmds Info-mode-map)
      (vimpulse-add-movement-cmds Info-mode-map)
      (define-key Info-mode-map "\C-t" 'Info-history-back) ; l
-     (define-key Info-mode-map "\M-h" 'Info-help)         ; h
+     (define-key Info-mode-map "\C-o" 'Info-history-back)
+     (define-key Info-mode-map "\M-h" 'Info-help) ; h
      (define-key Info-mode-map " " 'Info-scroll-up)
+     (define-key Info-mode-map "\C-]" 'Info-follow-nearest-node)
      (define-key Info-mode-map [backspace] 'Info-scroll-down)
      (vimpulse-inhibit-destructive-cmds Info-mode-map)))
 
