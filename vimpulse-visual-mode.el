@@ -99,6 +99,7 @@ This keymap is active when in visual mode."
 (viper-deflocalvar
  vimpulse-visual-local-vars
  '(cua-mode
+   mark-active
    transient-mark-mode
    zmacs-regions
    vimpulse-visual-region-changed)
@@ -276,6 +277,9 @@ May also be used to change the Visual mode."
         (add-hook 'zmacs-deactivate-region-hook
                   'vimpulse-visual-deactivate-hook)
       (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
+    ;; Remove nonsensical t value
+    (and (boundp 'mark-active)
+         (setq mark-active (vimpulse-mark-active)))
     ;; Activate mark at point
     (cond
      ((eq 'block mode)
@@ -497,11 +501,20 @@ In XEmacs, this is an extent.")
 ;; Set functions for handling overlays (not yet provided by Viper)
 (cond
  ((featurep 'xemacs)                    ; XEmacs
-  (fset 'vimpulse-delete-overlay 'delete-extent)
-  (fset 'vimpulse-mark-active 'region-exists-p))
+  (fset 'vimpulse-delete-overlay 'delete-extent))
  (t                                     ; GNU Emacs
-  (fset 'vimpulse-delete-overlay 'delete-overlay)
-  (fset 'vimpulse-mark-active (lambda () mark-active))))
+  (fset 'vimpulse-delete-overlay 'delete-overlay)))
+
+(defun vimpulse-mark-active ()
+  "Return t if mark is meaningfully active."
+  (cond
+   ((featurep 'xemacs)
+    (region-exists-p))
+   (t
+    (and (boundp 'transient-mark-mode)
+         transient-mark-mode
+         (boundp 'mark-active)
+         mark-active))))
 
 ;; Complement to `viper-deactivate-mark'
 (defun vimpulse-activate-mark (&optional pos)
