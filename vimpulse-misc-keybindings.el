@@ -236,9 +236,9 @@ read-only buffers anyway, it does the job."
 (define-key viper-vi-basic-map "\C-wc" 'delete-window)
 (define-key viper-vi-basic-map "\C-ws" 'split-window-vertically)
 (define-key viper-vi-basic-map "\C-wv" 'split-window-horizontally)
-(add-to-list 'ex-token-alist '("on" (delete-other-windows)))
+(add-to-list 'ex-token-alist '("on" "only"))
 (add-to-list 'ex-token-alist '("only" (delete-other-windows)))
-(add-to-list 'ex-token-alist '("clo" (delete-window)))
+(add-to-list 'ex-token-alist '("clo" "close"))
 (add-to-list 'ex-token-alist '("close" (delete-window)))
 
 (when (fboundp 'windmove-left)
@@ -325,7 +325,7 @@ Returns the empty string if nothing is found."
         (if backward (backward-char) (forward-char))
         (setq str (thing-at-point 'symbol)))
       (setq str (or str ""))
-      ;; We don't want any text properties, thank you very much
+      ;; No text properties, thank you very much
       (set-text-properties 0 (length str) nil str)
       (when regexp
         (setq str (regexp-quote str)))
