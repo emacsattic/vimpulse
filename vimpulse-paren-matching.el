@@ -105,8 +105,6 @@ or mismatched paren."
       (vimpulse-paren-highlight 'show-paren-mismatch pos)
       (vimpulse-paren-highlight 'show-paren-mismatch match)))))
 
-;;; We advice `show-paren-function' and use it for Insert mode.
-;;; TODO: check if using this in Replace mode is a problem.
 (defadvice show-paren-function (around vimpulse-paren activate)
   "Use custom highlighting if `vimpulse-enhanced-paren-matching' is t."
   ;; Define overlays if they don't exist
@@ -120,8 +118,10 @@ or mismatched paren."
       (delete-overlay vimpulse-paren-overlay-open)
       (delete-overlay vimpulse-paren-overlay-close))
     (cond
-     ;; Viper not in Insert mode
+     ;; Viper not in Insert, Replace or Emacs state
      ((and (not (eq viper-current-state 'insert-state))
+           (not (eq viper-current-state 'replace-state))
+           (not (eq viper-current-state 'emacs-state))
            show-paren-mode viper-mode)
       ;; Safely delete the overlays used by `show-paren-function'
       ;; and call our custom function instead
