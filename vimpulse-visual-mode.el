@@ -535,38 +535,39 @@ In Line mode, return beginning of first line.
 In Block mode, return upper left corner of rectangle.
 
 See also `vimpulse-visual-end'."
-  (setq mode (or mode vimpulse-visual-mode))
-  (cond
-   ;; Upper left corner of block selection
-   ((eq 'block mode)
-    (let* ((start (min (point) (or (mark t) 1)))
-           (end   (max (point) (or (mark t) 1)))
-           (start-col (save-excursion
-                        (goto-char start)
-                        (current-column)))
-           (end-col   (save-excursion
-                        (goto-char end)
-                        (current-column))))
-      (if (<= start-col end-col)
-          start
-        (save-excursion
+  (save-excursion
+    (setq mode (or mode vimpulse-visual-mode))
+    (cond
+     ;; Upper left corner of block selection
+     ((eq 'block mode)
+      (let* ((start (min (point) (or (mark t) 1)))
+             (end   (max (point) (or (mark t) 1)))
+             (start-col (save-excursion
+                          (goto-char start)
+                          (current-column)))
+             (end-col   (save-excursion
+                          (goto-char end)
+                          (current-column))))
+        (if (<= start-col end-col)
+            start
           (goto-char start)
           (condition-case nil
               (move-to-column end-col)
             (error nil))
-          (point)))))
-   ;; Beginning of first line
-   ((eq 'line mode)
-    (cond
-     ((not (mark t))
-      (line-beginning-position))
+          (point))))
+     ;; Beginning of first line
+     ((eq 'line mode)
+      (when (mark t)
+        (goto-char (min (point) (mark t))))
+      (cond
+       ((and (boundp 'visual-line-mode) visual-line-mode)
+        (beginning-of-visual-line)
+        (point))
+       (t
+        (line-beginning-position))))
+     ;; Beginning of region
      (t
-      (save-excursion
-        (goto-char (min (point) (mark t)))
-        (line-beginning-position)))))
-   ;; Beginning of region
-   (t
-    (min (point) (or (mark t) 1)))))
+      (min (point) (or (mark t) 1))))))
 
 (defun vimpulse-visual-end (&optional mode)
   "Return end of Visual selection,
@@ -579,38 +580,42 @@ In Line mode, return end of last line, including newline.
 In Block mode, return lower right corner of rectangle.
 
 See also `vimpulse-visual-beginning'."
-  (setq mode (or mode vimpulse-visual-mode))
-  (cond
-   ((eq 'block mode)
-    ;; Lower right corner of block selection
-    (let* ((start (min (point) (or (mark t) 1)))
-           (end   (max (point) (or (mark t) 1)))
-           (start-col (save-excursion
-                        (goto-char start)
-                        (current-column)))
-           (end-col   (save-excursion
-                        (goto-char end)
-                        (current-column))))
-      (if (<= start-col end-col)
-          (1+ end)
-        (save-excursion
+  (save-excursion
+    (setq mode (or mode vimpulse-visual-mode))
+    (cond
+     ((eq 'block mode)
+      ;; Lower right corner of block selection
+      (let* ((start (min (point) (or (mark t) 1)))
+             (end   (max (point) (or (mark t) 1)))
+             (start-col (save-excursion
+                          (goto-char start)
+                          (current-column)))
+             (end-col   (save-excursion
+                          (goto-char end)
+                          (current-column))))
+        (if (<= start-col end-col)
+            (1+ end)
           (goto-char end)
           (condition-case nil
               (move-to-column start-col)
             (error nil))
-          (1+ (point))))))
-   ;; End of last line (including newline)
-   ((eq 'line mode)
-    (cond
-     ((not (mark t))
-      (line-beginning-position 2))
+          (1+ (point)))))
+     ;; End of last line (including newline)
+     ((eq 'line mode)
+      (when (mark t)
+        (goto-char (max (point) (mark t))))
+      (cond
+       ((and (boundp 'visual-line-mode) visual-line-mode)
+        (end-of-visual-line)
+        (condition-case nil
+            (forward-char)
+          (error nil))
+        (point))
+       (t
+        (line-beginning-position 2))))
+     ;; End of region plus one character
      (t
-      (save-excursion
-        (goto-char (max (point) (mark t)))
-        (line-beginning-position 2)))))
-   ;; End of region plus one character
-   (t
-    (1+ (max (point) (or (mark t) 1))))))
+      (1+ (max (point) (or (mark t) 1)))))))
 
 (defun vimpulse-visual-select (beg end &optional widen)
   "Visually select text from BEG to END.
@@ -643,11 +648,20 @@ the current Visual mode."
       (not (and (= opoint (point))
                 (= omark  (mark t))))))))
 
-(defun vimpulse-visual-expand-region ()
-  "Expand Emacs region to Visual selection."
+(defun vimpulse-visual-expand-region (&optional no-trailing-newline)
+  "Expand Emacs region to Visual selection.
+If NO-TRAILING-NEWLINE is t and selection ends with a newline,
+exclude that newline from the region."
   (let ((newpoint (vimpulse-visual-beginning))
         (newmark  (vimpulse-visual-end))
         mark-active)
+    (when no-trailing-newline
+      (save-excursion
+        (goto-char newmark)
+        (and (bolp) (not (bobp))
+             (setq newmark (max newpoint (1- newmark))))))
+    ;; Currently, newpoint < newmark. If point > mark,
+    ;; swap them so that newpoint > newmark.
     (when (< (or (mark t) 1) (point))
       (setq newpoint (prog1 newmark
                        (setq newmark newpoint))))
@@ -709,23 +723,21 @@ With negative ARG, removes highlighting."
          (vimpulse-visual-beginning)
          (vimpulse-visual-end))
       (error nil)))
-   (vimpulse-visual-mode                ; normal or line
-    ;; Remove any block highlighting
-    (mapcar 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
-    (setq vimpulse-visual-block-overlays nil)
-    ;; Reuse overlay if possible
-    (if (viper-overlay-live-p vimpulse-visual-overlay)
-        (viper-move-overlay vimpulse-visual-overlay
-                            (vimpulse-visual-beginning)
-                            (vimpulse-visual-end))
-      (setq vimpulse-visual-overlay
-            (viper-make-overlay (vimpulse-visual-beginning)
-                                (vimpulse-visual-end)
-                                nil t))
-      (viper-overlay-put vimpulse-visual-overlay
-                         'face (vimpulse-region-face))
-      (viper-overlay-put vimpulse-visual-overlay
-                         'priority 99)))))
+   (vimpulse-visual-mode ; normal or line
+    (let ((beg (vimpulse-visual-beginning))
+          (end (vimpulse-visual-end)))
+      ;; Remove any block highlighting
+      (mapcar 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
+      (setq vimpulse-visual-block-overlays nil)
+      ;; Reuse overlay if possible
+      (if (viper-overlay-live-p vimpulse-visual-overlay)
+          (viper-move-overlay vimpulse-visual-overlay beg end)
+        (setq vimpulse-visual-overlay
+              (viper-make-overlay beg end nil t))
+        (viper-overlay-put vimpulse-visual-overlay
+                           'face (vimpulse-region-face))
+        (viper-overlay-put vimpulse-visual-overlay
+                           'priority 99))))))
 
 (defun vimpulse-visual-highlight-block (beg end)
   "Highlight rectangular region from BEG to END.
@@ -828,7 +840,11 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
      (vimpulse-visual-region-changed
       (vimpulse-visual-expand-region))
      ((vimpulse-region-cmd-p this-command)
-      (vimpulse-visual-expand-region)
+      (vimpulse-visual-expand-region
+       ;; If in Line mode, don't include trailing newline
+       ;; unless the command has real need of it
+       (and (eq 'line vimpulse-visual-mode)
+            (not (vimpulse-needs-newline-p this-command))))
       (setq vimpulse-visual-region-changed t)))))
 
 (defun vimpulse-visual-post-command ()
@@ -856,6 +872,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         (vimpulse-visual-restore)
         (setq vimpulse-visual-region-changed nil)))
       (vimpulse-visual-highlight))))
+   ;; Not in the Visual state, but maybe mark is active
+   ;; in vi (command) state?
    ((and (vimpulse-mark-active)
          (eq 'vi-state viper-current-state)
          (if (boundp 'deactivate-mark) (not deactivate-mark) t))
@@ -1041,6 +1059,25 @@ If a command is listed here, or in `vimpulse-movement-cmds', or
 in `vimpulse-boundaries-cmds', the region is not expanded to the
 Visual selection before executing it.")
 
+(defvar vimpulse-newline-cmds
+  '(cua-copy-region
+    cua-cut-region
+    cua-delete-region
+    delete-region
+    exchange-point-and-mark
+    execute-extended-command
+    kill-region
+    kill-ring-save
+    viper-put-back
+    viper-Put-back
+    vimpulse-visual-change
+    vimpulse-visual-delete
+    vimpulse-visual-exchange-corners
+    vimpulse-visual-yank)
+  "List of commands which needs the trailing newline in Visual Line mode.
+In most cases, it's more useful NOT to include this newline in
+the region acted on.")
+
 (defun vimpulse-movement-cmd-p (command)
   "Whether COMMAND is a \"movement\" command.
 That is, whether it is listed in `vimpulse-movement-cmds'."
@@ -1063,6 +1100,12 @@ That is, whether it is listed in `vimpulse-movement-cmds'."
        (not (vimpulse-boundaries-cmd-p command))
        (not (vimpulse-misc-cmd-p command))))
 
+(defun vimpulse-needs-newline-p (command)
+  "Whether COMMAND needs trailing newline in Visual Line mode.
+In most cases (say, when wrapping the selection in a skeleton),
+it is more useful to exclude the last newline from the region."
+  (member command vimpulse-newline-cmds))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Destructive commands ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1082,7 +1125,8 @@ If DONT-SAVE is non-nil, just delete it."
         (delete-region beg end)
         (goto-char beg)))
       (vimpulse-visual-mode -1))
-     ((eq 'normal vimpulse-visual-mode)
+     ((or (eq 'normal vimpulse-visual-mode)
+          (and (boundp 'visual-line-mode) visual-line-mode))
       (viper-prefix-arg-com ?r 1 ?d)
       (viper-set-destructive-command
        (list 'viper-forward-char
@@ -1116,7 +1160,9 @@ If DONT-SAVE is non-nil, just delete it."
      (t
       ;; If at last character on line, append
       (let (viper-d-com)
-        (if (or (eolp) (save-excursion (forward-char) (eolp)))
+        (if (or (eolp) (save-excursion
+                         (forward-char)
+                         (and (eolp) (looking-back "[[:space:]]"))))
             (viper-append nil)
           (viper-insert nil)))
       (setcar (nthcdr 1 viper-d-com) length)
@@ -1162,31 +1208,21 @@ If DONT-SAVE is non-nil, just delete it."
   (goto-char beg))
 
 ;; These two functions implement insertion at the beginning/end
-;; of a visual block or linewise selection
+;; of the Visual selection
 (defun vimpulse-visual-insert (beg end &optional arg)
   "Enter Insert state at beginning of Visual selection."
   (interactive "r\nP")
   (let (deactivate-mark)
     (cond
-     ((eq 'normal vimpulse-visual-mode)
-      (vimpulse-visual-mode -1)
-      (viper-insert arg)
-      (push-mark end t t)
-      (goto-char beg))
-     ((eq 'line vimpulse-visual-mode)
-      (vimpulse-visual-mode -1)
-      (push-mark (save-excursion
-                   (goto-char end)
-                   ;; Don't want trailing newline
-                   (when (bolp) (backward-char))
-                   (point))
-                 t t)
-      (goto-char beg)
-      (viper-insert arg))
      ((eq 'block vimpulse-visual-mode)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?i beg end))
+      (viper-insert arg))
+     (t
+      (vimpulse-visual-mode -1)
+      (push-mark end t t)
+      (goto-char beg)
       (viper-insert arg))
      (t
       (error "Viper not in Visual mode.")))))
@@ -1196,23 +1232,16 @@ If DONT-SAVE is non-nil, just delete it."
   (interactive "r\nP")
   (let (deactivate-mark)
     (cond
-     ((eq 'normal vimpulse-visual-mode)
-      (vimpulse-visual-mode -1)
-      (viper-insert arg)
-      (push-mark beg t t)
-      (goto-char end))
-     ((eq 'line vimpulse-visual-mode)
-      (vimpulse-visual-mode -1)
-      (push-mark beg t t)
-      (goto-char end)
-      ;; Don't want trailing newline
-      (when (bolp) (backward-char))
-      (viper-insert arg))
      ((eq 'block vimpulse-visual-mode)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?a beg end))
       (viper-append arg))
+     (t
+      (vimpulse-visual-mode -1)
+      (push-mark beg t t)
+      (goto-char end)
+      (viper-insert arg))
      (t
       (error "Viper not in Visual mode.")))))
 
@@ -1324,14 +1353,14 @@ If DONT-SAVE is non-nil, just delete it."
   "Save the Visual selection in the kill-ring."
   (interactive "r")
   (cond
-   ((memq vimpulse-visual-mode '(normal line))
-    (viper-prefix-arg-com ?r 1 ?y))
    ((eq 'block vimpulse-visual-mode)
     (kill-rectangle beg end)
     (goto-char beg)
     (yank-rectangle)
     ;; Associate the rectangle with the last entry in the kill-ring
     (put 'killed-rectangle 'previous-kill (current-kill 0)))
+   (vimpulse-visual-mode
+    (viper-prefix-arg-com ?r 1 ?y))
    (t
     (error "Viper not in Visual mode.")))
   (vimpulse-visual-mode -1)
