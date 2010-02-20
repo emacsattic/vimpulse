@@ -133,7 +133,7 @@ state by default."
                (let ((reg (read-char)))
                  (if (viper-valid-register reg)
                      (setq viper-use-register reg)
-                   (error "giovanni"))
+                   (error "Viper bell"))
                  (setq char (read-char))))
               (t
                (setq com char)
