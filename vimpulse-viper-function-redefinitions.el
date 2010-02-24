@@ -18,7 +18,7 @@ like in Vim."
     (viper-change-state-to-insert))))
 
 (defvar vimpulse-goto-line t
-  "Goto line with \"G\" like in Vim.")
+  "*Goto line with \"G\" like in Vim.")
 
 (defun vimpulse-goto-line (arg)
   "Go to ARG's line; without ARG go to end of buffer.

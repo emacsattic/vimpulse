@@ -23,6 +23,9 @@
 
 ;; Safely enable show-paren-mode (normal highlighting)
 (and (fboundp 'show-paren-mode)
+     (not (vimpulse-custom-value-p 'show-paren-mode))
+     ;; Fast paren-matching
+     (vimpulse-setq show-paren-delay 0)
      (show-paren-mode 1))
 
 (defvar vimpulse-paren-overlay-open nil
@@ -112,9 +115,9 @@ or mismatched paren."
    (vimpulse-enhanced-paren-matching
     (unless (viper-overlay-live-p vimpulse-paren-overlay-open)
       (setq vimpulse-paren-overlay-open
-            (make-overlay (point) (point))
+            (viper-make-overlay (point) (point) nil t nil)
             vimpulse-paren-overlay-close
-            (make-overlay (point) (point)))
+            (viper-make-overlay (point) (point) nil t nil))
       (delete-overlay vimpulse-paren-overlay-open)
       (delete-overlay vimpulse-paren-overlay-close))
     (cond
