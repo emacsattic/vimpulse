@@ -339,9 +339,9 @@ binding it replaced. To override this, use DONT-LIST.
 DEFINE-FUNC specifies a function to be used in place of
 `define-key'.
 
-NOTE: If \"A B\" was not bound in KEYMAP, but in some other map
+NOTE: If \"A B\" is not bound in KEYMAP, but in some other map
 which is active only in a certain state (say, Insert mode), this
-function could detect that binding only if called in the same
+function can detect that binding only if called in the same
 state. The functions `vimpulse-map', `vimpulse-imap' and
 `vimpulse-vmap' take care of this."
   (let (temp-sequence current-binding previous-binding)
@@ -399,6 +399,38 @@ state. The functions `vimpulse-map', `vimpulse-imap' and
            keymap key def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
 
+(defun vimpulse-map-state (state key def &rest modes)
+  "Modally bind KEY to DEF in STATE.
+You shouldn't use this function; see `vimpulse-map',
+`vimpulse-imap' and `vimpulse-vmap' instead."
+  (let* ((old-state viper-current-state)
+         (maps '((vi-state viper-vi-basic-map
+                           viper-vi-global-user-map)
+                 (insert-state viper-insert-basic-map
+                               viper-insert-global-user-map)
+                 (visual-state vimpulse-visual-basic-map
+                               vimpulse-visual-global-user-map)))
+         (basic-map (eval (nth 1 (assq state maps))))
+         (global-user-map (eval (nth 2 (assq state maps))))
+         map)
+    (viper-set-mode-vars-for state)
+    (let ((viper-current-state state))
+      (viper-normalize-minor-mode-map-alist))
+    (cond
+     (modes
+      (dolist (mode modes)
+        (if (eq t mode)
+            (vimpulse-define-key global-user-map key def)
+          (setq map
+                (or (cdr (assoc mode viper-vi-state-modifier-alist))
+                    (make-sparse-keymap)))
+          (vimpulse-define-key map key def)
+          (viper-modify-major-mode mode state map))))
+     (t
+      (vimpulse-define-key basic-map key def)))
+    (viper-set-mode-vars-for old-state)
+    (viper-normalize-minor-mode-map-alist)))
+
 (defun vimpulse-map (key def &rest modes)
   "Modally bind KEY to DEF in vi (command) state.
 The syntax is the same as that of `global-set-key', e.g.,
@@ -413,25 +445,7 @@ binding is seen in:
 Otherwise, the binding is universal, but has lower priority.
 Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
-  (let ((old-state viper-current-state)
-        (old-cursor cursor-type)
-        map)
-    (viper-change-state-to-vi)
-    (cond
-     (modes
-      (dolist (mode modes)
-        (if (eq t mode)
-            (vimpulse-define-key viper-vi-global-user-map key def)
-          (setq map
-                (or (cdr (assoc mode viper-vi-state-modifier-alist))
-                    (make-sparse-keymap)))
-          (vimpulse-define-key map key def)
-          (viper-modify-major-mode mode viper-current-state map))))
-     (t
-      (vimpulse-define-key viper-vi-basic-map key def)))
-    (save-excursion
-      (viper-change-state old-state)
-      (setq cursor-type old-cursor))))
+  (apply 'vimpulse-map-state 'vi-state key def modes))
 
 (defun vimpulse-imap (key def &rest modes)
   "Modally bind KEY to DEF in Insert state.
@@ -447,25 +461,7 @@ binding is seen in:
 Otherwise, the binding is universal, but has lower priority.
 Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
-  (let ((old-state viper-current-state)
-        (old-cursor cursor-type)
-        map)
-    (viper-change-state-to-insert)
-    (cond
-     (modes
-      (dolist (mode modes)
-        (if (eq t mode)
-            (vimpulse-define-key viper-insert-global-user-map key def)
-          (setq map
-                (or (cdr (assoc mode viper-insert-state-modifier-alist))
-                    (make-sparse-keymap)))
-          (vimpulse-define-key map key def)
-          (viper-modify-major-mode mode viper-current-state map))))
-     (t
-      (vimpulse-define-key viper-insert-basic-map key def)))
-    (save-excursion
-      (viper-change-state old-state)
-      (setq cursor-type old-cursor))))
+  (apply 'vimpulse-map-state 'insert-state key def modes))
 
 (defun vimpulse-vmap (key def &rest modes)
   "Modally bind KEY to DEF in Visual state.
@@ -481,29 +477,11 @@ binding is seen in:
 Otherwise, the binding is universal, but has lower priority.
 Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
-  (let ((old-state viper-current-state)
-        (old-cursor cursor-type)
-        map)
-    (vimpulse-change-state-to-visual)
-    (cond
-     (modes
-      (dolist (mode modes)
-        (if (eq t mode)
-            (vimpulse-define-key
-             vimpulse-visual-global-user-map key def)
-          (setq map
-                (or (cdr (assoc mode vimpulse-visual-state-modifier-alist))
-                    (make-sparse-keymap)))
-          (vimpulse-define-key map key def)
-          (viper-modify-major-mode mode viper-current-state map))))
-     (t
-      (vimpulse-define-key vimpulse-visual-basic-map key def)))
-    (save-excursion
-      (viper-change-state old-state)
-      (setq cursor-type old-cursor))))
+  (apply 'vimpulse-map-state 'visual-state key def modes))
 
 (defun vimpulse-map! (key def &rest modes)
-  "Bind KEY to DEF in vi (command) state and Visual state."
+  "Bind KEY to DEF in vi (command) state and Visual state.
+To bind in Insert state, use `vimpulse-imap'."
   (vimpulse-map key def modes)
   (vimpulse-vmap key def modes))
 
