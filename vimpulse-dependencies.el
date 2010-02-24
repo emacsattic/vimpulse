@@ -4,22 +4,23 @@
 (unless (and (boundp 'viper-mode) viper-mode)
   (setq viper-mode t)
   (setq viper-inhibit-startup-message t)
-  (setq viper-expert-level 5))
+  (setq viper-expert-level 5)
+  (setq viper-want-ctl-h-help t))
 (require 'viper)
 
 ;; Load redo.el if available. Sadly we can't use APEL's require
 ;; function to get 'noerror functionality because GNU Emacs 21
 ;; doesn't ship with APEL included.
 (unless (featurep 'redo)
-  (load "redo" t))
-
-;; Load rect.el
-(eval-when-compile
-  (require 'rect))
+  (condition-case nil
+      (require 'redo)
+    (error nil)))
 
 ;; Load paren.el if available
 (unless (featurep 'paren)
-  (load "paren" t))
+  (condition-case nil
+      (require 'paren)
+    (error nil)))
 
 ;; Customization group for Vimpulse
 (defgroup vimpulse nil
@@ -77,8 +78,6 @@ SYM is unquoted. Returns VAL."
 ;; Carefully set Viper/woman variables
 (defun vimpulse-initialize-variables ()
   "Set various variables, unless customized."
-  ;; Fast paren-matching
-  (vimpulse-setq show-paren-delay 0)
   ;; Can backspace past start of insert/line
   (vimpulse-setq viper-ex-style-editing nil)
   ;; Don't create new frame for manpages
