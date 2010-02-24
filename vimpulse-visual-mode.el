@@ -84,12 +84,18 @@ This keymap is active when in Visual mode."
 
 (defcustom vimpulse-visual-load-hook nil
   "Hooks to run after loading vimpulse-visual-mode.el."
-  :type 'hook
+  :type  'hook
   :group 'vimpulse-visual)
 
 (defcustom vimpulse-visual-mode-hook nil
   "This hook is run whenever Visual mode is toggled."
-  :type 'hook
+  :type  'hook
+  :group 'vimpulse-visual)
+
+(defcustom vimpulse-visual-block-untabify nil
+  "Whether Block mode may change tabs to spaces for fine movement.
+Off by default."
+  :type  'boolean
   :group 'vimpulse-visual)
 
 (viper-deflocalvar
@@ -121,7 +127,7 @@ This lets us revert to Emacs state in non-vi buffers.")
 
 (viper-deflocalvar
  vimpulse-visual-region-changed nil
- "Whether region is expanded to Visual selection.")
+ "Whether region is expanded to the Visual selection.")
 
 (viper-deflocalvar
  vimpulse-visual-point nil
@@ -134,6 +140,9 @@ This lets us revert to Emacs state in non-vi buffers.")
 (viper-deflocalvar
  vimpulse-undo-needs-adjust nil
  "If true, several commands in the undo-list should be connected.")
+
+;; Defined in rect.el
+(defvar killed-rectangle nil)
 
 (defconst vimpulse-buffer-undo-list-mark 'vimpulse
   "Everything up to this mark is united in the undo-list.")
@@ -328,7 +337,7 @@ May also be used to change the Visual mode."
     (cond
      ((eq 'block mode)
       (set-mark (point))
-      (vimpulse-deactivate-mark t)          ; `set-mark' activates the mark
+      (vimpulse-deactivate-mark t)     ; `set-mark' activates the mark
       (vimpulse-transient-mark -1))
      (t
       (vimpulse-transient-mark 1)
@@ -342,7 +351,8 @@ May also be used to change the Visual mode."
         (setq vimpulse-visual-region-changed t))
        (t
         (vimpulse-activate-mark (point))))
-      (vimpulse-visual-highlight))))
+      (let (vimpulse-visual-region-changed)
+        (vimpulse-visual-highlight)))))
   ;; Set the Visual mode
   (setq mode (or mode 'normal))
   (setq vimpulse-visual-mode mode
@@ -425,6 +435,47 @@ In XEmacs, this is an extent.")
   (fset 'vimpulse-delete-overlay 'delete-extent))
  (t                                     ; GNU Emacs
   (fset 'vimpulse-delete-overlay 'delete-overlay)))
+
+;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
+;; and REAR-ADVANCE properly in XEmacs
+(defun vimpulse-make-overlay
+  (beg end &optional buffer front-advance rear-advance)
+  "Create a new overlay with range BEG to END in BUFFER.
+In XEmacs, create an extent."
+  (cond
+   ((featurep 'xemacs)
+    (let ((extent (make-extent beg end buffer)))
+      (set-extent-property extent 'start-open front-advance)
+      (set-extent-property extent 'end-closed rear-advance)
+      extent))
+   (t
+    (make-overlay beg end buffer front-advance rear-advance))))
+
+(defun vimpulse-overlay-before-string (overlay string &optional face)
+  "Set the `before-string' property of OVERLAY to STRING.
+In XEmacs, change the `begin-glyph' property."
+  (cond
+   ((featurep 'xemacs)
+    (setq face (or face (get-text-property 0 'face string) 'default))
+    (unless (glyphp string)
+      (setq string (make-glyph string)))
+    (set-glyph-face string face)
+    (set-extent-begin-glyph overlay string))
+   (t
+    (viper-overlay-put overlay 'before-string string))))
+
+(defun vimpulse-overlay-after-string (overlay string &optional face)
+  "Set the `after-string' property of OVERLAY to STRING.
+In XEmacs, change the `end-glyph' property."
+  (cond
+   ((featurep 'xemacs)
+    (setq face (or face (get-text-property 0 'face string) 'default))
+    (unless (glyphp string)
+      (setq string (make-glyph string)))
+    (set-glyph-face string face)
+    (set-extent-end-glyph overlay string))
+   (t
+    (viper-overlay-put overlay 'after-string string))))
 
 (defun vimpulse-mark-active (&optional force)
   "Return t if mark is meaningfully active."
@@ -524,6 +575,23 @@ This is based on `vimpulse-visual-vars-alist'."
                  vimpulse-visual-vars-alist)
      ,@body))
 
+(defun vimpulse-move-to-column (column &optional dir force)
+  "Move point to column COLUMN in the current line.
+If `vimpulse-visual-block-untabify' is non-nil, then
+if the column is in the middle of a tab character,
+change it to spaces. (FORCE untabifies regardless.)
+Otherwise, place point at left of the tab character
+\(at the right if DIR is non-nil). The return value is point."
+  (interactive "p")
+  (if (or vimpulse-visual-block-untabify force)
+      (move-to-column column t)
+    (move-to-column column)
+    (when (or (not dir) (and (numberp dir) (> 1 dir)))
+      (when (< column (current-column))
+        (unless (bolp)
+          (backward-char)))))
+  (point))
+
 (defun vimpulse-visual-beginning (&optional mode)
   "Return beginning of Visual selection,
 based on `point', `mark' and `vimpulse-visual-mode'.
@@ -532,13 +600,19 @@ which must be one of `normal', `line' and `block'.
 
 In Normal mode, return beginning of region.
 In Line mode, return beginning of first line.
-In Block mode, return upper left corner of rectangle.
+In Block mode, return upper opposite corner of rectangle.
+
+If Emacs' region is already expanded to the Visual selection,
+return beginning of region.
 
 See also `vimpulse-visual-end'."
   (save-excursion
     (setq mode (or mode vimpulse-visual-mode))
     (cond
-     ;; Upper left corner of block selection
+     ;; Region is already expanded
+     (vimpulse-visual-region-changed
+      (min (point) (or (mark t) 1)))
+     ;; Upper opposite corner of block selection
      ((eq 'block mode)
       (let* ((start (min (point) (or (mark t) 1)))
              (end   (max (point) (or (mark t) 1)))
@@ -550,11 +624,7 @@ See also `vimpulse-visual-end'."
                           (current-column))))
         (if (<= start-col end-col)
             start
-          (goto-char start)
-          (condition-case nil
-              (move-to-column end-col)
-            (error nil))
-          (point))))
+          (1+ start))))
      ;; Beginning of first line
      ((eq 'line mode)
       (when (mark t)
@@ -577,14 +647,20 @@ which must be one of `normal', `line' and `block'.
 
 In Normal mode, return end of region plus one character.
 In Line mode, return end of last line, including newline.
-In Block mode, return lower right corner of rectangle.
+In Block mode, return lower opposite corner of rectangle.
+
+If Emacs' region is already expanded to the Visual selection,
+return end of region.
 
 See also `vimpulse-visual-beginning'."
   (save-excursion
     (setq mode (or mode vimpulse-visual-mode))
     (cond
+     ;; Region is already expanded
+     (vimpulse-visual-region-changed
+      (max (point) (or (mark t) 1)))
      ((eq 'block mode)
-      ;; Lower right corner of block selection
+      ;; Lower opposite corner of block selection
       (let* ((start (min (point) (or (mark t) 1)))
              (end   (max (point) (or (mark t) 1)))
              (start-col (save-excursion
@@ -595,11 +671,7 @@ See also `vimpulse-visual-beginning'."
                           (current-column))))
         (if (<= start-col end-col)
             (1+ end)
-          (goto-char end)
-          (condition-case nil
-              (move-to-column start-col)
-            (error nil))
-          (1+ (point)))))
+          end)))
      ;; End of last line (including newline)
      ((eq 'line mode)
       (when (mark t)
@@ -624,7 +696,8 @@ modify selection if it does not already encompass BEG and END.
 
 Under the hood, this function changes Emacs' `point' and `mark'.
 The boundaries of the Visual selection are deduced from these and
-the current Visual mode."
+the current Visual mode, cf. `vimpulse-visual-beginning' and
+`vimpulse-visual-end'."
   (cond
    (widen
     (vimpulse-visual-select
@@ -652,9 +725,10 @@ the current Visual mode."
   "Expand Emacs region to Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
 exclude that newline from the region."
-  (let ((newpoint (vimpulse-visual-beginning))
-        (newmark  (vimpulse-visual-end))
-        mark-active)
+  (let* (vimpulse-visual-region-changed
+         newmark newpoint mark-active)
+    (setq newpoint (vimpulse-visual-beginning)
+          newmark  (vimpulse-visual-end))
     (when no-trailing-newline
       (save-excursion
         (goto-char newmark)
@@ -733,7 +807,7 @@ With negative ARG, removes highlighting."
       (if (viper-overlay-live-p vimpulse-visual-overlay)
           (viper-move-overlay vimpulse-visual-overlay beg end)
         (setq vimpulse-visual-overlay
-              (viper-make-overlay beg end nil t))
+              (vimpulse-make-overlay beg end nil t))
         (viper-overlay-put vimpulse-visual-overlay
                            'face (vimpulse-region-face))
         (viper-overlay-put vimpulse-visual-overlay
@@ -751,7 +825,9 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     ;; Calculate the rectangular region represented by point and mark,
     ;; putting BEG in the north-west corner and END in the
     ;; south-east corner
-    (let ((beg-col (save-excursion
+    (let ((omark  (mark t))
+          (opoint (point))
+          (beg-col (save-excursion
                      (goto-char beg)
                      (current-column)))
           (end-col (save-excursion
@@ -759,15 +835,15 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                      (current-column))))
       (if (>= beg-col end-col)
           (setq beg-col (prog1
-                            (1- end-col)
-                          (setq end-col (1+ beg-col)))
+                            end-col
+                          (setq end-col beg-col))
                 beg (save-excursion
                       (goto-char beg)
-                      (move-to-column beg-col nil)
+                      (vimpulse-move-to-column beg-col)
                       (point))
                 end (save-excursion
                       (goto-char end)
-                      (move-to-column end-col nil)
+                      (vimpulse-move-to-column end-col 1)
                       (point))))
       ;; Force a redisplay so we can do reliable window BEG/END
       ;; calculations
@@ -784,13 +860,49 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         ;; in the currently selected window
         (goto-char window-beg)
         (dotimes (i nlines)
-          (let ((row-beg (progn
-                           (move-to-column beg-col nil)
-                           (point)))
-                (row-end (progn
-                           (move-to-column end-col nil)
-                           (min (point)
-                                (line-end-position)))))
+          (let* (bstring
+                 mstring
+                 astring
+                 (row-beg
+                  (progn
+                    (vimpulse-move-to-column beg-col)
+                    (when (> beg-col (current-column))
+                      (setq bstring
+                            (propertize
+                             (make-string
+                              (- beg-col (current-column)) ?\ )
+                             'face
+                             (or (get-text-property (1- (point)) 'face)
+                                 'default))))
+                    (point)))
+                 (row-end
+                  (progn
+                    (vimpulse-move-to-column end-col)
+                    (when (> end-col (current-column))
+                      (cond
+                       ((= row-beg (point))
+                        (setq mstring
+                              (propertize
+                               (make-string
+                                (- end-col beg-col) ?\ )
+                               'face (vimpulse-region-face)))
+                        (cond
+                         ((= row-beg opoint)
+                          (setq astring mstring)
+                          (unless (featurep 'xemacs)
+                            (put-text-property
+                             0 (min (length astring) 1)
+                             'cursor 2 astring)))
+                         (t
+                          (setq bstring (concat bstring mstring)))))
+                       (t
+                        (setq astring
+                              (propertize
+                               (make-string
+                                (- end-col (current-column)) ?\ )
+                               'face (vimpulse-region-face))))))
+                    (min (point)
+                         (line-end-position)))))
             ;; Trim old leading overlays
             (while (and old
                         (setq overlay (car old))
@@ -805,9 +917,13 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                          (= (viper-overlay-end overlay) row-end)))
                 (progn
                   (viper-move-overlay overlay row-beg row-end)
+                  (vimpulse-overlay-before-string overlay bstring)
+                  (vimpulse-overlay-after-string overlay astring)
                   (setq new (cons overlay new)
                         old (cdr old)))
-              (setq overlay (viper-make-overlay row-beg row-end))
+              (setq overlay (vimpulse-make-overlay row-beg row-end))
+              (vimpulse-overlay-before-string overlay bstring)
+              (vimpulse-overlay-after-string overlay astring)
               (viper-overlay-put overlay 'face (vimpulse-region-face))
               (viper-overlay-put overlay 'priority 99)
               (setq new (cons overlay new))))
@@ -1028,7 +1144,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     viper-next-line viper-previous-line viper-search-backward
     viper-search-forward viper-search-Next viper-search-next
     viper-window-bottom viper-window-middle viper-window-top
-    vimpulse-visual-exchange-corners
+    vimpulse-visual-block-rotate vimpulse-visual-exchange-corners
     vimpulse-visual-select-text-object)
   "List of commands that move point.
 If a command is listed here, or in `vimpulse-boundaries-cmds', or
@@ -1137,6 +1253,7 @@ If DONT-SAVE is non-nil, just delete it."
       (viper-line (cons length ?D)))
      ((eq 'block vimpulse-visual-mode)
       (kill-rectangle beg end)
+      (put 'killed-rectangle 'previous-kill (current-kill 0))
       (goto-char (min vimpulse-visual-point vimpulse-visual-mark))
       (vimpulse-visual-mode -1)))))
 
@@ -1147,26 +1264,26 @@ If DONT-SAVE is non-nil, just delete it."
   (let ((length (- end beg))
         (mode vimpulse-visual-mode))
     (vimpulse-visual-delete beg end dont-save)
-    (setq length (min length (- (buffer-size) (point))))
+    (setq length (min length (1- (- (buffer-size) (point)))))
     (cond
-     ((eq 'block mode)
-      (goto-char
-       (vimpulse-visual-create-coords 'block ?i beg end))
-      (viper-insert nil))
+     ((or (eq 'normal mode)
+          (and (boundp 'visual-line-mode) visual-line-mode))
+      (let (viper-d-com)
+        (goto-char (max vimpulse-visual-point vimpulse-visual-mark))
+        (viper-insert nil))
+      (setcar (nthcdr 1 viper-d-com) length)
+      (setcar (nthcdr 2 viper-d-com) ?c))
      ((eq 'line mode)
       (let (viper-d-com)
         (viper-Open-line nil))
       (setcar (nthcdr 2 viper-d-com) ?C))
-     (t
-      ;; If at last character on line, append
-      (let (viper-d-com)
-        (if (or (eolp) (save-excursion
-                         (forward-char)
-                         (and (eolp) (looking-back "[[:space:]]"))))
-            (viper-append nil)
-          (viper-insert nil)))
-      (setcar (nthcdr 1 viper-d-com) length)
-      (setcar (nthcdr 2 viper-d-com) ?c)))
+     ((eq 'block mode)
+      (goto-char
+       (vimpulse-visual-create-coords
+        'block ?i
+        (min vimpulse-visual-point vimpulse-visual-mark)
+        (1+ (max vimpulse-visual-point vimpulse-visual-mark))))
+      (viper-insert nil)))
     (setq vimpulse-visual-last 'insert)))
 
 (defun vimpulse-visual-replace-region (beg end &optional arg)
@@ -1193,7 +1310,7 @@ If DONT-SAVE is non-nil, just delete it."
                      (current-column))
                    begin-col)))
       (while (< (point) end)
-        (move-to-column begin-col nil)
+        (vimpulse-move-to-column begin-col)
         (let ((n 0))
           (while (and (< n len)
                       (not (member (char-after (point))
@@ -1215,6 +1332,7 @@ If DONT-SAVE is non-nil, just delete it."
   (let (deactivate-mark)
     (cond
      ((eq 'block vimpulse-visual-mode)
+      (vimpulse-visual-block-rotate 'upper-left)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?i beg end))
@@ -1233,6 +1351,7 @@ If DONT-SAVE is non-nil, just delete it."
   (let (deactivate-mark)
     (cond
      ((eq 'block vimpulse-visual-mode)
+      (vimpulse-visual-block-rotate 'upper-right)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?a beg end))
@@ -1278,17 +1397,17 @@ If DONT-SAVE is non-nil, just delete it."
       (goto-char beg)
       (while (< (point) end)
         (let ((from (save-excursion
-                      (move-to-column begin-col nil)
+                      (vimpulse-move-to-column begin-col)
                       (point)))
               (to (save-excursion
-                    (move-to-column (+ begin-col len) nil)
+                    (vimpulse-move-to-column (+ begin-col len))
                     (point))))
           (funcall case-func from to)
           (forward-line)))))
    (t
     (error "Viper not in Visual mode.")))
   (vimpulse-visual-mode -1)
-  (goto-char beg))
+  (goto-char (vimpulse-visual-block-corner 'upper-left beg end)))
 
 (defun vimpulse-visual-toggle-case-region (beg end)
   "Toggles the case of all characters from BEG to END (exclusive)."
@@ -1354,6 +1473,9 @@ If DONT-SAVE is non-nil, just delete it."
   (interactive "r")
   (cond
    ((eq 'block vimpulse-visual-mode)
+    (vimpulse-visual-block-rotate 'upper-left)
+    (setq beg (vimpulse-visual-beginning)
+          end (vimpulse-visual-end))
     (kill-rectangle beg end)
     (goto-char beg)
     (yank-rectangle)
@@ -1365,28 +1487,6 @@ If DONT-SAVE is non-nil, just delete it."
     (error "Viper not in Visual mode.")))
   (vimpulse-visual-mode -1)
   (goto-char beg))
-
-(defun vimpulse-visual-exchange-corners ()
-  "Rearrange corners in Visual Block mode.
-For example, if mark is in the upper left corner and point in
-the lower right, this function puts mark in the upper right
-corner and point in the lower left."
-  (interactive)
-  (cond
-   ((memq vimpulse-visual-mode '(normal line))
-    (exchange-point-and-mark))
-   ((eq 'block vimpulse-visual-mode)
-    (let ((mark-col (save-excursion
-                      (goto-char (mark t))
-                      (current-column)))
-          (point-col (current-column)))
-      (set-mark (save-excursion
-                  (goto-char (mark t))
-                  (move-to-column point-col t)
-                  (point)))
-      (move-to-column mark-col t)))
-   (t
-    (error "Viper not in Visual mode."))))
 
 (defun vimpulse-visual-select-text-object
   (count &optional char motion)
@@ -1434,6 +1534,155 @@ previous text object selection."
 ;;; Visual Block Mode Support ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun vimpulse-visual-block-corner (corner &optional beg end)
+  "Return position of Visual Block CORNER.
+CORNER may be one of `upper-left', `upper-right',
+`lower-left' and `lower-right', or a number:
+
+        0---1        upper-left +---+ upper-right
+        |   |                   |   |
+        2---3        lower-left +---+ lower-right
+
+The rectangle is defined by mark and point,
+or BEG and END if specified. The CORNER values
+`upper', `left', `lower' and `right' returns one
+of the defining corners.
+
+        upper P---+                    +---M upper
+         left |   | lower        lower |   | right
+              +---M right         left P---+
+
+Corners 0 and 2 are returned by their left side,
+corners 1 and 3 by their right side."
+  (setq beg (or beg (vimpulse-visual-beginning 'block))
+        end (or end (vimpulse-visual-end 'block)))
+  (when (> beg end) (setq beg (prog1 end (setq end beg))))
+  (save-excursion
+    (let ((beg-col (progn (goto-char beg)
+                          (current-column)))
+          (end-col (progn (goto-char end)
+                          (current-column)))
+          (upper beg) (left beg) (lower end) (right end))
+      (when (> beg-col end-col)
+        (setq beg-col (prog1 end-col
+                        (setq end-col beg-col))
+              left (prog1 right
+                     (setq right left))))
+      (cond
+       ((memq corner '(upper left lower right))
+        (eval corner))
+       ((or (eq 'upper-left corner) (eq 0 corner))
+        (goto-char beg)
+        (vimpulse-move-to-column beg-col)
+        (point))
+       ((or (eq 'upper-right corner) (eq 1 corner))
+        (goto-char beg)
+        (vimpulse-move-to-column end-col)
+        (point))
+       ((or (eq 'lower-left corner) (eq 2 corner))
+        (goto-char end)
+        (vimpulse-move-to-column beg-col)
+        (point))
+       ((or (eq 'lower-right corner) (eq 3 corner))
+        (goto-char end)
+        (vimpulse-move-to-column end-col)
+        (point))))))
+
+(defun vimpulse-visual-block-corner-current (&optional pos)
+  "Return the current Visual Block corner as a number from 0 to 3.
+Corners are numbered by the order in which they occur
+in the text:
+
+        0---1
+        |   |
+        2---3
+
+The result can be passed to functions like
+`vimpulse-visual-block-corner' and
+`vimpulse-visual-block-rotate'."
+  (setq pos (or pos (point)))
+  (let (corner)
+    (or (dolist (i '(0 2) corner)
+          (when (eq pos (vimpulse-visual-block-corner i))
+            (setq corner i)))
+        (progn
+          (unless vimpulse-visual-region-changed
+            (setq pos (1+ pos)))
+          (dolist (i '(1 3) corner)
+            (when (eq pos (vimpulse-visual-block-corner i))
+              (setq corner i)))))))
+
+(defun vimpulse-visual-block-rotate (corner &optional beg end)
+  "In Visual Block selection, rotate point and mark clockwise.
+When called non-interactively, CORNER specifies the corner to
+place point in; mark is placed in the opposite corner.
+
+        0---1        upper-left +---+ upper-right
+        |   |                   |   |
+        2---3        lower-left +---+ lower-right
+
+Corners are numbered from 0 by the order in which
+they occur in the text. You can also use the values
+`upper-left', `upper-right', `lower-left' and `lower-right'."
+  (interactive
+   (list (let ((clockwise '(0 1 3 2 0)))
+           (when vimpulse-visual-region-changed
+             (vimpulse-visual-restore)
+             (setq vimpulse-visual-region-changed nil))
+           (when (> 0 (prefix-numeric-value current-prefix-arg))
+             (setq clockwise (reverse clockwise)))
+           (while (/= (vimpulse-visual-block-corner-current)
+                      (pop clockwise)))
+           (or (car clockwise) 0))))
+  (let (newmark newpoint mark-active)
+    (cond
+     ((or (eq 'upper-left corner) (eq 0 corner))
+      (setq newpoint (vimpulse-visual-block-corner 0 beg end))
+      (setq newmark (1- (vimpulse-visual-block-corner 3 beg end))))
+     ((or (eq 'upper-right corner) (eq 1 corner))
+      (setq newpoint (1- (vimpulse-visual-block-corner 1 beg end)))
+      (setq newmark (vimpulse-visual-block-corner 2 beg end)))
+     ((or (eq 'lower-left corner) (eq 2 corner))
+      (setq newpoint (vimpulse-visual-block-corner 2 beg end))
+      (setq newmark (1- (vimpulse-visual-block-corner 1 beg end))))
+     ((or (eq 'lower-right corner) (eq 3 corner))
+      (setq newpoint (1- (vimpulse-visual-block-corner 3 beg end)))
+      (setq newmark (vimpulse-visual-block-corner 0 beg end))))
+    (when (and newmark newpoint)
+      (set-mark newmark)
+      (goto-char newpoint))))
+
+(defun vimpulse-visual-exchange-corners ()
+  "Rearrange corners in Visual Block mode.
+
+        M---+          +---M
+        |   |    =>    |   |
+        +---P          P---+
+
+For example, if mark is in the upper left corner and point
+in the lower right (see fig.), this function puts mark in
+the upper right corner and point in the lower left."
+  (interactive)
+  (cond
+   ((memq vimpulse-visual-mode '(normal line))
+    (exchange-point-and-mark))
+   ((eq 'block vimpulse-visual-mode)
+    (let ((mark-col (save-excursion
+                      (goto-char (mark t))
+                      (forward-char)
+                      (1- (current-column))))
+          (point-col (current-column)))
+      (set-mark (save-excursion
+                  (goto-char (mark t))
+                  (vimpulse-move-to-column
+                   point-col (< (current-column) point-col))
+                  (point)))
+      (vimpulse-move-to-column
+       mark-col (< (current-column) mark-col))
+      (and (eolp) (not (bolp)) (backward-char))))
+   (t
+    (error "Viper not in Visual mode."))))
+
 (defun vimpulse-visual-create-coords
   (mode i-com upper-left lower-right)
   "Update the list of block insert coordinates with current rectangle.
@@ -1460,7 +1709,7 @@ Returns the insertion point."
           (list mode i-com upper-left col nlines))
     (save-excursion
       (goto-char upper-left)
-      (move-to-column col nil)
+      (vimpulse-move-to-column col)
       (point))))
 
 ;; Redefinitions of Viper functions to handle Visual block selection,
@@ -1481,7 +1730,7 @@ Returns the insertion point."
       (save-excursion
         (dotimes (i (1- nlines))
           (forward-line 1)
-          (let ((cur-col (move-to-column col)))
+          (let ((cur-col (vimpulse-move-to-column col)))
             ;; If we are in Block mode, this line, but do not hit the
             ;; correct column, we check if we should convert tabs
             ;; and/or append spaces
@@ -1489,8 +1738,8 @@ Returns the insertion point."
                      (or (/= col cur-col) ; wrong column or
                          (eolp)))         ; end of line
                 (cond ((< col cur-col)    ; we are inside a tab
-                       (move-to-column (1+ col) 'fill) ; convert to spaces
-                       (move-to-column col 'fill) ; this is needed for ?a
+                       (move-to-column (1+ col) t) ; convert to spaces
+                       (move-to-column col t) ; this is needed for ?a
                        (viper-repeat nil))
                       ((and (>= col cur-col) ; we are behind the end
                             (eq i-com ?a))   ; and I-COM is ?a
