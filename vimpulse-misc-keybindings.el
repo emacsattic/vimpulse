@@ -1,6 +1,13 @@
-;;;;
-;;;; Utility code
-;;;;
+;; C-u
+(defcustom vimpulse-want-C-u-like-Vim nil
+  "Whether C-u scrolls like in Vim, off by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(unless vimpulse-want-C-u-like-Vim
+  (define-key viper-vi-basic-map "\C-u" 'universal-argument))
+
+;; Utility code for autogenerating vi bindings
 (defvar vimpulse-viper-movement-cmds
   '(viper-backward-Word viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
@@ -52,9 +59,16 @@ where KEY and DEF are passed to `define-key'."
         (unless num
           (define-key map key def)))))))
 
-(defun vimpulse-add-vi-bindings (map cmds &optional replace)
-  "Add vi bindings for CMDS to MAP."
+(defun vimpulse-add-vi-bindings (map cmds &optional replace filter)
+  "Add vi bindings for CMDS to MAP.
+Add forcefully if REPLACE is t. Don't add keys matching FILTER,
+which is a list of key vectors."
   (let (pmap keys)
+    (unless filter
+      (when viper-want-ctl-h-help
+        (add-to-list 'filter [?\C-h]))
+      (unless vimpulse-want-C-u-like-Vim
+        (add-to-list 'filter [?\C-u])))
     (setq pmap (make-sparse-keymap))
     (dolist (cmd cmds map)
       (dolist (vimap (list viper-vi-intercept-map
@@ -65,15 +79,20 @@ where KEY and DEF are passed to `define-key'."
                            viper-vi-basic-map))
         (setq keys (where-is-internal cmd vimap))
         (dolist (key keys)
-          (when (or (not (lookup-key pmap key))
-                    (numberp (lookup-key pmap key)))
-            (vimpulse-augment-keymap map
-                                     `((,key . ,cmd))
-                                     replace)
-            ;; To prioritize between maps in `vimap',
-            ;; we keep track of bindings by augmenting `pmap'.
-            (vimpulse-augment-keymap pmap
-                                     `((,key . ,cmd)))))))))
+          (unless (let (match)
+                    (dolist (entry filter match)
+                      (when (equal key (vimpulse-truncate
+                                        entry (length key)))
+                        (setq match t))))
+            (when (or (not (lookup-key pmap key))
+                      (numberp (lookup-key pmap key)))
+              (vimpulse-augment-keymap map
+                                       `((,key . ,cmd))
+                                       replace)
+              ;; To prioritize between maps in `vimap',
+              ;; we keep track of bindings by augmenting `pmap'.
+              (vimpulse-augment-keymap pmap
+                                       `((,key . ,cmd))))))))))
 
 (defun vimpulse-add-movement-cmds (map &optional replace)
   "Add Viper/Vimpulse movement commands to MAP.
@@ -173,7 +192,10 @@ read-only buffers anyway, it does the job."
   '(when vimpulse-want-vi-keys-in-help
      (vimpulse-add-core-movement-cmds help-mode-map)
      (vimpulse-add-movement-cmds help-mode-map)
-     (vimpulse-inhibit-destructive-cmds help-mode-map)))
+     (vimpulse-inhibit-destructive-cmds help-mode-map)
+     (vimpulse-add-core-movement-cmds view-mode-map)
+     (vimpulse-add-movement-cmds view-mode-map)
+     (vimpulse-inhibit-destructive-cmds view-mode-map)))
 
 ;; ElDoc compatibility
 (eval-after-load 'eldoc
@@ -255,15 +277,6 @@ read-only buffers anyway, it does the job."
 (define-key viper-insert-basic-map [delete] 'delete-char) ;; delete key
                                         ; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
-
-;; C-u
-(defcustom vimpulse-want-C-u-like-Vim nil
-  "Whether C-u scrolls like in Vim, off by default."
-  :group 'vimpulse
-  :type  'boolean)
-
-(unless vimpulse-want-C-u-like-Vim
-  (define-key viper-vi-basic-map "\C-u" 'universal-argument))
 
 ;;; My code (Alessandro)
 (defun vimpulse-indent-lines (count)
@@ -462,6 +475,7 @@ To go the other way, press \\[vimpulse-jump-forward]."
                     (setq i (1- i))
                     (and (= (point) current-pos) (< 0 i))))
       ;; Already there?
+      (move-marker current-pos (point))
       (unless (= current-pos (car vimpulse-mark-list))
         (setq vimpulse-mark-list
               (cons current-pos vimpulse-mark-list))))))
