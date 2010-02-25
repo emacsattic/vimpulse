@@ -799,7 +799,7 @@ With negative ARG, removes highlighting."
          (vimpulse-visual-beginning)
          (vimpulse-visual-end))
       (error nil)))
-   (vimpulse-visual-mode ; normal or line
+   (vimpulse-visual-mode                ; normal or line
     (let ((beg (vimpulse-visual-beginning))
           (end (vimpulse-visual-end)))
       ;; Remove any block highlighting
@@ -827,9 +827,9 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         (omark  (mark t))               ; remember mark
         (old vimpulse-visual-block-overlays)
         beg-col end-col new nlines overlay window-beg window-end)
-    ;; Calculate the rectangular region represented by point and mark,
-    ;; putting BEG in the north-west corner and END in the
-    ;; south-east corner
+    ;; Calculate the rectangular region represented by BEG and END,
+    ;; but put BEG in the north-west corner and END in the south-east
+    ;; corner if not already so
     (save-excursion
       (setq beg-col (save-excursion (goto-char beg)
                                     (current-column))
@@ -837,8 +837,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                                     (current-column)))
       (when (>= beg-col end-col)
         (setq beg-col (prog1 end-col
-                        (setq end-col beg-col))
-              beg (save-excursion (goto-char beg)
+                        (setq end-col beg-col)))
+        (setq beg (save-excursion (goto-char beg)
                                   (vimpulse-move-to-column beg-col)
                                   (point))
               end (save-excursion (goto-char end)
@@ -849,8 +849,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
       (sit-for 0)
       (setq window-beg (max (window-start) beg)
             window-end (min (window-end) (1+ end))
-            nlines (count-lines window-beg (min window-end
-                                                (point-max))))
+            nlines (count-lines window-beg
+                                (min window-end (point-max))))
       ;; Iterate over those lines of the rectangle which are
       ;; visible in the currently selected window
       (goto-char window-beg)
@@ -859,6 +859,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
           ;; Beginning of row
           (vimpulse-move-to-column beg-col)
           (when (> beg-col (current-column))
+            ;; Prepend overlay with virtual spaces if we are unable to
+            ;; move directly to the first column
             (setq bstring
                   (propertize
                    (make-string
@@ -870,30 +872,25 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
           ;; End of row
           (vimpulse-move-to-column end-col)
           (when (> end-col (current-column))
-            (cond
-             ((= row-beg (point))
-              (setq astring
-                    (propertize
-                     (make-string
-                      (- end-col beg-col) ?\ )
-                     'face (vimpulse-region-face)))
-              (put-text-property
-               0 (min (length astring) 1) 'cursor 2 astring)
-              (if (= row-beg opoint)
-                  (put-text-property
-                   0 (min (length astring) 1)
-                   'cursor t astring)
+            ;; Append overlay with virtual spaces if we are unable to
+            ;; move directly to the last column
+            (setq astring
+                  (propertize
+                   (make-string
+                    (if (= row-beg (point))
+                        (- end-col beg-col)
+                      (- end-col (current-column)))
+                    ?\ ) 'face (vimpulse-region-face)))
+            ;; Place cursor on one of the virtual spaces
+            ;; (only works in GNU Emacs)
+            (if (= row-beg opoint)
                 (put-text-property
-                 (max 0 (1- (length astring))) (length astring)
-                 'cursor t astring)))
-             (t
-              (setq astring
-                    (propertize
-                     (make-string
-                      (- end-col (current-column)) ?\ )
-                     'face (vimpulse-region-face))))))
-          (setq row-end (min (point)
-                             (line-end-position)))
+                 0 (min (length astring) 1)
+                 'cursor t astring)
+              (put-text-property
+               (max 0 (1- (length astring))) (length astring)
+               'cursor t astring)))
+          (setq row-end (min (point) (line-end-position)))
           ;; XEmacs bug: zero-length extents display
           ;; end-glyph before start-glyph
           (and (featurep 'xemacs)
