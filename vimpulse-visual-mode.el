@@ -456,10 +456,11 @@ In XEmacs, create an extent."
 In XEmacs, change the `begin-glyph' property."
   (cond
    ((featurep 'xemacs)
-    (setq face (or face (get-text-property 0 'face string) 'default))
-    (unless (glyphp string)
+    (setq face (or face (get-text-property 0 'face string)))
+    (when (and string (not (glyphp string)))
       (setq string (make-glyph string)))
-    (set-glyph-face string face)
+    (when face
+      (set-glyph-face string face))
     (set-extent-begin-glyph overlay string))
    (t
     (viper-overlay-put overlay 'before-string string))))
@@ -469,10 +470,11 @@ In XEmacs, change the `begin-glyph' property."
 In XEmacs, change the `end-glyph' property."
   (cond
    ((featurep 'xemacs)
-    (setq face (or face (get-text-property 0 'face string) 'default))
-    (unless (glyphp string)
+    (setq face (or face (get-text-property 0 'face string)))
+    (when (and string (not (glyphp string)))
       (setq string (make-glyph string)))
-    (set-glyph-face string face)
+    (when face
+      (set-glyph-face string face))
     (set-extent-end-glyph overlay string))
    (t
     (viper-overlay-put overlay 'after-string string))))
@@ -821,116 +823,112 @@ rectangle. We try to reuse overlays where possible because this
 is more efficient and results in less flicker.
 
 Adapted from: `rm-highlight-rectangle' in rect-mark.el."
-  (save-excursion
+  (let ((opoint (point))                ; remember point
+        (omark  (mark t))               ; remember mark
+        (old vimpulse-visual-block-overlays)
+        beg-col end-col new nlines overlay window-beg window-end)
     ;; Calculate the rectangular region represented by point and mark,
     ;; putting BEG in the north-west corner and END in the
     ;; south-east corner
-    (let ((omark  (mark t))
-          (opoint (point))
-          (beg-col (save-excursion
-                     (goto-char beg)
-                     (current-column)))
-          (end-col (save-excursion
-                     (goto-char end)
-                     (current-column))))
-      (if (>= beg-col end-col)
-          (setq beg-col (prog1
-                            end-col
-                          (setq end-col beg-col))
-                beg (save-excursion
-                      (goto-char beg)
-                      (vimpulse-move-to-column beg-col)
-                      (point))
-                end (save-excursion
-                      (goto-char end)
-                      (vimpulse-move-to-column end-col 1)
-                      (point))))
-      ;; Force a redisplay so we can do reliable window BEG/END
-      ;; calculations
+    (save-excursion
+      (setq beg-col (save-excursion (goto-char beg)
+                                    (current-column))
+            end-col (save-excursion (goto-char end)
+                                    (current-column)))
+      (when (>= beg-col end-col)
+        (setq beg-col (prog1 end-col
+                        (setq end-col beg-col))
+              beg (save-excursion (goto-char beg)
+                                  (vimpulse-move-to-column beg-col)
+                                  (point))
+              end (save-excursion (goto-char end)
+                                  (vimpulse-move-to-column end-col 1)
+                                  (point))))
+      ;; Force a redisplay so we can do reliable
+      ;; windows BEG/END calculations
       (sit-for 0)
-      (let* ((old vimpulse-visual-block-overlays)
-             (new nil)
-             overlay
-             (window-beg (max (window-start) beg))
-             (window-end (min (window-end) end))
-             (nlines (count-lines window-beg
-                                  (min window-end
-                                       (point-max)))))
-        ;; Iterate over those lines of the rectangle which are visible
-        ;; in the currently selected window
-        (goto-char window-beg)
-        (dotimes (i nlines)
-          (let* (bstring
-                 mstring
-                 astring
-                 (row-beg
-                  (progn
-                    (vimpulse-move-to-column beg-col)
-                    (when (> beg-col (current-column))
-                      (setq bstring
-                            (propertize
-                             (make-string
-                              (- beg-col (current-column)) ?\ )
-                             'face
-                             (or (get-text-property (1- (point)) 'face)
-                                 'default))))
-                    (point)))
-                 (row-end
-                  (progn
-                    (vimpulse-move-to-column end-col)
-                    (when (> end-col (current-column))
-                      (cond
-                       ((= row-beg (point))
-                        (setq mstring
-                              (propertize
-                               (make-string
-                                (- end-col beg-col) ?\ )
-                               'face (vimpulse-region-face)))
-                        (cond
-                         ((= row-beg opoint)
-                          (setq astring mstring)
-                          (unless (featurep 'xemacs)
-                            (put-text-property
-                             0 (min (length astring) 1)
-                             'cursor 2 astring)))
-                         (t
-                          (setq bstring (concat bstring mstring)))))
-                       (t
-                        (setq astring
-                              (propertize
-                               (make-string
-                                (- end-col (current-column)) ?\ )
-                               'face (vimpulse-region-face))))))
-                    (min (point)
-                         (line-end-position)))))
-            ;; Trim old leading overlays
-            (while (and old
-                        (setq overlay (car old))
-                        (< (viper-overlay-start overlay) row-beg)
-                        (/= (viper-overlay-end overlay) row-end))
-              (vimpulse-delete-overlay overlay)
-              (setq old (cdr old)))
-            ;; Reuse an overlay if possible, otherwise create one
-            (if (and old
-                     (setq overlay (car old))
-                     (or (= (viper-overlay-start overlay) row-beg)
-                         (= (viper-overlay-end overlay) row-end)))
-                (progn
-                  (viper-move-overlay overlay row-beg row-end)
-                  (vimpulse-overlay-before-string overlay bstring)
-                  (vimpulse-overlay-after-string overlay astring)
-                  (setq new (cons overlay new)
-                        old (cdr old)))
-              (setq overlay (vimpulse-make-overlay row-beg row-end))
-              (vimpulse-overlay-before-string overlay bstring)
-              (vimpulse-overlay-after-string overlay astring)
-              (viper-overlay-put overlay 'face (vimpulse-region-face))
-              (viper-overlay-put overlay 'priority 99)
-              (setq new (cons overlay new))))
-          (forward-line 1))
-        ;; Trim old trailing overlays
-        (mapcar 'vimpulse-delete-overlay old)
-        (setq vimpulse-visual-block-overlays (nreverse new))))))
+      (setq window-beg (max (window-start) beg)
+            window-end (min (window-end) (1+ end))
+            nlines (count-lines window-beg (min window-end
+                                                (point-max))))
+      ;; Iterate over those lines of the rectangle which are
+      ;; visible in the currently selected window
+      (goto-char window-beg)
+      (dotimes (i nlines)
+        (let (row-beg row-end bstring astring)
+          ;; Beginning of row
+          (vimpulse-move-to-column beg-col)
+          (when (> beg-col (current-column))
+            (setq bstring
+                  (propertize
+                   (make-string
+                    (- beg-col (current-column)) ?\ )
+                   'face
+                   (or (get-text-property (1- (point)) 'face)
+                       'default))))
+          (setq row-beg (point))
+          ;; End of row
+          (vimpulse-move-to-column end-col)
+          (when (> end-col (current-column))
+            (cond
+             ((= row-beg (point))
+              (setq astring
+                    (propertize
+                     (make-string
+                      (- end-col beg-col) ?\ )
+                     'face (vimpulse-region-face)))
+              (put-text-property
+               0 (min (length astring) 1) 'cursor 2 astring)
+              (if (= row-beg opoint)
+                  (put-text-property
+                   0 (min (length astring) 1)
+                   'cursor t astring)
+                (put-text-property
+                 (max 0 (1- (length astring))) (length astring)
+                 'cursor t astring)))
+             (t
+              (setq astring
+                    (propertize
+                     (make-string
+                      (- end-col (current-column)) ?\ )
+                     'face (vimpulse-region-face))))))
+          (setq row-end (min (point)
+                             (line-end-position)))
+          ;; XEmacs bug: zero-length extents display
+          ;; end-glyph before start-glyph
+          (and (featurep 'xemacs)
+               bstring astring
+               (= row-beg row-end)
+               (setq bstring (prog1 astring
+                               (setq astring bstring))))
+          ;; Trim old leading overlays
+          (while (and old
+                      (setq overlay (car old))
+                      (< (viper-overlay-start overlay) row-beg)
+                      (/= (viper-overlay-end overlay) row-end))
+            (vimpulse-delete-overlay overlay)
+            (setq old (cdr old)))
+          ;; Reuse an overlay if possible, otherwise create one
+          (if (and old
+                   (setq overlay (car old))
+                   (or (= (viper-overlay-start overlay) row-beg)
+                       (= (viper-overlay-end overlay) row-end)))
+              (progn
+                (viper-move-overlay overlay row-beg row-end)
+                (vimpulse-overlay-before-string overlay bstring)
+                (vimpulse-overlay-after-string overlay astring)
+                (setq new (cons overlay new)
+                      old (cdr old)))
+            (setq overlay (vimpulse-make-overlay row-beg row-end))
+            (vimpulse-overlay-before-string overlay bstring)
+            (vimpulse-overlay-after-string overlay astring)
+            (viper-overlay-put overlay 'face (vimpulse-region-face))
+            (viper-overlay-put overlay 'priority 99)
+            (setq new (cons overlay new))))
+        (forward-line 1))
+      ;; Trim old trailing overlays
+      (mapcar 'vimpulse-delete-overlay old)
+      (setq vimpulse-visual-block-overlays (nreverse new)))))
 
 (defun vimpulse-visual-pre-command ()
   "Run before each command in Visual mode."
@@ -1552,8 +1550,9 @@ of the defining corners.
          left |   | lower        lower |   | right
               +---M right         left P---+
 
-Corners 0 and 2 are returned by their left side,
-corners 1 and 3 by their right side."
+Corners 0 and 2 are returned by their left side, corners 1 and 3
+by their right side. To place point in one of the corners, use
+`vimpulse-visual-block-rotate'."
   (setq beg (or beg (vimpulse-visual-beginning 'block))
         end (or end (vimpulse-visual-end 'block)))
   (when (> beg end) (setq beg (prog1 end (setq end beg))))
