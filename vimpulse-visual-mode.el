@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; This file contains all the code relative to Visual mode.  ;;;;;
-;;;; Visual mode is implemented as a Viper state.              ;;;;;
+;;;;; This file contains all the code relative to Visual mode. ;;;;;
+;;;;; Visual mode is implemented as a Viper state.             ;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -32,7 +32,7 @@ This keymap is active when in Visual mode."
       (vimpulse-visual-activate 'normal)))
    (t
     ;; This is executed when we do (vimpulse-visual-mode -1).
-    ;; It must work even if Visual mode is not active.
+    ;; It must run without error even if Visual mode is not active.
     (vimpulse-visual-highlight -1)
     ;; Clean up local variables
     (mapcar (lambda (var)
@@ -174,7 +174,7 @@ If none, return an empty keymap (`viper-empty-keymap')."
       (cdr (assoc mode state))
     viper-empty-keymap))
 
-;; Adding Visual state maps. The advice for this gets somewhat
+;; Adding Visual state maps. The advice-macro for this gets somewhat
 ;; elaborate because Viper insists on making `minor-mode-map-alist'
 ;; buffer-local in XEmacs, so we need to set both the default value
 ;; and the local value.
@@ -299,11 +299,11 @@ first occurrence of `vimpulse-buffer-undo-list-mark'."
   (setq vimpulse-undo-needs-adjust t)
   (push vimpulse-buffer-undo-list-mark buffer-undo-list))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Functions related to Visual selection activation, ;;;
-;;; mode of operation change (character-wise,         ;;;
-;;; line-wise, block-wise)                            ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Functions related to Visual selection activation ;;;
+;;; and mode of operation change (character-wise,    ;;;
+;;; line-wise, block-wise)                           ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun vimpulse-visual-activate (&optional mode)
   "Activate Visual mode. MODE is `normal', `line' or `block'.
@@ -594,7 +594,7 @@ Otherwise, place point at left of the tab character
           (backward-char)))))
   (point))
 
-(defun vimpulse-visual-beginning (&optional mode)
+(defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection,
 based on `point', `mark' and `vimpulse-visual-mode'.
 The Visual mode may be specified explicitly with MODE,
@@ -605,14 +605,14 @@ In Line mode, return beginning of first line.
 In Block mode, return upper opposite corner of rectangle.
 
 If Emacs' region is already expanded to the Visual selection,
-return beginning of region.
+return beginning of region. This can be overriden with FORCE.
 
 See also `vimpulse-visual-end'."
   (save-excursion
     (setq mode (or mode vimpulse-visual-mode))
     (cond
      ;; Region is already expanded
-     (vimpulse-visual-region-changed
+     ((and vimpulse-visual-region-changed (not force))
       (min (point) (or (mark t) 1)))
      ;; Upper opposite corner of block selection
      ((eq 'block mode)
@@ -641,7 +641,7 @@ See also `vimpulse-visual-end'."
      (t
       (min (point) (or (mark t) 1))))))
 
-(defun vimpulse-visual-end (&optional mode)
+(defun vimpulse-visual-end (&optional mode force)
   "Return end of Visual selection,
 based on `point', `mark' and `vimpulse-visual-mode'.
 The Visual mode may be specified explicitly with MODE,
@@ -652,14 +652,14 @@ In Line mode, return end of last line, including newline.
 In Block mode, return lower opposite corner of rectangle.
 
 If Emacs' region is already expanded to the Visual selection,
-return end of region.
+return end of region. This can be overriden with FORCE.
 
 See also `vimpulse-visual-beginning'."
   (save-excursion
     (setq mode (or mode vimpulse-visual-mode))
     (cond
      ;; Region is already expanded
-     (vimpulse-visual-region-changed
+     ((and vimpulse-visual-region-changed (not force))
       (max (point) (or (mark t) 1)))
      ((eq 'block mode)
       ;; Lower opposite corner of block selection
@@ -1315,7 +1315,7 @@ If DONT-SAVE is non-nil, just delete it."
             (setq n (1+ n))))
         (forward-line))))
    (t
-    (error "Viper not in Visual mode.")))
+    (error "Not in Visual mode")))
   (vimpulse-visual-mode -1)
   (goto-char beg))
 
@@ -1327,7 +1327,6 @@ If DONT-SAVE is non-nil, just delete it."
   (let (deactivate-mark)
     (cond
      ((eq 'block vimpulse-visual-mode)
-      (vimpulse-visual-block-rotate 'upper-left)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?i beg end))
@@ -1338,7 +1337,7 @@ If DONT-SAVE is non-nil, just delete it."
       (goto-char beg)
       (viper-insert arg))
      (t
-      (error "Viper not in Visual mode.")))))
+      (error "Not in Visual mode")))))
 
 (defun vimpulse-visual-append (beg end &optional arg)
   "Enter Insert state at end of Visual selection."
@@ -1346,7 +1345,6 @@ If DONT-SAVE is non-nil, just delete it."
   (let (deactivate-mark)
     (cond
      ((eq 'block vimpulse-visual-mode)
-      (vimpulse-visual-block-rotate 'upper-right)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?a beg end))
@@ -1357,7 +1355,7 @@ If DONT-SAVE is non-nil, just delete it."
       (goto-char end)
       (viper-insert arg))
      (t
-      (error "Viper not in Visual mode.")))))
+      (error "Not in Visual mode")))))
 
 (defun vimpulse-visual-make-upcase (beg end)
   "Converts all selected characters to upper case."
@@ -1400,7 +1398,7 @@ If DONT-SAVE is non-nil, just delete it."
           (funcall case-func from to)
           (forward-line)))))
    (t
-    (error "Viper not in Visual mode.")))
+    (error "Not in Visual mode")))
   (vimpulse-visual-mode -1)
   (goto-char (vimpulse-visual-block-corner 'upper-left beg end)))
 
@@ -1468,18 +1466,18 @@ If DONT-SAVE is non-nil, just delete it."
   (interactive "r")
   (cond
    ((eq 'block vimpulse-visual-mode)
+    (setq killed-rectangle (extract-rectangle beg end))
+    ;; Associate the rectangle with the last entry in the kill-ring
+    (unless kill-ring
+      (copy-region-as-kill beg end))
+    (put 'killed-rectangle 'previous-kill (current-kill 0))
     (vimpulse-visual-block-rotate 'upper-left)
     (setq beg (vimpulse-visual-beginning)
-          end (vimpulse-visual-end))
-    (kill-rectangle beg end)
-    (goto-char beg)
-    (yank-rectangle)
-    ;; Associate the rectangle with the last entry in the kill-ring
-    (put 'killed-rectangle 'previous-kill (current-kill 0)))
+          end (vimpulse-visual-end)))
    (vimpulse-visual-mode
     (viper-prefix-arg-com ?r 1 ?y))
    (t
-    (error "Viper not in Visual mode.")))
+    (error "Not in Visual mode")))
   (vimpulse-visual-mode -1)
   (goto-char beg))
 
@@ -1619,34 +1617,54 @@ place point in; mark is placed in the opposite corner.
 
 Corners are numbered from 0 by the order in which
 they occur in the text. You can also use the values
-`upper-left', `upper-right', `lower-left' and `lower-right'."
+`upper-left', `upper-right', `lower-left' and `lower-right'.
+
+This function updates `vimpulse-visual-point' and
+`vimpulse-visual-mark' so that \\[vimpulse-visual-restore]
+restores the selection with the same rotation."
   (interactive
    (list (let ((clockwise '(0 1 3 2 0)))
-           (when vimpulse-visual-region-changed
-             (vimpulse-visual-restore)
-             (setq vimpulse-visual-region-changed nil))
            (when (> 0 (prefix-numeric-value current-prefix-arg))
              (setq clockwise (reverse clockwise)))
            (while (/= (vimpulse-visual-block-corner-current)
                       (pop clockwise)))
            (or (car clockwise) 0))))
-  (let (newmark newpoint mark-active)
+  (let (newmark newpoint newmark-marker newpoint-marker mark-active)
     (cond
      ((or (eq 'upper-left corner) (eq 0 corner))
       (setq newpoint (vimpulse-visual-block-corner 0 beg end))
-      (setq newmark (1- (vimpulse-visual-block-corner 3 beg end))))
+      (setq newmark (vimpulse-visual-block-corner 3 beg end)
+            newmark-marker (1- newmark)))
      ((or (eq 'upper-right corner) (eq 1 corner))
-      (setq newpoint (1- (vimpulse-visual-block-corner 1 beg end)))
+      (setq newpoint (vimpulse-visual-block-corner 1 beg end)
+            newpoint-marker (1- newpoint))
       (setq newmark (vimpulse-visual-block-corner 2 beg end)))
      ((or (eq 'lower-left corner) (eq 2 corner))
       (setq newpoint (vimpulse-visual-block-corner 2 beg end))
-      (setq newmark (1- (vimpulse-visual-block-corner 1 beg end))))
+      (setq newmark (vimpulse-visual-block-corner 1 beg end)
+            newmark-marker (1- newmark)))
      ((or (eq 'lower-right corner) (eq 3 corner))
-      (setq newpoint (1- (vimpulse-visual-block-corner 3 beg end)))
+      (setq newpoint (vimpulse-visual-block-corner 3 beg end)
+            newpoint-marker (1- newpoint))
       (setq newmark (vimpulse-visual-block-corner 0 beg end))))
     (when (and newmark newpoint)
+      (setq newpoint-marker (or newpoint-marker newpoint)
+            newmark-marker  (or newmark-marker  newmark))
+      (unless vimpulse-visual-region-changed
+        (setq newpoint newpoint-marker
+              newmark  newmark-marker))
       (set-mark newmark)
-      (goto-char newpoint))))
+      (goto-char newpoint)
+      (viper-move-marker-locally 'vimpulse-visual-point
+                                 newpoint-marker)
+      (viper-move-marker-locally 'vimpulse-visual-mark
+                                 newmark-marker)
+      (set-marker-insertion-type
+       vimpulse-visual-point
+       (<= newpoint-marker newmark-marker))
+      (set-marker-insertion-type
+       vimpulse-visual-mark
+       (> newpoint-marker newmark-marker)))))
 
 (defun vimpulse-visual-exchange-corners ()
   "Rearrange corners in Visual Block mode.
@@ -1677,7 +1695,7 @@ the upper right corner and point in the lower left."
        mark-col (< (current-column) mark-col))
       (and (eolp) (not (bolp)) (backward-char))))
    (t
-    (error "Viper not in Visual mode."))))
+    (error "Not in Visual mode"))))
 
 (defun vimpulse-visual-create-coords
   (mode i-com upper-left lower-right)
