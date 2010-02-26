@@ -102,7 +102,7 @@ in MAP."
   (vimpulse-add-vi-bindings map vimpulse-viper-movement-cmds replace))
 
 ;; The default for this function is to replace rather than augment,
-;; as core navigation should be present everywhere.
+;; as core navigation should be present everywhere
 (defun vimpulse-add-core-movement-cmds (map &optional augment)
   "Add \"core\" movement commands to MAP, forcefully.
 The commands are taken from `vimpulse-core-movement-cmds'.
@@ -148,9 +148,13 @@ read-only buffers anyway, it does the job."
 
 (eval-after-load "buff-menu"
   '(when vimpulse-want-vi-keys-in-buffmenu
-     (vimpulse-add-core-movement-cmds Buffer-menu-mode-map)
-     (vimpulse-add-movement-cmds Buffer-menu-mode-map)
-     (vimpulse-inhibit-destructive-cmds Buffer-menu-mode-map)))
+     (setq viper-emacs-state-mode-list
+           (delq 'Buffer-menu-mode viper-emacs-state-mode-list))
+     (add-to-list 'viper-vi-state-mode-list 'Buffer-menu-mode)
+     (let ((map Buffer-menu-mode-map))
+       (vimpulse-add-core-movement-cmds map)
+       (vimpulse-inhibit-destructive-cmds map)
+       (viper-modify-major-mode 'Buffer-menu-mode 'vi-state map))))
 
 ;; Dired
 (defcustom vimpulse-want-vi-keys-in-dired t
@@ -160,9 +164,13 @@ read-only buffers anyway, it does the job."
 
 (eval-after-load 'dired
   '(when vimpulse-want-vi-keys-in-dired
-     (vimpulse-add-core-movement-cmds dired-mode-map)
-     (vimpulse-add-movement-cmds dired-mode-map)
-     (vimpulse-inhibit-destructive-cmds dired-mode-map)))
+     (setq viper-emacs-state-mode-list
+           (delq 'dired-mode viper-emacs-state-mode-list))
+     (add-to-list 'viper-vi-state-mode-list 'dired-mode)
+     (let ((map dired-mode-map))
+       (vimpulse-add-core-movement-cmds map)
+       (vimpulse-inhibit-destructive-cmds map)
+       (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
 ;; Info
 (defcustom vimpulse-want-vi-keys-in-Info t
@@ -172,15 +180,19 @@ read-only buffers anyway, it does the job."
 
 (eval-after-load 'info
   '(when vimpulse-want-vi-keys-in-Info
-     (vimpulse-add-core-movement-cmds Info-mode-map)
-     (vimpulse-add-movement-cmds Info-mode-map)
-     (define-key Info-mode-map "\C-t" 'Info-history-back) ; l
-     (define-key Info-mode-map "\C-o" 'Info-history-back)
-     (define-key Info-mode-map "\M-h" 'Info-help) ; h
-     (define-key Info-mode-map " " 'Info-scroll-up)
-     (define-key Info-mode-map "\C-]" 'Info-follow-nearest-node)
-     (define-key Info-mode-map [backspace] 'Info-scroll-down)
-     (vimpulse-inhibit-destructive-cmds Info-mode-map)))
+     (setq viper-emacs-state-mode-list
+           (delq 'Info-mode viper-emacs-state-mode-list))
+     (add-to-list 'viper-vi-state-mode-list 'Info-mode)
+     (let ((map Info-mode-map))
+       (vimpulse-add-core-movement-cmds map)
+       (vimpulse-inhibit-destructive-cmds map)
+       (define-key map "\C-t" 'Info-history-back) ; l
+       (define-key map "\C-o" 'Info-history-back)
+       (define-key map "\M-h" 'Info-help) ; h
+       (define-key map " " 'Info-scroll-up)
+       (define-key map "\C-]" 'Info-follow-nearest-node)
+       (define-key map [backspace] 'Info-scroll-down)
+       (viper-modify-major-mode 'Info-mode 'vi-state map))))
 
 ;; Help
 (defcustom vimpulse-want-vi-keys-in-help t
@@ -190,9 +202,13 @@ read-only buffers anyway, it does the job."
 
 (eval-after-load 'help-mode
   '(when vimpulse-want-vi-keys-in-help
-     (vimpulse-add-core-movement-cmds help-mode-map)
-     (vimpulse-add-movement-cmds help-mode-map)
-     (vimpulse-inhibit-destructive-cmds help-mode-map)
+     (setq viper-emacs-state-mode-list
+           (delq 'help-mode viper-emacs-state-mode-list))
+     (add-to-list 'viper-vi-state-mode-list 'help-mode)
+     (let ((map help-mode-map))
+       (vimpulse-add-core-movement-cmds map)
+       (vimpulse-inhibit-destructive-cmds map)
+       (viper-modify-major-mode 'help-mode 'vi-state map))
      (vimpulse-add-core-movement-cmds view-mode-map)
      (vimpulse-add-movement-cmds view-mode-map)
      (vimpulse-inhibit-destructive-cmds view-mode-map)))
@@ -204,8 +220,8 @@ read-only buffers anyway, it does the job."
                   vimpulse-core-movement-cmds)))
 ;;;;
 ;;;; Almost all of this code is taken from extended-viper
-;;;; coded by Brad Beveridge (bradbev@gmail.com)
-;;;; - I changed the prefix of the custom functions to vimpulse
+;;;; coded by Brad Beveridge (bradbev at gmail.com)
+;;;; - I changed the prefix of the custom functions to `vimpulse'
 ;;;;   to avoid multiple prefixes
 ;;;;
 (defvar vimpulse-fold-level 0)
@@ -248,7 +264,8 @@ read-only buffers anyway, it does the job."
 (define-key viper-vi-basic-map "\C-t" 'pop-tag-mark)
 ;; Map undo and redo from XEmacs' redo.el
 (define-key viper-vi-basic-map "u" 'undo)
-(define-key viper-vi-basic-map "\C-r" 'redo)
+(when (fboundp 'redo)
+  (define-key viper-vi-basic-map "\C-r" 'redo))
 
 ;; Window manipulation
 (define-key viper-vi-basic-map "\C-w" (make-sparse-keymap))
