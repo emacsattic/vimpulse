@@ -1,7 +1,7 @@
 ;;; Installation:
 
-;; 0. If you checked out from SVN, do `make all' to produce
-;;    vimpulse-big.el.  If on Windows, you can run compile.bat.
+;; If you checked out from SVN, do `make all' to produce
+;; vimpulse-big.el.  If on Windows, you can run compile.bat. Then:
 ;;
 ;; 1. Copy vimpulse.el (or vimpulse-big.el) to somewhere in your
 ;;    load-path, e.g., your site-lisp directory.
@@ -19,8 +19,6 @@
 ;;    http://wonderworks.com/download/redo.el to get C-r
 ;;    (redo key) to work.  redo.el is included with XEmacs.
 ;;
-;; We would appreciate it if you e-mailed us saying whether you liked
-;; or disliked Vimpulse and why, and which new features you would like
-;; to see.  Also, if you stop using Emacs or Vimpulse, please tell us
-;; why, so we can try to improve it!
+;; Please tell us what you think about Vimpulse and what new features
+;; you would like added!
 
