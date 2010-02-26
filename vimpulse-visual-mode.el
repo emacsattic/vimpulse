@@ -605,7 +605,7 @@ In Line mode, return beginning of first line.
 In Block mode, return upper opposite corner of rectangle.
 
 If Emacs' region is already expanded to the Visual selection,
-return beginning of region. This can be overriden with FORCE.
+return beginning of region. This can be overridden with FORCE.
 
 See also `vimpulse-visual-end'."
   (save-excursion
@@ -652,7 +652,7 @@ In Line mode, return end of last line, including newline.
 In Block mode, return lower opposite corner of rectangle.
 
 If Emacs' region is already expanded to the Visual selection,
-return end of region. This can be overriden with FORCE.
+return end of region. This can be overridden with FORCE.
 
 See also `vimpulse-visual-beginning'."
   (save-excursion
@@ -906,22 +906,22 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
             (vimpulse-delete-overlay overlay)
             (setq old (cdr old)))
           ;; Reuse an overlay if possible, otherwise create one
-          (if (and old
-                   (setq overlay (car old))
-                   (or (= (viper-overlay-start overlay) row-beg)
-                       (= (viper-overlay-end overlay) row-end)))
-              (progn
-                (viper-move-overlay overlay row-beg row-end)
-                (vimpulse-overlay-before-string overlay bstring)
-                (vimpulse-overlay-after-string overlay astring)
-                (setq new (cons overlay new)
-                      old (cdr old)))
+          (cond
+           ((and old (setq overlay (car old))
+                 (or (= (viper-overlay-start overlay) row-beg)
+                     (= (viper-overlay-end overlay) row-end)))
+            (viper-move-overlay overlay row-beg row-end)
+            (vimpulse-overlay-before-string overlay bstring)
+            (vimpulse-overlay-after-string overlay astring)
+            (setq new (cons overlay new)
+                  old (cdr old)))
+           (t
             (setq overlay (vimpulse-make-overlay row-beg row-end))
             (vimpulse-overlay-before-string overlay bstring)
             (vimpulse-overlay-after-string overlay astring)
             (viper-overlay-put overlay 'face (vimpulse-region-face))
             (viper-overlay-put overlay 'priority 99)
-            (setq new (cons overlay new))))
+            (setq new (cons overlay new)))))
         (forward-line 1))
       ;; Trim old trailing overlays
       (mapcar 'vimpulse-delete-overlay old)

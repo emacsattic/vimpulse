@@ -53,17 +53,17 @@ the function that invokes the major mode.  See `viper-set-hooks' for hints.
 The above needs not to be done for major modes that come up in Vi or Insert
 state by default."
   (let ((alist
-	 (cond ((eq state 'vi-state)
+         (cond ((eq state 'vi-state)
                 'viper-vi-state-modifier-alist)
-	       ((eq state 'insert-state)
+               ((eq state 'insert-state)
                 'viper-insert-state-modifier-alist)
-	       ((eq state 'emacs-state)
+               ((eq state 'emacs-state)
                 'viper-emacs-state-modifier-alist)
                ((eq state 'visual-state)
                 'vimpulse-visual-state-modifier-alist)))
-	elt)
+        elt)
     (if (setq elt (assoc mode (eval alist)))
-	(set alist (delq elt (eval alist))))
+        (set alist (delq elt (eval alist))))
     (set alist (cons (cons mode keymap) (eval alist)))
     (viper-normalize-minor-mode-map-alist)
     (viper-set-mode-vars-for viper-current-state)))
@@ -181,10 +181,10 @@ state by default."
          ((equal com '(?q . ?d)) (vimpulse-test-function value))
          ((equal com '(?a . ?d)) (vimpulse-delete-text-objects-command value ?a)) ; da<x>
          ((equal com '(?a . ?c)) (vimpulse-change-text-objects-command value ?a)) ; ca<x>
-         ((equal com '(?a . ?y)) (vimpulse-yank-text-objects-command value ?a)) ; ya<x>
+         ((equal com '(?a . ?y)) (vimpulse-yank-text-objects-command value ?a))   ; ya<x>
          ((equal com '(?i . ?d)) (vimpulse-delete-text-objects-command value ?i)) ; di<x>
          ((equal com '(?i . ?c)) (vimpulse-change-text-objects-command value ?i)) ; ci<x>
-         ((equal com '(?i . ?y)) (vimpulse-yank-text-objects-command value ?i)) ; yi<x>
+         ((equal com '(?i . ?y)) (vimpulse-yank-text-objects-command value ?i))   ; yi<x>
          ((equal com '(?c . ?c)) (viper-line (cons value ?C)))
          ((equal com '(?d . ?d)) (viper-line (cons value ?D)))
          ((equal com '(?d . ?y)) (viper-yank-defun))
@@ -262,7 +262,7 @@ state by default."
              ":"
              initial-str
              'viper-ex-history
-             ;; no default when working on region
+             ;; No default when working on region
              (if initial-str
                  nil
                (car viper-ex-history))
@@ -270,7 +270,7 @@ state by default."
              (if initial-str
                  " [Type command to execute on current region]"))))
     (save-window-excursion
-      ;; just a precaution
+      ;; Just a precaution
       (setq viper-ex-work-buf (get-buffer-create viper-ex-work-buf-name))
       (set-buffer viper-ex-work-buf)
       (delete-region (point-min) (point-max))
