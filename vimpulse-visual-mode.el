@@ -1156,7 +1156,7 @@ afterwards.")
 
 (defvar vimpulse-misc-cmds
   '(cua-cancel keyboard-quit
-    ;; Mouse commands are handled by advice
+               ;; Mouse commands are handled by advice
     mouse-drag-region
     mouse-set-point
     mouse-set-region
@@ -1400,7 +1400,7 @@ If DONT-SAVE is non-nil, just delete it."
    (t
     (error "Not in Visual mode")))
   (vimpulse-visual-mode -1)
-  (goto-char (vimpulse-visual-block-corner 'upper-left beg end)))
+  (goto-char (vimpulse-visual-block-position 'upper-left beg end)))
 
 (defun vimpulse-visual-toggle-case-region (beg end)
   "Toggles the case of all characters from BEG to END (exclusive)."
@@ -1527,7 +1527,7 @@ previous text object selection."
 ;;; Visual Block Mode Support ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun vimpulse-visual-block-corner (corner &optional beg end)
+(defun vimpulse-visual-block-position (corner &optional beg end)
   "Return position of Visual Block CORNER.
 CORNER may be one of `upper-left', `upper-right',
 `lower-left' and `lower-right', or a number:
@@ -1547,7 +1547,9 @@ of the defining corners.
 
 Corners 0 and 2 are returned by their left side, corners 1 and 3
 by their right side. To place point in one of the corners, use
-`vimpulse-visual-block-rotate'."
+`vimpulse-visual-block-rotate'.
+
+To go the other way, use `vimpulse-visual-block-corner'."
   (setq beg (or beg (vimpulse-visual-beginning 'block))
         end (or end (vimpulse-visual-end 'block)))
   (when (> beg end) (setq beg (prog1 end (setq end beg))))
@@ -1582,29 +1584,36 @@ by their right side. To place point in one of the corners, use
         (vimpulse-move-to-column end-col)
         (point))))))
 
-(defun vimpulse-visual-block-corner-current (&optional pos)
+(defun vimpulse-visual-block-corner (&optional symbol pos)
   "Return the current Visual Block corner as a number from 0 to 3.
-Corners are numbered by the order in which they occur
-in the text:
+Return as one of `upper-left', `upper-right', `lower-left' and
+`lower-right' if SYMBOL is non-nil. Specify POS to compare that
+position against the corners.
 
-        0---1
-        |   |
-        2---3
+        0---1        upper-left +---+ upper-right
+        |   |                   |   |
+        2---3        lower-left +---+ lower-right
 
 The result can be passed to functions like
-`vimpulse-visual-block-corner' and
+`vimpulse-visual-block-position' and
 `vimpulse-visual-block-rotate'."
   (setq pos (or pos (point)))
   (let (corner)
     (or (dolist (i '(0 2) corner)
-          (when (eq pos (vimpulse-visual-block-corner i))
+          (when (eq pos (vimpulse-visual-block-position i))
             (setq corner i)))
         (progn
           (unless vimpulse-visual-region-changed
             (setq pos (1+ pos)))
           (dolist (i '(1 3) corner)
-            (when (eq pos (vimpulse-visual-block-corner i))
-              (setq corner i)))))))
+            (when (eq pos (vimpulse-visual-block-position i))
+              (setq corner i)))))
+    (if symbol
+        (cdr (assq corner '((0 . upper-left)
+                            (1 . upper-right)
+                            (2 . lower-left)
+                            (3 . lower-right))))
+      corner)))
 
 (defun vimpulse-visual-block-rotate (corner &optional beg end)
   "In Visual Block selection, rotate point and mark clockwise.
@@ -1626,27 +1635,27 @@ restores the selection with the same rotation."
    (list (let ((clockwise '(0 1 3 2 0)))
            (when (> 0 (prefix-numeric-value current-prefix-arg))
              (setq clockwise (reverse clockwise)))
-           (while (/= (vimpulse-visual-block-corner-current)
+           (while (/= (vimpulse-visual-block-corner)
                       (pop clockwise)))
            (or (car clockwise) 0))))
   (let (newmark newpoint newmark-marker newpoint-marker mark-active)
     (cond
      ((or (eq 'upper-left corner) (eq 0 corner))
-      (setq newpoint (vimpulse-visual-block-corner 0 beg end))
-      (setq newmark (vimpulse-visual-block-corner 3 beg end)
+      (setq newpoint (vimpulse-visual-block-position 0 beg end))
+      (setq newmark (vimpulse-visual-block-position 3 beg end)
             newmark-marker (1- newmark)))
      ((or (eq 'upper-right corner) (eq 1 corner))
-      (setq newpoint (vimpulse-visual-block-corner 1 beg end)
+      (setq newpoint (vimpulse-visual-block-position 1 beg end)
             newpoint-marker (1- newpoint))
-      (setq newmark (vimpulse-visual-block-corner 2 beg end)))
+      (setq newmark (vimpulse-visual-block-position 2 beg end)))
      ((or (eq 'lower-left corner) (eq 2 corner))
-      (setq newpoint (vimpulse-visual-block-corner 2 beg end))
-      (setq newmark (vimpulse-visual-block-corner 1 beg end)
+      (setq newpoint (vimpulse-visual-block-position 2 beg end))
+      (setq newmark (vimpulse-visual-block-position 1 beg end)
             newmark-marker (1- newmark)))
      ((or (eq 'lower-right corner) (eq 3 corner))
-      (setq newpoint (vimpulse-visual-block-corner 3 beg end)
+      (setq newpoint (vimpulse-visual-block-position 3 beg end)
             newpoint-marker (1- newpoint))
-      (setq newmark (vimpulse-visual-block-corner 0 beg end))))
+      (setq newmark (vimpulse-visual-block-position 0 beg end))))
     (when (and newmark newpoint)
       (setq newpoint-marker (or newpoint-marker newpoint)
             newmark-marker  (or newmark-marker  newmark))
