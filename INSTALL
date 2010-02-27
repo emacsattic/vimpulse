@@ -1,7 +1,7 @@
 ;;; Installation:
 
 ;; If you checked out from SVN, do `make all' to produce
-;; vimpulse-big.el.  If on Windows, you can run compile.bat. Then:
+;; vimpulse-big.el.  If on Windows, you can run compile.bat.  Then:
 ;;
 ;; 1. Copy vimpulse.el (or vimpulse-big.el) to somewhere in your
 ;;    load-path, e.g., your site-lisp directory.
@@ -19,6 +19,6 @@
 ;;    http://wonderworks.com/download/redo.el to get C-r
 ;;    (redo key) to work.  redo.el is included with XEmacs.
 ;;
-;; Please tell us what you think about Vimpulse and what new features
-;; you would like added!
+;; Vimpulse automatically enables Viper.  You can temporarily disable
+;; Viper (and Vimpulse) with the C-z key.
 

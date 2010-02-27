@@ -10,7 +10,7 @@
 ;;       ask on a relevant forum how the commands differ; or check
 ;;       how it works in vi/Vim, then check the Vim manual for more
 ;;       info; then, decide how to best fix it.
-;;         - Vim's behavior seems unconsistent in this case.  I think
+;;         - Vim's behavior seems inconsistent in this case.  I think
 ;;           it would be best to make the fix optional (defaulting to
 ;;           standard Vim behavior, though), as I (at least) like
 ;;           Vimpulse's behavior better in this case.

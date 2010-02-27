@@ -1,37 +1,35 @@
 ;;; vimpulse.el --- emulates Vim's most useful features -*- coding: utf-8 -*-
 
-;; ### For setup instructions, see "Installation" below. ###
+;; ### For setup instructions, see "Installation" below ###
 
-;; Copyright (C) 2007 Brad Beveridge.
-;; Copyright (C) 2007, 2009 Alessandro Piras.
-;; Copyright (C) 2008 Frank Fischer.
-;; Copyright (C) 2009 Jason Spiro <http://www.jspiro.com>.
-;; Copyright (C) 2010 Vegard Øye.
+;; Copyright (C) 2007 Brad Beveridge
+;; Copyright (C) 2007, 2009 Alessandro Piras
+;; Copyright (C) 2008 Frank Fischer
+;; Copyright (C) 2009 Jason Spiro <http://www.jspiro.com/>
+;; Copyright (C) 2010 Vegard Øye
 ;;
+;; Author: Brad Beveridge et al.
+;; Maintainer: Alessandro Piras <laynor at gmail.com>
+;;      I am looking for a co-maintainer or new maintainer
+;;      to take over.  Contact the mailing list.
+;; Created: 23 Aug 2007
 ;; Version: 0.3.0+svn
-;; Keywords: emulations
-;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky finger
+;; Keywords: emulations, viper
+;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el
-;; Contact: <implementations-list at lists.ourproject.org>.
-;;          You don't have to subscribe.  We usually reply within a
-;;          few days and CC our replies back to you.  If we don't,
-;;          check the archives:
-;;          http://tinyurl.com/implementations-list
 ;; SVN and bug tracker: http://www.assembla.com/spaces/vimpulse/
-;; Send patches to: http://my-trac.assembla.com/vimpulse/report/1
-;; License: GPLv2 or later, as described below under "License"
-;; Compatibility: Works well with GNU Emacs 22.3 and 23.1.
-;;                Causes problems with Undo, but has no other problems,
-;;                on XEmacs 21.4.22.
-;;                Please send us compatibility info about other versions.
-;; Maintainer: Alessandro Piras, but I am looking for a co-maintainer
-;;             or for a new maintainer to take over.  Contact the list.
-;; Current developers: Alessandro Piras (maintainer),
-;;                     Vegard Øye <vegard_oye at hotmail.com>
+;;      Send patches to http://my-trac.assembla.com/vimpulse/report/1
+;; Mailing list: <implementations-list at lists.ourproject.org>
+;;      You don't have to subscribe.  We usually reply within a few
+;;      days and CC our replies back to you.  If we don't, check the
+;;      archives: http://tinyurl.com/implementations-list
+;; Current developers: Alessandro Piras (maintainer)
+;;      Vegard Øye <vegard_oye at hotmail.com>
+;; License: GPLv2 or later, as described below under "License".
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
 ;; Thanks to our
-;;        Old Maintainer: Jason Spiro
+;;      Old maintainer: Jason Spiro
 ;; We'll miss you as a maintainer :)
 ;;
 ;; This file is not part of GNU Emacs.
@@ -43,6 +41,10 @@
 ;; minor mode that emulates vi. Vimpulse is not a minor mode; as soon
 ;; as it is loaded, Viper will start working in a more Vim-like way.
 ;;
-;; Vimpulse is beta software.  It seems to work quite well already,
-;; though.  Patches and feature requests are welcome.
+;; Vimpulse is beta software.  It seems to work quite well with
+;; GNU Emacs 22.3 and 23.1.  There are some problems with Undo in
+;; XEmacs 21.4.22. Please send us compatibility info about other
+;; versions.
+;;
+;; Patches and feature requests are welcome.
 

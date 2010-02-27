@@ -47,7 +47,7 @@
 ;;   manual for ideas.
 ;;
 ;; - Modify how tramp works so it also automatically handles URLs
-;;   typed in the netrw syntax, i.e., http:// etc.  But first ask tramp
+;;   typed in the netrw syntax, e.g., http:// etc.  But first ask tramp
 ;;   upstream if they could please make those changes themselves.
 ;;
 ;; - Improve CTRL-O for jumping back in the jumplist and CTRL-I for
@@ -81,7 +81,7 @@
 ;;             - The characters '{' and '}' sometimes affect paragraph
 ;;               definitions.  See :help paragraph.
 ;;     - In Viper, on the other hand, I bet sentences are like in vi,
-;;       where Tabs aren't whitespace, and you need at least two spaces
+;;       where tabs aren't whitespace, and you need at least two spaces
 ;;       after the punctuation mark.
 ;;
 ;; - Make "dgg" work.
@@ -97,7 +97,7 @@
 ;;   I could convince him that it's worth it to ship Vim keys, for
 ;;   other people's benefit.)
 ;;
-;; - E-mail ridip <rdp@inthefaith.net> and ask him for his Vimpulse
+;; - E-mail ridip <rdp at inthefaith.net> and ask him for his Vimpulse
 ;;   contribs and his DVORAK stuff.
 ;;
 ;; - E-mail to Tromey for upload into ELPA?  We'd have to redo this
@@ -127,12 +127,13 @@
 ;;   isearch in Insert mode too?
 ;;
 ;; - In Vim, when a line starts with a "// " or ";; " comment and one
-;;   press enter, Vim extends the comment onto the next line.  What Vim
-;;   function is it that does this?  Is the function enabled in plain
-;;   vanilla Vim 7 as shipped by vim.org?  (Check by seeing how it
-;;   works on Vim for Windows running on either Windows or Wine.)  Is
-;;   it mostly useful or mostly annoying?  Is it worth implementing in
-;;   Emacs, considering there are other easy ways to create comments?
+;;   presses enter, Vim extends the comment onto the next line.  What
+;;   Vim function is it that does this?  Is the function enabled in
+;;   plain vanilla Vim 7 as shipped by vim.org?  (Check by seeing how
+;;   it works on Vim for Windows running on either Windows or Wine.)
+;;   Is it mostly useful or mostly annoying?  Is it worth implementing
+;;   in Emacs, considering there are other easy ways to create
+;;   comments?
 ;;
 ;; - With some delete commands, Viper shows a message like "Deleted 50
 ;;   characters" in the minibuffer.  Is that annoying?
@@ -141,7 +142,7 @@
 ;;
 ;; - I want to allow buffer-switching without using the C-x key, since
 ;;   C-x b RET an extremely large amount of times per day is
-;;   uncomfortable for my right pinky which presses RET.  There's
+;;   uncomfortable for my right pinky, which presses RET.  There's
 ;;   already :b which seems to just invoke `switch-to-buffer'.  Is this
 ;;   right?  Is it bad if I make Vimpulse emulate set autowrite=on
 ;;   then write new multi-buffer code?  What should the code's user
@@ -156,7 +157,7 @@
 ;;     - I wonder how well that stuff works with just a few buffers open.
 ;;
 ;; - Simulate Vim's set virtualedit=onemore option to make C-x C-e
-;;   possible w/o first advancing to next line?
+;;   possible without first advancing to next line?
 ;;
 ;; - Would it be bad to edit users' .viminfo files without asking
 ;;   permission, or should some variable have to be customized on to do
