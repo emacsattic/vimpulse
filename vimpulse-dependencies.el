@@ -16,20 +16,6 @@
       (require 'redo)
     (error nil)))
 
-;; Load paren.el if available
-(unless (featurep 'paren)
-  (condition-case nil
-      (require 'paren)
-    (error nil)))
-
-;; Load reveal.el if available
-(unless (featurep 'reveal)
-  (condition-case nil
-      (require 'reveal)
-    (error nil)))
-(and (fboundp 'global-reveal-mode)
-     (global-reveal-mode 1))
-
 ;; Customization group for Vimpulse
 (defgroup vimpulse nil
   "Vim emulation within Emacs."
