@@ -208,10 +208,7 @@ read-only buffers anyway, it does the job."
      (let ((map help-mode-map))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
-       (viper-modify-major-mode 'help-mode 'vi-state map))
-     (vimpulse-add-core-movement-cmds view-mode-map)
-     (vimpulse-add-movement-cmds view-mode-map)
-     (vimpulse-inhibit-destructive-cmds view-mode-map)))
+       (viper-modify-major-mode 'help-mode 'vi-state map))))
 
 ;; ElDoc compatibility
 (eval-after-load 'eldoc
