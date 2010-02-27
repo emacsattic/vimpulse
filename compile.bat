@@ -2,10 +2,10 @@
 type Header ^
      INSTALL ^
      README ^
-     BUGS ^
-     TODO ^
      Changelog ^
      Acknowledgements ^
+     BUGS ^
+     TODO ^
      LICENSE ^
      vimpulse-dependencies.el ^
      vimpulse-viper-function-redefinitions.el ^

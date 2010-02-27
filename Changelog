@@ -4,9 +4,9 @@
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] Emacs-compatible Visual selection.
 ;;    New Visual keys: u, U, ~, >, <, J -- thanks, Frank Fischer.
-;;  - [NEW] Movement keys: gd, C-o, C-i, C-w ..., N%, +, _.
-;;  - [NEW] Keybinding functions: `vimpulse-map', `vimpulse-imap'
-;;    and `vimpulse-vmap'.
+;;  - [NEW] Movement keys: C-o, C-i, C-w hjkl, gd, N%, +, _.
+;;  - [NEW] Keybinding functions: `vimpulse-map',
+;;    `vimpulse-imap' and `vimpulse-vmap'.
 ;;  - [NEW] Backspace in Replace mode restores text.
 ;;  - [NEW] Basic vi navigation in help buffers.
 ;;  - [NEW] Vimpulse has its own customization group.
@@ -118,7 +118,7 @@
 ;;
 ;; Version 0.2.5.1:
 ;;  [jasonspiro3 at gmail.com:]
-;;  - Redefined viper-adjust-undo to do nothing. This way, in insert
+;;  - Redefined viper-adjust-undo to do nothing. This way, in Insert
 ;;    mode, typing then moving the cursor then typing more counts as
 ;;    two separately undoable actions instead of one. Thanks to Weihua
 ;;    JIANG and to max_ from IRC #emacs for the idea.
