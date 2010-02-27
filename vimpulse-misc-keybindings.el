@@ -221,23 +221,38 @@ read-only buffers anyway, it does the job."
 ;;;; - I changed the prefix of the custom functions to `vimpulse'
 ;;;;   to avoid multiple prefixes
 ;;;;
-(defvar vimpulse-fold-level 0)
+(defcustom vimpulse-fold-level 0
+  "Default fold level."
+  :type  'boolean
+  :group 'vimpulse)
+
 (defun vimpulse-hs-Open ()
   (interactive)
   (hs-show-block)
   (hs-hide-level -1))
-(when (boundp 'hs-minor-mode)
-  (add-hook 'hs-minor-mode-hook
-            (lambda ()
-              (call-interactively 'hs-hide-all)
-              (define-key viper-vi-basic-map "za"
-                (lambda () (hs-toggle-hiding) (hs-hide-level h)))
-              (define-key viper-vi-basic-map "zA" 'hs-toggle-hiding)
-              (define-key viper-vi-basic-map "zM" 'hs-hide-all)
-              (define-key viper-vi-basic-map "zR" 'hs-show-all)
-              (define-key viper-vi-basic-map "zO" 'vimpulse-hs-Open)
-              (define-key viper-vi-basic-map "zo" 'hs-show-block)
-              (define-key viper-vi-basic-map "zc" 'hs-hide-block))))
+
+(eval-after-load 'hideshow
+  '(add-hook 'hs-minor-mode-hook
+             (lambda ()
+               (call-interactively 'hs-hide-all)
+               (define-key viper-vi-basic-map "za"
+                 (lambda ()
+                   (interactive)
+                   (hs-toggle-hiding)
+                   (hs-hide-level vimpulse-fold-level)))
+               (define-key viper-vi-basic-map "za" 'hs-toggle-hiding)
+               (define-key viper-vi-basic-map "zm" 'hs-hide-all)
+               (define-key viper-vi-basic-map "zr" 'hs-show-all)
+               (define-key viper-vi-basic-map "zo" 'hs-show-block)
+               (define-key viper-vi-basic-map "zc" 'hs-hide-block))))
+
+;; Load reveal.el if available
+(unless (featurep 'reveal)
+  (condition-case nil
+      (require 'reveal)
+    (error nil)))
+(when (fboundp 'global-reveal-mode)
+  (global-reveal-mode 1))
 
 (define-key viper-vi-basic-map "K" 'woman)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding

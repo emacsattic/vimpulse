@@ -573,7 +573,7 @@ If POS if specified, set mark at POS instead."
   "Evaluate BODY with original system values from before Visual mode.
 This is based on `vimpulse-visual-vars-alist'."
   `(let ,(mapcar (lambda (elt)
-                   (list (car elt) `(quote ,(cdr elt))))
+                   `(,(car elt) (quote ,(cdr elt))))
                  vimpulse-visual-vars-alist)
      ,@body))
 

@@ -21,7 +21,11 @@
   :group 'vimpulse
   :type  'boolean)
 
-;; Safely enable show-paren-mode (normal highlighting)
+;; Load and enable paren.el if available
+(unless (featurep 'paren)
+  (condition-case nil
+      (require 'paren)
+    (error nil)))
 (and (fboundp 'show-paren-mode)
      (not (vimpulse-custom-value-p 'show-paren-mode))
      ;; Fast paren-matching
