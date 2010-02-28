@@ -1156,7 +1156,7 @@ afterwards.")
 
 (defvar vimpulse-misc-cmds
   '(cua-cancel keyboard-quit
-               ;; Mouse commands are handled by advice
+    ;; Mouse commands are handled by advice
     mouse-drag-region
     mouse-set-point
     mouse-set-region
@@ -1237,7 +1237,8 @@ If DONT-SAVE is non-nil, just delete it."
         (goto-char beg)))
       (vimpulse-visual-mode -1))
      ((or (eq 'normal vimpulse-visual-mode)
-          (and (boundp 'visual-line-mode) visual-line-mode))
+          (and (boundp 'visual-line-mode) visual-line-mode
+               (not (eq 'block vimpulse-visual-mode))))
       (viper-prefix-arg-com ?r 1 ?d)
       (viper-set-destructive-command
        (list 'viper-forward-char
@@ -1262,7 +1263,8 @@ If DONT-SAVE is non-nil, just delete it."
     (setq length (min length (1- (- (buffer-size) (point)))))
     (cond
      ((or (eq 'normal mode)
-          (and (boundp 'visual-line-mode) visual-line-mode))
+          (and (boundp 'visual-line-mode) visual-line-mode
+               (not (eq 'block mode))))
       (let (viper-d-com)
         (goto-char (max vimpulse-visual-point vimpulse-visual-mark))
         (viper-insert nil))
