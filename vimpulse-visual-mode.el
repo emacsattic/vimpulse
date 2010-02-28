@@ -1037,6 +1037,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
      ((vimpulse-mark-active)
       (delete-region (region-beginning) (region-end))))
     (if (and killed-rectangle
+             kill-ring
              (eq (current-kill 0)
                  (get 'killed-rectangle 'previous-kill)))
         (yank-rectangle)
@@ -1052,6 +1053,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     (viper-Put-back arg))
    (t
     (if (and killed-rectangle
+             kill-ring
              (eq (current-kill 0)
                  (get 'killed-rectangle 'previous-kill)))
         (yank-rectangle)
@@ -1248,6 +1250,9 @@ If DONT-SAVE is non-nil, just delete it."
       (goto-char (min vimpulse-visual-point vimpulse-visual-mark))
       (viper-line (cons length ?D)))
      ((eq 'block vimpulse-visual-mode)
+      ;; Associate the rectangle with the last entry in the kill-ring
+      (unless kill-ring
+        (copy-region-as-kill beg end))
       (kill-rectangle beg end)
       (put 'killed-rectangle 'previous-kill (current-kill 0))
       (goto-char (min vimpulse-visual-point vimpulse-visual-mark))
