@@ -480,7 +480,10 @@ In XEmacs, change the `end-glyph' property."
     (viper-overlay-put overlay 'after-string string))))
 
 (defun vimpulse-mark-active (&optional force)
-  "Return t if mark is meaningfully active."
+  "Return t if mark is meaningfully active.
+That is, if it's not about to be deactivated,
+and if there is a Transient Mark mode (or similar)
+to handle it."
   (cond
    ((featurep 'xemacs)
     (region-exists-p))
@@ -490,6 +493,8 @@ In XEmacs, change the `end-glyph' property."
    (t
     (and (boundp 'transient-mark-mode)
          transient-mark-mode
+         (or (not (boundp 'deactivate-mark))
+             (not deactivate-mark))
          (boundp 'mark-active)
          mark-active))))
 
