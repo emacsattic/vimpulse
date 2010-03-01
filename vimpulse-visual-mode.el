@@ -755,6 +755,17 @@ Return nil if selection is unchanged."
     (not (and (= opoint (point))
               (= omark  (mark t))))))
 
+(defun vimpulse-visual-markers (&optional point mark)
+  "Refresh `vimpulse-visual-point' and `vimpulse-visual-mark'."
+  (setq point (or point (point))
+        mark  (or mark (mark t) 1))
+  (viper-move-marker-locally 'vimpulse-visual-point point)
+  (viper-move-marker-locally 'vimpulse-visual-mark  mark)
+  (set-marker-insertion-type vimpulse-visual-point
+                             (<= point mark))
+  (set-marker-insertion-type vimpulse-visual-mark
+                             (> point mark)))
+
 (defun vimpulse-visual-restore ()
   "Restore previous selection."
   (interactive)
@@ -930,12 +941,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
 (defun vimpulse-visual-pre-command ()
   "Run before each command in Visual mode."
   (when vimpulse-visual-mode
-    (viper-move-marker-locally 'vimpulse-visual-point (point))
-    (viper-move-marker-locally 'vimpulse-visual-mark  (mark t))
-    (set-marker-insertion-type vimpulse-visual-point
-                               (<= (point) (mark t)))
-    (set-marker-insertion-type vimpulse-visual-mark
-                               (> (point) (mark t)))
+    (vimpulse-visual-markers)
     (set-register (viper-int-to-char (1+ (- ?y ?a)))
                   (vimpulse-visual-beginning))
     (set-register (viper-int-to-char (1+ (- ?z ?a)))
@@ -1671,16 +1677,7 @@ restores the selection with the same rotation."
               newmark  newmark-marker))
       (set-mark newmark)
       (goto-char newpoint)
-      (viper-move-marker-locally 'vimpulse-visual-point
-                                 newpoint-marker)
-      (viper-move-marker-locally 'vimpulse-visual-mark
-                                 newmark-marker)
-      (set-marker-insertion-type
-       vimpulse-visual-point
-       (<= newpoint-marker newmark-marker))
-      (set-marker-insertion-type
-       vimpulse-visual-mark
-       (> newpoint-marker newmark-marker)))))
+      (vimpulse-visual-markers newpoint-marker newmark-marker))))
 
 (defun vimpulse-visual-exchange-corners ()
   "Rearrange corners in Visual Block mode.
