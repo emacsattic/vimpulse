@@ -562,17 +562,18 @@ If POS if specified, set mark at POS instead."
 (defun vimpulse-visual-transient-restore ()
   "Restore Transient Mark mode to what is was before Visual mode.
  Also restores Cua mode."
-  (when (boundp 'transient-mark-mode)
-    (if (vimpulse-visual-before transient-mark-mode)
-        (transient-mark-mode 1)
-      (transient-mark-mode -1)))
-  (when (boundp 'cua-mode)
-    (if (vimpulse-visual-before cua-mode)
-        (cua-mode 1)
-      (cua-mode -1)))
-  (when (boundp 'zmacs-regions)
-    (let ((oldval (vimpulse-visual-before zmacs-regions)))
-      (setq zmacs-regions oldval))))
+  (when vimpulse-visual-vars-alist
+    (when (boundp 'transient-mark-mode)
+      (if (vimpulse-visual-before transient-mark-mode)
+          (transient-mark-mode 1)
+        (transient-mark-mode -1)))
+    (when (boundp 'cua-mode)
+      (if (vimpulse-visual-before cua-mode)
+          (cua-mode 1)
+        (cua-mode -1)))
+    (when (boundp 'zmacs-regions)
+      (let ((oldval (vimpulse-visual-before zmacs-regions)))
+        (setq zmacs-regions oldval)))))
 
 (defmacro vimpulse-visual-before (&rest body)
   "Evaluate BODY with original system values from before Visual mode.
@@ -703,7 +704,7 @@ modify selection if it does not already encompass BEG and END.
 
 Under the hood, this function changes Emacs' `point' and `mark'.
 The boundaries of the Visual selection are deduced from these and
-the current Visual mode, cf. `vimpulse-visual-beginning' and
+the current Visual mode via `vimpulse-visual-beginning' and
 `vimpulse-visual-end'."
   (cond
    (widen
