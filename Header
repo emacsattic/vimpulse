@@ -37,13 +37,13 @@
 ;;; Commentary:
 
 ;; Vimpulse emulates Vim's most useful features, including Visual mode
-;; and text objects. Vimpulse is a set of modifications to Viper, the
-;; minor mode that emulates vi. Vimpulse is not a minor mode; as soon
+;; and text objects.  Vimpulse is a set of modifications to Viper, the
+;; minor mode that emulates vi.  Vimpulse is not a minor mode; as soon
 ;; as it is loaded, Viper will start working in a more Vim-like way.
 ;;
 ;; Vimpulse is beta software.  It seems to work quite well with
 ;; GNU Emacs 22.3 and 23.1.  There are some problems with Undo in
-;; XEmacs 21.4.22. Please send us compatibility info about other
+;; XEmacs 21.4.22.  Please send us compatibility info about other
 ;; versions.
 ;;
 ;; Patches and feature requests are welcome.

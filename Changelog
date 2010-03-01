@@ -3,7 +3,10 @@
 ;; Version 0.3.0+svn
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] Emacs-compatible Visual selection.
-;;    New Visual keys: u, U, ~, >, <, J -- thanks, Frank Fischer.
+;;    It is now a Viper state proper, with a user map
+;;    and a major mode extension map.
+;;    [NEW] Visual keys: u, U, ~, >, <, J, O, gv --
+;;    thanks, Frank Fischer.
 ;;  - [NEW] Movement keys: C-o, C-i, C-w hjkl, gd, N%, +, _.
 ;;  - [NEW] Keybinding functions: `vimpulse-map',
 ;;    `vimpulse-imap' and `vimpulse-vmap'.
@@ -15,6 +18,7 @@
 ;;    mailing list or bug tracker -- thanks.
 ;;  - All Vimpulse bindings are now in `viper-vi-basic-map',
 ;;    leaving `viper-vi-global-user-map' for the user.
+;;    The same is true of Visual mode.
 ;;  - Easier installation. rect-mark.el is no longer needed,
 ;;    nor is cl.el.
 ;;  - The file encoding is UTF-8.
