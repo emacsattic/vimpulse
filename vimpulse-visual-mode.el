@@ -48,7 +48,7 @@ This keymap is active when in Visual mode."
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
     ;; If Viper state is not already changed,
-    ;; change it to vi state
+    ;; change it to vi (command) state
     (when (eq viper-current-state 'visual-state)
       (cond
        ((eq 'emacs-state vimpulse-visual-previous-state)
@@ -74,10 +74,6 @@ This keymap is active when in Visual mode."
 
 (defvar vimpulse-visual-state-id "<VIS> "
   "Mode line tag for identifying the Visual state.")
-
-(defun vimpulse-region-face ()
-  "Return face of region."
-  (if (featurep 'xemacs) 'zmacs-region 'region))
 
 (defvar vimpulse-visual-mode nil
   "Current Visual mode: may be nil, `normal', `line' or `block'.")
@@ -429,6 +425,10 @@ In XEmacs, this is an extent.")
  vimpulse-visual-block-overlays nil
  "Overlays for Visual Block selection.")
 
+(defun vimpulse-region-face ()
+  "Return face of region."
+  (if (featurep 'xemacs) 'zmacs-region 'region))
+
 ;; Set functions for handling overlays (not yet provided by Viper)
 (cond
  ((featurep 'xemacs)                    ; XEmacs
@@ -624,15 +624,19 @@ See also `vimpulse-visual-end'."
      ((eq 'block mode)
       (let* ((start (min (point) (or (mark t) 1)))
              (end   (max (point) (or (mark t) 1)))
-             (start-col (save-excursion
+             (start-col (progn
                           (goto-char start)
                           (current-column)))
              (end-col   (save-excursion
                           (goto-char end)
                           (current-column))))
-        (if (<= start-col end-col)
+        (if (or (< start-col end-col)
+                (and (= start-col end-col)
+                     (save-excursion
+                       (goto-char end)
+                       (not (eolp)))))
             start
-          (1+ start))))
+          (if (eolp) start (1+ start)))))
      ;; Beginning of first line
      ((eq 'line mode)
       (when (mark t)
@@ -674,11 +678,11 @@ See also `vimpulse-visual-beginning'."
              (start-col (save-excursion
                           (goto-char start)
                           (current-column)))
-             (end-col   (save-excursion
+             (end-col   (progn
                           (goto-char end)
                           (current-column))))
         (if (<= start-col end-col)
-            (1+ end)
+            (if (eolp) end (1+ end))
           end)))
      ;; End of last line (including newline)
      ((eq 'line mode)
@@ -853,8 +857,10 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
             end-col (save-excursion (goto-char end)
                                     (current-column)))
       (when (>= beg-col end-col)
-        (setq beg-col (prog1 end-col
-                        (setq end-col beg-col)))
+        (if (= beg-col end-col)
+            (setq end-col (1+ end-col))
+          (setq beg-col (prog1 end-col
+                          (setq end-col beg-col))))
         (setq beg (save-excursion (goto-char beg)
                                   (vimpulse-move-to-column beg-col)
                                   (point))
@@ -1563,7 +1569,7 @@ and `lower-right', or a clockwise number from 0 to 3:
 
 The rectangle is defined by mark and point, or BEG and END
 if specified. The CORNER values `upper', `left', `lower'
-and `right' returns one of the defining corners.
+and `right' return one of the defining corners.
 
         upper P---+                    +---M upper
          left |   | lower        lower |   | right
