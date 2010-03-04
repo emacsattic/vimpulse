@@ -41,6 +41,7 @@ This keymap is active when in Visual mode."
               (when (memq var vimpulse-visual-global-vars)
                 (kill-local-variable var)))
             vimpulse-visual-local-vars)
+    (vimpulse-visual-block-unnormalize)
     ;; Deactivate mark
     (when vimpulse-visual-vars-alist
       (vimpulse-deactivate-mark t))
@@ -136,6 +137,11 @@ This lets us revert to Emacs state in non-vi buffers.")
 (viper-deflocalvar
  vimpulse-undo-needs-adjust nil
  "If true, several commands in the undo-list should be connected.")
+
+(viper-deflocalvar
+ vimpulse-visual-norm-overlay nil
+ "Overlay encompassing text inserted into the buffer
+to make Block selection at least one column wide.")
 
 ;; Defined in rect.el
 (defvar killed-rectangle nil)
@@ -447,6 +453,7 @@ In XEmacs, create an extent."
     (let ((extent (make-extent beg end buffer)))
       (set-extent-property extent 'start-open front-advance)
       (set-extent-property extent 'end-closed rear-advance)
+      (set-extent-property extent 'detachable nil)
       extent))
    (t
     (make-overlay beg end buffer front-advance rear-advance))))
@@ -969,6 +976,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
      (vimpulse-visual-region-changed
       (vimpulse-visual-expand-region))
      ((vimpulse-region-cmd-p this-command)
+      (and (eq 'block vimpulse-visual-mode)
+           (vimpulse-visual-block-normalize))
       (vimpulse-visual-expand-region
        ;; If in Line mode, don't include trailing newline
        ;; unless the command has real need of it
@@ -993,7 +1002,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
        ((eq 'block vimpulse-visual-mode)
         (when vimpulse-visual-region-changed
           (vimpulse-visual-restore)
-          (setq vimpulse-visual-region-changed nil)))
+          (setq vimpulse-visual-region-changed nil))
+        (vimpulse-visual-block-unnormalize))
        ((vimpulse-boundaries-cmd-p this-command)
         (vimpulse-visual-contract-region)
         (setq vimpulse-visual-region-changed t))
@@ -1376,6 +1386,7 @@ If DONT-SAVE is non-nil, just delete it."
       (vimpulse-visual-block-rotate 'upper-left beg end)
       (setq beg (vimpulse-visual-beginning)
             end (vimpulse-visual-end))
+      (setq vimpulse-visual-norm-overlay nil)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?a beg end))
@@ -1430,8 +1441,8 @@ If DONT-SAVE is non-nil, just delete it."
           (forward-line)))))
    (t
     (error "Not in Visual mode")))
-  (vimpulse-visual-mode -1)
-  (goto-char (vimpulse-visual-block-position 'upper-left beg end)))
+  (goto-char (vimpulse-visual-block-position 'upper-left beg end))
+  (vimpulse-visual-mode -1))
 
 (defun vimpulse-visual-toggle-case-region (beg end)
   "Toggles the case of all characters from BEG to END (exclusive)."
@@ -1707,6 +1718,43 @@ the upper right corner and point in the lower left."
    (t
     (error "Not in Visual mode"))))
 
+;; Insert whitespace into buffer to handle zero-width rectangles.
+;; This isn't ideal and should be replaced with something else.
+(defun vimpulse-visual-block-normalize ()
+  "Ensure rectangle is at least one column wide.
+If the Block selection starts and ends on blank lines, the
+resulting rectangle has width zero even if intermediate lines
+contain characters. This function inserts a space after `mark'
+so that a one-column rectangle can be made. The position of the
+space is stored in `vimpulse-visual-norm-overlay' so it can be
+removed afterwards with `vimpulse-visual-block-unnormalize'."
+  (save-excursion
+    (when (and (eq 'block vimpulse-visual-mode)
+               (/= (vimpulse-visual-beginning)
+                   (vimpulse-visual-end))
+               (save-excursion
+                 (goto-char (vimpulse-visual-beginning))
+                 (and (bolp) (eolp)))
+               (save-excursion
+                 (goto-char (vimpulse-visual-end))
+                 (and (bolp) (eolp))))
+      (goto-char (mark t))
+      (insert " ")
+      (setq vimpulse-visual-norm-overlay
+            (vimpulse-make-overlay (mark t) (1+ (mark t))
+                                   nil t nil)))))
+
+(defun vimpulse-visual-block-unnormalize ()
+  "Clean up whitespace inserted by `vimpulse-visual-block-normalize'."
+  (when (viper-overlay-live-p vimpulse-visual-norm-overlay)
+    (when (= 1 (- (viper-overlay-end   vimpulse-visual-norm-overlay)
+                  (viper-overlay-start vimpulse-visual-norm-overlay)))
+      (delete-region
+       (viper-overlay-start vimpulse-visual-norm-overlay)
+       (viper-overlay-end   vimpulse-visual-norm-overlay)))
+    (vimpulse-delete-overlay vimpulse-visual-norm-overlay)
+    (setq vimpulse-visual-norm-overlay nil)))
+
 (defun vimpulse-visual-create-coords
   (mode i-com upper-left lower-right)
   "Update the list of block insert coordinates with current rectangle.
@@ -1794,6 +1842,7 @@ Returns the insertion point."
 (define-key vimpulse-visual-basic-map "D" 'vimpulse-visual-delete)
 (define-key vimpulse-visual-basic-map "d" 'vimpulse-visual-delete)
 (define-key vimpulse-visual-basic-map "y" 'vimpulse-visual-yank)
+(define-key vimpulse-visual-basic-map "Y" 'vimpulse-visual-yank)
 (define-key vimpulse-visual-basic-map "u" 'vimpulse-visual-mode)
 (define-key vimpulse-visual-basic-map "R" 'vimpulse-visual-change)
 (define-key vimpulse-visual-basic-map "r" 'vimpulse-visual-replace-region)
