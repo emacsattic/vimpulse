@@ -1169,7 +1169,9 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     viper-next-line viper-previous-line viper-search-backward
     viper-search-forward viper-search-Next viper-search-next
     viper-window-bottom viper-window-middle viper-window-top
-    vimpulse-visual-block-rotate vimpulse-visual-exchange-corners
+    vimpulse-end-of-previous-word vimpulse-goto-definition
+    vimpulse-goto-first-line vimpulse-visual-block-rotate
+    vimpulse-visual-exchange-corners
     vimpulse-visual-select-text-object)
   "List of commands that move point.
 If a command is listed here, or in `vimpulse-boundaries-cmds', or

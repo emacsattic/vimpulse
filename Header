@@ -25,7 +25,7 @@
 ;;      archives: http://tinyurl.com/implementations-list
 ;; Current developers: Alessandro Piras (maintainer)
 ;;      Vegard Øye <vegard_oye at hotmail.com>
-;; License: GPLv2 or later, as described below under "License".
+;; License: GPLv2 or later, as described below under "License"
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
 ;; Thanks to our
