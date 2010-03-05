@@ -436,8 +436,8 @@ is highlighted rather than skipped past."
       (viper-move-marker-locally 'viper-com-point (point)))
     (unless (or (vimpulse-beginning-of-word-p)
                 (not (viper-looking-at-alpha)))
-      (viper-backward-word 1))
-    (viper-backward-word val)
+      (viper-backward-Word 1))
+    (viper-backward-Word val)
     (unless (viper-end-of-word-p)
       (viper-end-of-word 1))
     (when com
