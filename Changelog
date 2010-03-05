@@ -7,7 +7,7 @@
 ;;    and a major mode extension map.
 ;;    [NEW] Visual keys: u, U, ~, >, <, J, O, gv --
 ;;    thanks, Frank Fischer.
-;;  - [NEW] Movement keys: C-o, C-i, C-w hjkl, gd, N%, +, _.
+;;  - [NEW] Movement keys: C-o, C-i, C-w hjkl, gb, gd, N%, +, _.
 ;;  - [NEW] Keybinding functions: `vimpulse-map',
 ;;    `vimpulse-imap' and `vimpulse-vmap'.
 ;;  - [NEW] Backspace in Replace mode restores text.
@@ -21,6 +21,7 @@
 ;;    The same is true of Visual mode.
 ;;  - Easier installation. rect-mark.el is no longer needed,
 ;;    nor is cl.el.
+;;  - All tabs are replaced by spaces.
 ;;  - The file encoding is UTF-8.
 ;;  [laynor at gmail.com:]
 ;;  - Added some small fixes, and promoted the experimental stuff to

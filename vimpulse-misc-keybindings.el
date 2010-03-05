@@ -21,12 +21,12 @@
     viper-line-to-top viper-next-line viper-previous-line
     viper-scroll-down-one viper-scroll-down viper-scroll-up
     viper-scroll-up-one viper-window-bottom viper-window-middle
-    viper-window-top vimpulse-goto-first-line
+    viper-window-top vimpulse-end-of-previous-word
+    vimpulse-goto-first-line vimpulse-goto-definition
     vimpulse-search-backward-for-symbol-at-point
-    vimpulse-search-forward-for-symbol-at-point
-    vimpulse-jump-backward vimpulse-jump-forward
-    vimpulse-visual-toggle-normal vimpulse-visual-toggle-line
-    vimpulse-visual-toggle-block)
+    vimpulse-search-forward-for-symbol-at-point vimpulse-jump-backward
+    vimpulse-jump-forward vimpulse-visual-toggle-normal
+    vimpulse-visual-toggle-line vimpulse-visual-toggle-block)
   "List of Viper/Vimpulse movement commands.")
 
 (defvar vimpulse-core-movement-cmds
@@ -256,6 +256,7 @@ read-only buffers anyway, it does the job."
 
 (define-key viper-vi-basic-map "K" 'woman)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding
+(define-key viper-vi-basic-map "gb" 'vimpulse-end-of-previous-word)
 (define-key viper-vi-basic-map "gd" 'vimpulse-goto-definition)
 (define-key viper-vi-basic-map "gf" 'find-file-at-point)
 (define-key viper-vi-basic-map "gg" 'vimpulse-goto-first-line)
@@ -413,6 +414,34 @@ is highlighted rather than skipped past."
 (defun vimpulse-search-backward-for-symbol-at-point ()
   (interactive)
   (vimpulse-search-for-symbol t))
+
+(defun vimpulse-beginning-of-word-p ()
+  (save-excursion
+    (or (bobp)
+        (cond
+         ((viper-looking-at-alpha)
+          (backward-char)
+          (not (viper-looking-at-alpha)))
+         ((not (viper-looking-at-alphasep))
+          (backward-char)
+          (viper-looking-at-alphasep))))))
+
+(defun vimpulse-end-of-previous-word (arg)
+  "Move point to end of previous word."
+  (interactive "P")
+  (viper-leave-region-active)
+  (let ((val (viper-p-val arg))
+	(com (viper-getcom arg)))
+    (when com
+      (viper-move-marker-locally 'viper-com-point (point)))
+    (unless (or (vimpulse-beginning-of-word-p)
+                (not (viper-looking-at-alpha)))
+      (viper-backward-word 1))
+    (viper-backward-word val)
+    (unless (viper-end-of-word-p)
+      (viper-end-of-word 1))
+    (when com
+      (viper-execute-com 'viper-end-of-word val com))))
 
 (defun vimpulse-goto-definition ()
   "Go to definition or first occurrence of symbol under cursor."
