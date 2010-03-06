@@ -555,7 +555,8 @@ To go the other way, press \\[vimpulse-jump-backward]."
 
 (define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
 (define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
-(global-set-key "\M-o" 'open-line) ; some may miss this command
+(unless (key-binding "\C-c\C-o")
+  (global-set-key "\C-c\C-o" 'open-line)) ; some may miss this command
 
 ;; N%
 (defadvice viper-paren-match (around vimpulse activate)
