@@ -1,24 +1,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; EXPERIMENTAL
-;;;; Text Object Support:
-;;;; This code implements the support for text objects,
-;;;; and implements commands like diw daw ciw caw.
-;;;; It's still experimental, and not all that's supported in vim
-;;;; is (still) supported here. However, the most common text objects
-;;;; are supported:
-;;;;    - paren blocks: { [ ( < > ) ] }
-;;;;    - sentences
-;;;;    - paragraphs
-;;;;    - quoted expressions " and '
-;;;;    - words and Words
-;;;; Using text objects as motions in visual mode is (still) not supported.
-;;;; Please note that Vimpulse's text objects are very close to Vim's, but
-;;;; the behavior on certain occasions (e.g. daw issued with the cursor
-;;;; lying on whitespace) may be a little different. My aim was not acheiving
-;;;; the exact same behavior in all limit cases, but rather to give a close
-;;;; and consistent behavior to the commands.
-;;;; Alessandro Piras
-;;; Begin Text Objects code{{{
+;;;; TEXT OBJECT SUPPORT                                             ;;;;
+;;;;                                                                 ;;;;
+;;;; This code implements support for text objects and commands like ;;;;
+;;;; diw, daw, ciw, caw. Currently, the most common objects are      ;;;;
+;;;; supported:                                                      ;;;;
+;;;;                                                                 ;;;;
+;;;;    - paren-blocks: b B { [ ( < > ) ] }                          ;;;;
+;;;;    - sentences: s                                               ;;;;
+;;;;    - paragraphs: p                                              ;;;;
+;;;;    - quoted expressions: " and '                                ;;;;
+;;;;    - words: w and W                                             ;;;;
+;;;;                                                                 ;;;;
+;;;; Vimpulse's text objects are very close to Vim's, but the        ;;;;
+;;;; behavior on certain occasions (e.g., daw issued with the cursor ;;;;
+;;;; on whitespace) may be a little different. My aim was not to     ;;;;
+;;;; achieve the exact same behavior in all limit cases, but rather  ;;;;
+;;;; to give a close and consistent behavior to the commands.        ;;;;
+;;;;                                                                 ;;;;
+;;;; Alessandro Piras                                                ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Begin Text Objects code {{{
 
 (defvar vimpulse-last-object-selection nil
   "Last object selection, in list format: (COUNT CHAR MOTION).")
