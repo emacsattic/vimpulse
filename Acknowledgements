@@ -14,16 +14,15 @@
 ;;      Rick Sladkey, author of rect-mark.el
 ;;      Ryoichi Kanetaka <ryoichi.kanetaka at gmail.com>
 ;;      Samuel Padgett
-;;      Stephen Bach <stephen at sjbach.com>
 ;;      Štěpán Němec <stepnem at gmail.com>
+;;      Stephen Bach <stephen at sjbach.com>
 ;;      Stian S.
 ;;      Toby Cubitt
 ;;      Wang Xin
-;;      Weihua JIANG <weihua.jiang at gmail.com>
+;;      Weihua Jiang <weihua.jiang at gmail.com>
 ;;
-;; and all the other people who have sent in bug reports or feedback.
-;; Also, thanks to Michael Kifer and all those who have contributed to
-;; viper-mode.
+;; and all the other people who have sent in bug reports and feedback.
+;; Also, thanks to Michael Kifer and those who contributed to Viper.
 ;;
 ;; We love patches.  Would you like to see your name here?
 ;; Please send code and/or documentation patches to the maintainer.
