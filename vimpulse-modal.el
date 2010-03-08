@@ -158,26 +158,6 @@ directly, but shadowing them with a `let' binding works."
        ad-do-it))))
 
 ;; GENERAL FUNCTIONS
-;;
-;; Makes dealing with vectors and key sequences a little easier.
-(defun vimpulse-truncate (vector length &optional offset)
-  "Return a copy of VECTOR truncated to LENGTH.
-If LENGTH is negative, skip last elements of VECTOR.
-If OFFSET is specified, skip first elements of VECTOR."
-  ;; If LENGTH is too large, trim it
-  (when (> length (length vector))
-    (setq length (length vector)))
-  ;; If LENGTH is negative, convert it to the positive equivalent
-  (when (> 0 length)
-    (setq length (+ (length vector) length)))
-  (when (> 0 length)
-    (setq length 0))
-  (if offset
-      (setq length (- length offset))
-    (setq offset 0))
-  (let ((result (make-vector length t)))
-    (dotimes (idx length result)
-      (aset result idx (aref vector (+ idx offset))))))
 
 (defun vimpulse-strip-prefix (key-sequence)
   "Strip any prefix argument keypresses from KEY-SEQUENCE.
@@ -322,10 +302,10 @@ functions, respectively."
 ;; respectively.
 (defun vimpulse-define-key
   (keymap key def &optional dont-list define-func)
-  "Modally bind KEY to DEF in KEYMAP.
-\"Modally\" means that if a subset of the key sequence is already
+  "Carefully bind KEY to DEF in KEYMAP.
+\"Carefully\" means that if a subset of the key sequence is already
 bound, a default binding is made so that the new binding won't
-overwrite the old. E.g., if we want to modally bind \"A B C\" to
+overwrite the old. E.g., if we want to carefully bind \"A B C\" to
 `foo', and \"A B\" is already bound to `bar', the end result is
 
     \"A B C\"   => `foo'
@@ -399,9 +379,9 @@ state. The functions `vimpulse-map', `vimpulse-imap' and
            keymap key def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
 
-(defun vimpulse-map-state (state key def &rest modes)
+(defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.
-You shouldn't use this function; see `vimpulse-map',
+You shouldn't use this function directly; see `vimpulse-map',
 `vimpulse-imap' and `vimpulse-vmap' instead."
   (let* ((old-state viper-current-state)
          (maps '((vi-state viper-vi-basic-map
@@ -445,7 +425,7 @@ binding is seen in:
 Otherwise, the binding is universal, but has lower priority.
 Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
-  (apply 'vimpulse-map-state 'vi-state key def modes))
+  (vimpulse-map-state 'vi-state key def modes))
 
 (defun vimpulse-imap (key def &rest modes)
   "Modally bind KEY to DEF in Insert state.
@@ -461,7 +441,7 @@ binding is seen in:
 Otherwise, the binding is universal, but has lower priority.
 Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
-  (apply 'vimpulse-map-state 'insert-state key def modes))
+  (vimpulse-map-state 'insert-state key def modes))
 
 (defun vimpulse-vmap (key def &rest modes)
   "Modally bind KEY to DEF in Visual state.
@@ -477,7 +457,7 @@ binding is seen in:
 Otherwise, the binding is universal, but has lower priority.
 Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
-  (apply 'vimpulse-map-state 'visual-state key def modes))
+  (vimpulse-map-state 'visual-state key def modes))
 
 (defun vimpulse-map! (key def &rest modes)
   "Bind KEY to DEF in vi (command) state and Visual state.
