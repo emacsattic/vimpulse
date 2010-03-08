@@ -10,8 +10,8 @@ type Header ^
      vimpulse-dependencies.el ^
      vimpulse-viper-function-redefinitions.el ^
      vimpulse-utils.el ^
-     vimpulse-modal.el ^
      vimpulse-misc-keybindings.el ^
+     vimpulse-modal.el ^
      vimpulse-ex.el ^
      vimpulse-paren-matching.el ^
      vimpulse-text-object-system.el ^
