@@ -2,7 +2,7 @@
 ;;;; This file provides the functions `vimpulse-map', `vimpulse-imap'
 ;;;; and `vimpulse-vmap', which mimic :map, :imap and :vmap in Vim, as
 ;;;; well as `vimpulse-define-key', a general-purpose function for
-;;;; binding keys in a "modal" way.
+;;;; binding keys in a "careful" way.
 ;;;;
 ;;;; BACKGROUND
 ;;;;
@@ -27,8 +27,8 @@
 ;;;; second. The end result is that "aaa" is bound to `bar', while any
 ;;;; other sequence starting with "aa" is not bound to anything.
 ;;;;
-;;;; This file provides a set of Vim-like or "modal" functions for
-;;;; making new key bindings "on top of" previous bindings. They are
+;;;; The solution is a set of Vim-like or "modal" functions for making
+;;;; new key bindings "on top of" previous bindings. They are
 ;;;; `vimpulse-map', `vimpulse-imap' and `vimpulse-vmap', which mimic
 ;;;; Vim's commands, and `vimpulse-define-key', a general function for
 ;;;; specifying the keymap. Returning to the example:
@@ -125,7 +125,7 @@
 
 ;; VARIABLES
 ;;
-;; This is mostly for dealing with default key bindings.
+;; This deals with default key bindings.
 (defvar vimpulse-last-command-event nil
   "Value for overwriting `last-command-event'.
 Used by `vimpulse-modal-pre-hook'.")
@@ -138,7 +138,7 @@ for these bindings. The format is (KEY-VECTOR . COMMAND).")
 ;; ADVICE
 ;;
 ;; For XEmacs, construct a wrap-around advice of the current command
-;; for shadowing the read-only command loop variables with a
+;; shadowing the read-only command loop variables with a
 ;; `let' binding.
 (defmacro vimpulse-advice-command (command)
   "Make wrap-around advice for shadowing `last-command-event'.
@@ -158,7 +158,8 @@ directly, but shadowing them with a `let' binding works."
        ad-do-it))))
 
 ;; GENERAL FUNCTIONS
-
+;;
+;; These deal with key sequences.
 (defun vimpulse-strip-prefix (key-sequence)
   "Strip any prefix argument keypresses from KEY-SEQUENCE.
 This is useful for deriving a \"standard\" key-sequence from
@@ -313,17 +314,19 @@ overwrite the old. E.g., if we want to carefully bind \"A B C\" to
 
 which means that \"A B D\", for example, defaults to `bar'. (For
 more on default bindings, see `define-key'.) The default binding
-gets listed in `vimpulse-modal-alist', so that, from the
-command's point of view, it appears exactly the same as the
+gets listed in `vimpulse-modal-alist', so that, with regard to
+command loop variables, it appears exactly the same as the
 binding it replaced. To override this, use DONT-LIST.
 DEFINE-FUNC specifies a function to be used in place of
 `define-key'.
 
-NOTE: If \"A B\" is not bound in KEYMAP, but in some other map
-which is active only in a certain state (say, Insert mode), this
-function can detect that binding only if called in the same
-state. The functions `vimpulse-map', `vimpulse-imap' and
-`vimpulse-vmap' take care of this."
+To remove a binding, bind it to nil.
+
+NOTE: If the original binding \"A B\" is not stored in KEYMAP,
+but in some other map which is active only in a certain
+state (say, Insert mode), this function can detect that binding
+only if called in the same state. The functions `vimpulse-map',
+`vimpulse-imap' and `vimpulse-vmap' take care of this."
   (let (temp-sequence current-binding previous-binding)
     ;; For each subset of KEY (stored in `temp-sequence'), check
     ;; the binding (stored in `current-binding'); if it isn't bound,
