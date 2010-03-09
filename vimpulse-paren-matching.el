@@ -1,6 +1,6 @@
 ;;;;
 ;;;; When highlighting matching parentheses, Emacs matches the closing
-;;;; parenthesis before the cursor instead of under it (like in Vim).
+;;;; parenthesis before the cursor, instead of under it (like in Vim).
 ;;;; This file provides an alternate parenthesis matching function
 ;;;; used when Viper is in vi (command) mode, so that the parenthesis
 ;;;; under the cursor is matched. This makes it possible to visually
@@ -9,8 +9,8 @@
 ;;;; In Insert mode, Emacs' scheme is deemed best and kept as is.
 ;;;;
 ;;;; Custom paren-matching LOADED BY DEFAULT.
-;;;; Set `vimpulse-enhanced-paren-matching' to nil in your .emacs
-;;;; before requiring Vimpulse to avoid loading it.
+;;;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
+;;;; in your .emacs before loading Vimpulse.
 ;;;;
 
 ;;; Begin Paren Matching Code {{{
@@ -87,8 +87,8 @@ nil otherwise."
   (let ((ovl (if (vimpulse-paren-open-p pos)
                  vimpulse-paren-overlay-open
                vimpulse-paren-overlay-close)))
-    (overlay-put ovl 'face face)
-    (move-overlay ovl pos (1+ pos))))
+    (viper-overlay-put ovl 'face face)
+    (viper-move-overlay ovl pos (1+ pos))))
 
 ;; FIXME: this description sucks
 (defun vimpulse-paren-highlight-pair (&optional pos)
@@ -101,8 +101,8 @@ or mismatched paren."
      ((not match)
       (vimpulse-paren-highlight 'show-paren-mismatch pos))
      ((eq match 'not-a-paren)
-      (delete-overlay vimpulse-paren-overlay-open)
-      (delete-overlay vimpulse-paren-overlay-close))
+      (vimpulse-delete-overlay vimpulse-paren-overlay-open)
+      (vimpulse-delete-overlay vimpulse-paren-overlay-close))
      ((/= pos (vimpulse-paren-match match))
       (vimpulse-paren-highlight 'show-paren-mismatch pos))
      ((vimpulse-paren-match-p pos match)
@@ -122,8 +122,8 @@ or mismatched paren."
             (viper-make-overlay (point) (point) nil t nil)
             vimpulse-paren-overlay-close
             (viper-make-overlay (point) (point) nil t nil))
-      (delete-overlay vimpulse-paren-overlay-open)
-      (delete-overlay vimpulse-paren-overlay-close))
+      (vimpulse-delete-overlay vimpulse-paren-overlay-open)
+      (vimpulse-delete-overlay vimpulse-paren-overlay-close))
     (cond
      ;; Viper not in Insert, Replace or Emacs state
      ((and (not (eq viper-current-state 'insert-state))
@@ -133,15 +133,15 @@ or mismatched paren."
       ;; Safely delete the overlays used by `show-paren-function'
       ;; and call our custom function instead
       (and (viper-overlay-live-p show-paren-overlay)
-           (delete-overlay show-paren-overlay))
+           (vimpulse-delete-overlay show-paren-overlay))
       (and (viper-overlay-live-p show-paren-overlay-1)
-           (delete-overlay show-paren-overlay-1))
+           (vimpulse-delete-overlay show-paren-overlay-1))
       (vimpulse-paren-highlight-pair))
      ;; Viper in Insert mode
      (t
       ;; Delete the overlays used by our custom function
-      (delete-overlay vimpulse-paren-overlay-open)
-      (delete-overlay vimpulse-paren-overlay-close)
+      (vimpulse-delete-overlay vimpulse-paren-overlay-open)
+      (vimpulse-delete-overlay vimpulse-paren-overlay-close)
       ad-do-it)))
    (t
     ad-do-it)))
