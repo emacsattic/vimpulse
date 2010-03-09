@@ -431,61 +431,6 @@ In XEmacs, this is an extent.")
  vimpulse-visual-block-overlays nil
  "Overlays for Visual Block selection.")
 
-(defun vimpulse-region-face ()
-  "Return face of region."
-  (if (featurep 'xemacs) 'zmacs-region 'region))
-
-;; Set functions for handling overlays (not yet provided by Viper)
-(cond
- ((featurep 'xemacs)                    ; XEmacs
-  (fset 'vimpulse-delete-overlay 'delete-extent))
- (t                                     ; GNU Emacs
-  (fset 'vimpulse-delete-overlay 'delete-overlay)))
-
-;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
-;; and REAR-ADVANCE properly in XEmacs
-(defun vimpulse-make-overlay
-  (beg end &optional buffer front-advance rear-advance)
-  "Create a new overlay with range BEG to END in BUFFER.
-In XEmacs, create an extent."
-  (cond
-   ((featurep 'xemacs)
-    (let ((extent (make-extent beg end buffer)))
-      (set-extent-property extent 'start-open front-advance)
-      (set-extent-property extent 'end-closed rear-advance)
-      (set-extent-property extent 'detachable nil)
-      extent))
-   (t
-    (make-overlay beg end buffer front-advance rear-advance))))
-
-(defun vimpulse-overlay-before-string (overlay string &optional face)
-  "Set the `before-string' property of OVERLAY to STRING.
-In XEmacs, change the `begin-glyph' property."
-  (cond
-   ((featurep 'xemacs)
-    (setq face (or face (get-text-property 0 'face string)))
-    (when (and string (not (glyphp string)))
-      (setq string (make-glyph string)))
-    (when face
-      (set-glyph-face string face))
-    (set-extent-begin-glyph overlay string))
-   (t
-    (viper-overlay-put overlay 'before-string string))))
-
-(defun vimpulse-overlay-after-string (overlay string &optional face)
-  "Set the `after-string' property of OVERLAY to STRING.
-In XEmacs, change the `end-glyph' property."
-  (cond
-   ((featurep 'xemacs)
-    (setq face (or face (get-text-property 0 'face string)))
-    (when (and string (not (glyphp string)))
-      (setq string (make-glyph string)))
-    (when face
-      (set-glyph-face string face))
-    (set-extent-end-glyph overlay string))
-   (t
-    (viper-overlay-put overlay 'after-string string))))
-
 (defun vimpulse-mark-active (&optional force)
   "Return t if mark is meaningfully active.
 That is, if it's not about to be deactivated,
