@@ -13,7 +13,7 @@
 ;;      I am looking for a co-maintainer or new maintainer
 ;;      to take over.  Contact the mailing list.
 ;; Created: 23 Aug 2007
-;; Version: 0.3.0+svn
+;; Version: 0.3.1
 ;; Keywords: emulations, viper
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el
