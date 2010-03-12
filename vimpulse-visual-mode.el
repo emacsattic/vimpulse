@@ -68,10 +68,17 @@ This keymap is active when in Visual mode."
  vimpulse-visual-global-user-minor-mode nil
  "For user-defined global bindings in the Visual state.")
 
+(viper-deflocalvar
+ vimpulse-visual-local-user-minor-mode nil
+ "For user-defined local bindings in the Visual state.")
+
+(defvar vimpulse-visual-state-modifier-alist nil)
+
 (defvar vimpulse-visual-global-user-map (make-sparse-keymap)
   "Auxiliary map for user-defined bindings in the Visual state.")
 
-(defvar vimpulse-visual-state-modifier-alist nil)
+(defvar vimpulse-visual-local-user-map (make-sparse-keymap)
+  "Keymap for user-defined local Visual bindings.")
 
 (defvar vimpulse-visual-state-id "<VIS> "
   "Mode line tag for identifying the Visual state.")
@@ -191,7 +198,9 @@ If none, return an empty keymap (`viper-empty-keymap')."
                       (cons 'vimpulse-visual-state-modifier-minor-mode
                             (vimpulse-modifier-map 'visual-state))
                       (cons 'vimpulse-visual-global-user-minor-mode
-                            vimpulse-visual-global-user-map)))
+                            vimpulse-visual-global-user-map)
+                      (cons 'vimpulse-visual-local-user-minor-mode
+                            vimpulse-visual-local-user-map)))
          (setq temp (default-value ',keymaps))
          (setq temp (assq-delete-all (car mode) temp)) ; already there?
          (add-to-list 'temp mode)
@@ -273,6 +282,8 @@ If none, return an empty keymap (`viper-empty-keymap')."
       (set alist (cons (cons mode keymap) (eval alist)))
       (viper-normalize-minor-mode-map-alist)
       (viper-set-mode-vars-for viper-current-state))))
+
+;; TODO: advice `viper-add-local-keys'
 
 (defun vimpulse-filter-undos (undo-list)
   "Filters all `nil' marks from `undo-list' until the first
@@ -649,9 +660,11 @@ See also `vimpulse-visual-beginning'."
         (point))
        (t
         (line-beginning-position 2))))
-     ;; End of region plus one character
+     ;; End of region plus one character (but not at end of line)
      (t
-      (1+ (max (point) (or (mark t) 1)))))))
+      (if (eolp)
+          (max (point) (or (mark t) 1))
+        (1+ (max (point) (or (mark t) 1))))))))
 
 (defun vimpulse-visual-select (beg end &optional widen)
   "Visually select text from BEG to END.
@@ -719,8 +732,13 @@ Return nil if selection is unchanged."
 
 (defun vimpulse-visual-markers (&optional point mark)
   "Refresh `vimpulse-visual-point' and `vimpulse-visual-mark'."
-  (setq point (or point (point))
-        mark  (or mark (mark t) 1))
+  (setq mark  (or mark (mark t) 1)
+        point (or point
+                  ;; If the cursor has somehow gotten to the very end
+                  ;; of the line, where it shouldn't be, fix it
+                  (if (and (eolp) (not (bolp)))
+                      (1- (point))
+                    (point))))
   (viper-move-marker-locally 'vimpulse-visual-point point)
   (viper-move-marker-locally 'vimpulse-visual-mark  mark)
   (set-marker-insertion-type vimpulse-visual-point
@@ -1252,7 +1270,9 @@ If DONT-SAVE is non-nil, just delete it."
       (setcar (nthcdr 2 viper-d-com) ?c))
      ((eq 'line mode)
       (let (viper-d-com)
-        (viper-Open-line nil))
+        (if (= (point) vimpulse-visual-point)
+            (viper-Open-line nil)
+          (viper-open-line nil))) ; if on last line, insert below
       (setcar (nthcdr 2 viper-d-com) ?C))
      ((eq 'block mode)
       (goto-char
