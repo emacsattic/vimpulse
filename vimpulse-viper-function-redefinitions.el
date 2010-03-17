@@ -41,27 +41,142 @@ Works like Vim's \"G\"."
 (when vimpulse-goto-line
   (fset 'viper-goto-line 'vimpulse-goto-line))
 
+;;; CODE FOR ADDING EXTRA STATES
+
+;; State index variables: for keeping track of which modes belong
+;; to which states, et cetera.
+(defvar vimpulse-state-maps-alist nil
+  "Alist of Vimpulse state maps.
+Entries have the form (MODE . MAP-EXPR), where MAP-EXPR is an
+expression for determining the keymap of MODE. The first entries
+get the highest priority.")
+
+(defvar vimpulse-state-modes-alist
+  '((vi-state
+     . ((viper-vi-intercept-minor-mode . t)
+        (viper-vi-minibuffer-minor-mode . (viper-is-in-minibuffer))
+        (viper-vi-local-user-minor-mode . t)
+        (viper-vi-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+        (viper-vi-global-user-minor-mode . t)
+        (viper-vi-state-modifier-minor-mode . t)
+        (viper-vi-diehard-minor-mode
+         . (not (or viper-want-emacs-keys-in-vi
+                    (viper-is-in-minibuffer))))
+        (viper-vi-basic-minor-mode . t)))
+    (insert-state
+     . ((viper-insert-intercept-minor-mode . t)
+        (viper-replace-minor-mode . (eq state 'replace-state))
+        (viper-insert-minibuffer-minor-mode . (viper-is-in-minibuffer))
+        (viper-insert-local-user-minor-mode . t)
+        (viper-insert-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+        (viper-insert-global-user-minor-mode . t)
+        (viper-insert-state-modifier-minor-mode . t)
+        (viper-insert-diehard-minor-mode
+         . (not (or viper-want-emacs-keys-in-insert
+                    (viper-is-in-minibuffer))))
+        (viper-insert-basic-minor-mode . t)))
+    (replace-state
+     . ((viper-insert-intercept-minor-mode . t)
+        (viper-replace-minor-mode . (eq state 'replace-state))
+        (viper-insert-minibuffer-minor-mode . (viper-is-in-minibuffer))
+        (viper-insert-local-user-minor-mode . t)
+        (viper-insert-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+        (viper-insert-global-user-minor-mode . t)
+        (viper-insert-state-modifier-minor-mode . t)
+        (viper-insert-diehard-minor-mode
+         . (not (or viper-want-emacs-keys-in-insert
+                    (viper-is-in-minibuffer))))
+        (viper-insert-basic-minor-mode . t)))
+    (emacs-state
+     . ((viper-emacs-intercept-minor-mode . t)
+        (viper-emacs-local-user-minor-mode . t)
+        (viper-emacs-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+        (viper-emacs-global-user-minor-mode . t)
+        (viper-emacs-state-modifier-minor-mode . t))))
+  "Alist of Vimpulse state modes.
+Entries have the form (STATE . ((MODE . EXPR) ...)), where STATE
+is the name of a state, MODE is a mode associated with STATE and
+EXPR is an expression with which to enable or disable MODE.")
+
+(defvar vimpulse-state-modifier-alist
+  '((vi-state . viper-vi-state-modifier-alist)
+    (insert-state . viper-insert-state-modifier-alist)
+    (emacs-state . viper-emacs-state-modifier-alist))
+  "Alist of state modifier alists.
+Entries have the form (STATE . MODIFIER-ALIST-VAR), where
+MODIFIER-ALIST-VAR is the name of the variable containing the
+modifier alist of STATE.")
+
+(defvar vimpulse-state-id-alist nil
+  "Alist of Vimpulse state mode line indicators.
+Entries have the form (STATE . ID-VAR), where ID-VAR is the name
+of the variable containing the state's indicator.")
+
+;; State-changing code: this uses the variables above.
+(defadvice viper-normalize-minor-mode-map-alist
+  (after vimpulse-states activate)
+  "Normalize Vimpulse state maps."
+  (let (temp mode map alists)
+    (cond
+     ((featurep 'xemacs)
+      (setq alists '(viper--key-maps minor-mode-map-alist)))
+     ((>= emacs-major-version 22)
+      (setq alists '(viper--key-maps)))
+     (t
+      (setq alists '(minor-mode-map-alist))))
+    (dolist (alist alists)
+      (dolist (entry (reverse vimpulse-state-maps-alist))
+        (setq mode (car entry)
+              map  (eval (cdr entry)))
+        (setq temp (default-value alist))
+        (setq temp (assq-delete-all mode temp)) ; already there?
+        (add-to-list 'temp (cons mode map))
+        (set-default alist temp)
+        (setq temp (eval alist))
+        (setq temp (assq-delete-all mode temp))
+        (add-to-list 'temp (cons mode map))
+        (set alist temp)))))
+
+(defadvice viper-refresh-mode-line (after vimpulse-states activate)
+  "Refresh mode line tag for Vimpulse states."
+  (let ((id (eval (cdr (assq viper-current-state
+                             vimpulse-state-id-alist)))))
+    (when id
+      (set (make-local-variable 'viper-mode-string) id)
+      (force-mode-line-update))))
+
+(defadvice viper-set-mode-vars-for (after vimpulse-states activate)
+  "Toggle Vimpulse state modes."
+  (let (enable disable)
+    ;; Determine which modes to enable
+    (setq enable (cdr (assq state vimpulse-state-modes-alist)))
+    (when enable
+      ;; Determine which modes to disable
+      (dolist (entry vimpulse-state-modes-alist)
+        (dolist (mode (mapcar 'car (cdr entry)))
+          (unless (assq mode enable)
+            (add-to-list 'disable mode t))))
+      ;; Enable modes
+      (dolist (entry enable)
+        (set (car entry) (eval (cdr entry))))
+      ;; Disable modes
+      (dolist (entry disable)
+        (set entry nil)))))
+
 (defun vimpulse-modify-major-mode (mode state keymap)
   "Modify key bindings in a major-mode in a Viper state using a keymap.
 
-If the default for a major mode is emacs-state, then modifications to this
-major mode may not take effect until the buffer switches state to Vi,
-Insert or Emacs.  If this happens, add `viper-change-state-to-emacs' to this
-major mode's hook.  If no such hook exists, you may have to put an advice on
-the function that invokes the major mode.  See `viper-set-hooks' for hints.
+If the default for a major mode is emacs-state, then
+modifications to this major mode may not take effect until the
+buffer switches state to Vi, Insert or Emacs. If this happens,
+add `viper-change-state-to-emacs' to this major mode's hook.
+If no such hook exists, you may have to put an advice on the
+function that invokes the major mode. See `viper-set-hooks'
+for hints.
 
-The above needs not to be done for major modes that come up in Vi or Insert
-state by default."
-  (let ((alist
-         (cond ((eq state 'vi-state)
-                'viper-vi-state-modifier-alist)
-               ((eq state 'insert-state)
-                'viper-insert-state-modifier-alist)
-               ((eq state 'emacs-state)
-                'viper-emacs-state-modifier-alist)
-               ((eq state 'visual-state)
-                'vimpulse-visual-state-modifier-alist)))
-        elt)
+The above needs not to be done for major modes that come up in
+Vi or Insert state by default."
+  (let ((alist (cdr (assq state vimpulse-state-modifier-alist))) elt)
     (if (setq elt (assoc mode (eval alist)))
         (set alist (delq elt (eval alist))))
     (set alist (cons (cons mode keymap) (eval alist)))
@@ -69,6 +184,252 @@ state by default."
     (viper-set-mode-vars-for viper-current-state)))
 
 (fset 'viper-modify-major-mode 'vimpulse-modify-major-mode)
+
+(defun vimpulse-modifier-map (state &optional mode)
+  "Return the current major mode modifier map for STATE.
+If none, return an empty keymap (`viper-empty-keymap')."
+  (setq mode (or mode major-mode))
+  (setq state (eval (cdr (assq state vimpulse-state-modifier-alist))))
+  (if (keymapp (cdr (assoc mode state)))
+      (cdr (assoc mode state))
+    viper-empty-keymap))
+
+;; TODO: `viper-add-local-keys'
+
+;; Macro for defining new Viper states. This saves us the trouble of
+;; indexing all those minor modes manually.
+(defmacro vimpulse-define-state (state doc &rest body)
+  "Define a new Viper state STATE.
+DOC is a general description and shows up in all docstrings.
+Then follows one or more optional keywords:
+
+:id ID                  Mode line indicator.
+:basic-mode MODE        Basic minor mode for STATE.
+:basic-map MAP          Keymap of :basic-mode.
+:modifier-mode MODE     Minor mode for modifying major modes.
+:modifier-map MAP       Keymap of :modifier-mode.
+:global-user-mode MODE  Minor mode for global user bindings.
+:global-user-map MAP    Keymap of :global-user-mode.
+:local-user-mode MODE   Minor mode for local user bindings.
+:local-user-map MAP     Keymap of :local-user-mode.
+:enable LIST            List of other modes enabled by STATE.
+:prefix PREFIX          Variable prefix, default \"vimpulse-\".
+:advice TYPE            Toggle advice type, default `after'.
+
+It is not necessary to specify all of these; the minor modes are
+created automatically unless you provide an existing mode. The
+only keyword you should really specify is :id, the mode line tag.
+For example:
+
+    (vimpulse-define-state test
+      \"A simple test state.\"
+      :id \"<T> \")
+
+The basic keymap of this state will then be
+`vimpulse-test-basic-map', and so on.
+
+Following the keywords is optional code to be executed each time
+the state is enabled or disabled. This is stored in a `defadvice'
+of `viper-change-state'. :advice specifies the advice type
+\(default `after')."
+  (declare (debug (&define name stringp
+                           [&rest [keywordp sexp]]
+                           def-body))
+           (indent defun))
+  (let (advice basic-map basic-mode enable enable-modes-alist
+        enable-states-alist global-user-map global-user-mode id
+        id-string keyword local-user-map local-user-mode
+        modifier-alist modifier-mode name name-string prefix
+        prefixed-name-string state-name state-name-string)
+    ;; Collect keywords
+    (while (keywordp (setq keyword (car body)))
+      (setq body (cdr body))
+      (cond
+       ((eq :prefix keyword)
+        (setq prefix (vimpulse-unquote (pop body))))
+       ((eq :enable keyword)
+        (setq enable (vimpulse-unquote (pop body))))
+       ((eq :advice keyword)
+        (setq advice (vimpulse-unquote (pop body))))
+       ((memq keyword '(:state-id :id))
+        (setq id (vimpulse-unquote (pop body))))
+       ((memq keyword '(:basic-mode :basic-minor-mode))
+        (setq basic-mode (vimpulse-unquote (pop body))))
+       ((eq :basic-map keyword)
+        (setq basic-map (vimpulse-unquote (pop body))))
+       ((memq keyword '(:local-user-mode :local-user-minor-mode))
+        (setq local-user-mode (vimpulse-unquote (pop body))))
+       ((eq :local-user-map keyword)
+        (setq local-user-map (vimpulse-unquote (pop body))))
+       ((memq keyword '(:global-user-mode :global-user-minor-mode))
+        (setq global-user-mode (vimpulse-unquote (pop body))))
+       ((eq :global-user-map keyword)
+        (setq global-user-map (vimpulse-unquote (pop body))))
+       ((memq keyword '(:state-modifier-minor-mode
+                        :state-modifier-mode
+                        :modifier-minor-mode
+                        :modifier-mode))
+        (setq modifier-mode (vimpulse-unquote (pop body))))
+       ((memq keyword '(:state-modifier-alist :modifier-alist))
+        (setq modifier-alist (vimpulse-unquote (pop body))))
+       (t
+        (pop body))))
+    ;; Set up state names
+    (setq name-string (replace-regexp-in-string
+                       "-state$" "" (symbol-name state)))
+    (setq name (intern name-string))
+    (setq state-name-string (concat name-string "-state"))
+    (setq state-name (intern state-name-string))
+    (when (and prefix (symbolp prefix))
+      (setq prefix (symbol-name prefix)))
+    (setq prefix (or prefix "vimpulse-"))
+    (setq prefixed-name-string (concat prefix name-string))
+    ;; Create state variables
+    (setq id
+          (vimpulse-define-symbol
+           id (concat prefixed-name-string "-state-id")
+           (format "<%s> " (upcase name-string)) 'stringp
+           (format "Mode line tag indicating %s.\n\n%s"
+                   state-name doc)))
+    (setq basic-mode
+          (vimpulse-define-symbol
+           basic-mode
+           (concat prefixed-name-string "-basic-minor-mode")
+           nil nil (format "Basic minor mode for %s.\n\n%s"
+                           state-name doc)))
+    (setq basic-map
+          (vimpulse-define-symbol
+           basic-map (concat prefixed-name-string "-basic-map")
+           (make-sparse-keymap) 'keymapp
+           (format "The basic %s keymap.\n\n%s" state-name doc)))
+    (setq local-user-mode
+          (vimpulse-define-symbol
+           local-user-mode
+           (concat prefixed-name-string "-local-user-minor-mode")
+           nil nil (format "Auxiliary minor mode for user-defined \
+local bindings in %s.\n\n%s" state-name doc)))
+    (setq local-user-map
+          (vimpulse-define-symbol
+           local-user-map
+           (concat prefixed-name-string "-local-user-map")
+           (make-sparse-keymap) 'keymapp
+           (format "Auxiliary map for per-buffer user-defined \
+keybindings in %s.\n\n%s" state-name doc)))
+    (setq global-user-mode
+          (vimpulse-define-symbol
+           global-user-mode
+           (concat prefixed-name-string "-global-user-minor-mode")
+           nil nil (format "Auxiliary minor mode for global \
+user-defined bindings in %s.\n\n%s" state-name doc)))
+    (setq global-user-map
+          (vimpulse-define-symbol
+           global-user-map
+           (concat prefixed-name-string "-global-user-map")
+           (make-sparse-keymap) 'keymapp
+           (format "Auxiliary map for global user-defined keybindings \
+in %s.\n\n%s" state-name doc)))
+    (setq modifier-mode
+          (vimpulse-define-symbol
+           modifier-mode
+           (concat prefixed-name-string "-state-modifier-minor-mode")
+           nil nil (format "Minor mode used to make major \
+mode-specific modifications to %s.\n\n%s" state-name doc)))
+    (setq modifier-alist
+          (vimpulse-define-symbol
+           modifier-alist
+           (concat prefixed-name-string "-state-modifier-alist")
+           nil 'listp))
+    ;; Index the keymaps
+    (add-to-list 'vimpulse-state-maps-alist
+                 (cons basic-mode basic-map))
+    (add-to-list 'vimpulse-state-maps-alist
+                 (cons modifier-mode
+                       `(if (keymapp
+                             (cdr (assoc major-mode
+                                         ,modifier-alist)))
+                            (cdr (assoc major-mode
+                                        ,modifier-alist)))))
+    (add-to-list 'vimpulse-state-maps-alist
+                 (cons global-user-mode global-user-map))
+    (add-to-list 'vimpulse-state-maps-alist
+                 (cons local-user-mode local-user-map))
+    ;; Re-normalize keymaps for good measure
+    (viper-normalize-minor-mode-map-alist)
+    ;; Index the minor modes.
+    ;; First, sort modes from states in :enable.
+    (unless (listp enable)
+      (setq enable (list enable)))
+    (dolist (entry enable)
+      (let ((mode entry) (val t))
+        (when (listp entry)
+          (setq mode (car entry)
+                val (cadr entry)))
+        (cond
+         ((assq mode vimpulse-state-modes-alist)
+          (add-to-list 'enable-states-alist (cons mode val) t))
+         (mode
+          (add-to-list 'enable-modes-alist (cons mode val) t)))))
+    ;; Then add the state's own modes to the front
+    ;; if they're not already there
+    (dolist (mode (list basic-mode
+                        modifier-mode
+                        global-user-mode
+                        local-user-mode))
+      (unless (assq mode enable-modes-alist)
+        (add-to-list 'enable-modes-alist (cons mode t))))
+    ;; Finally, add the modes of other states
+    (dolist (entry enable-states-alist)
+      (let ((state (car entry)) (val (cdr entry)))
+        (dolist (mode (cdr (assq state vimpulse-state-modes-alist)))
+          (unless (assq (car mode) enable-modes-alist)
+            (add-to-list 'enable-modes-alist
+                         (if val mode
+                           (cons (car mode) nil)) t)))))
+    ;; Index the modes
+    (add-to-list 'vimpulse-state-modes-alist
+                 (cons state-name enable-modes-alist))
+    ;; Index the modifier alist
+    (add-to-list 'vimpulse-state-modifier-alist
+                 (cons state-name modifier-alist) t)
+    ;; Index the mode line indicator
+    (add-to-list 'vimpulse-state-id-alist
+                 (cons state-name id) t)
+    ;; Make toggle-advice (this is the macro expansion)
+    (setq advice (or advice 'after))
+    (when body
+      `(defadvice viper-change-state (,advice ,state-name activate)
+         ,(format "Toggle %s." state-name)
+         ,@body))))
+
+;; These are for making `vimpulse-define-state' more forgiving
+(defun vimpulse-unquote (exp)
+  "Return EXP unquoted."
+  (if (and (listp exp)
+           (eq 'quote (car exp)))
+      (eval exp)
+    exp))
+
+(defun vimpulse-define-symbol
+  (sym-or-val varname varval &optional val-p doc)
+  "Accept a symbol or a value and define a variable for it.
+ If SYM-OR-VAL is a symbol, set that symbol's value to VARVAL.
+ If SYM-OR-VAL is a value, set VARNAME's value to SYM-OR-VAL.
+ VAL-P checks whether SYM-OR-VAL's value is \"valid\", in which case it is kept;
+ otherwise we default to VARVAL.
+ DOC is the docstring for the defined variable.
+ Return the result."
+  (cond
+   ((and sym-or-val (symbolp sym-or-val)) ; nil is a symbol
+    (setq varname sym-or-val))
+   ((or (not val-p) (funcall val-p sym-or-val))
+    (setq varval sym-or-val)))
+  (when (stringp varname)
+    (setq varname (intern varname)))
+  (unless (and (boundp varname) val-p
+               (funcall val-p (eval varname)))
+    (eval `(defvar ,varname (quote ,varval) ,doc))
+    (set varname varval))
+  varname)
 
 ;;
 ;; Thanks to the anonymous poster for the idea on how to modify the viper
@@ -330,6 +691,18 @@ state by default."
 
 (when vimpulse-visual-ex
   (fset 'viper-ex 'vimpulse-ex))
+
+;; Viper's definition lacks an indentation specification
+(defmacro viper-deflocalvar
+  (var default-value &optional documentation)
+  "Define VAR as a buffer-local variable.
+DEFAULT-VALUE is the default value and DOCUMENTATION is the
+docstring. The variable becomes buffer-local whenever set."
+  (declare (indent defun))
+  `(progn
+    (defvar ,var ,default-value
+      ,(format "%s\n\(buffer local\)" documentation))
+    (make-variable-buffer-local ',var)))
 
 (provide 'vimpulse-viper-function-redefinitions)
 
