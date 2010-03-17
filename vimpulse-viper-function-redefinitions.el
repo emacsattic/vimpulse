@@ -206,12 +206,18 @@ Then follows one or more optional keywords:
 :id ID                  Mode line indicator.
 :basic-mode MODE        Basic minor mode for STATE.
 :basic-map MAP          Keymap of :basic-mode.
+:diehard-mode MODE      Minor mode for when Viper want to be vi.
+:diehard-map MAP        Keymap of :diehard-mode.
 :modifier-mode MODE     Minor mode for modifying major modes.
 :modifier-map MAP       Keymap of :modifier-mode.
+:kbd-mode MODE          Minor mode for Ex command macros.
+:kbd-map MAP            Keymap of :kbd-mode.
 :global-user-mode MODE  Minor mode for global user bindings.
 :global-user-map MAP    Keymap of :global-user-mode.
 :local-user-mode MODE   Minor mode for local user bindings.
 :local-user-map MAP     Keymap of :local-user-mode.
+:intercept-mode         Minor mode for vital Viper bindings.
+:intercept-map          Keymap of :intercept-mode.
 :enable LIST            List of other modes enabled by STATE.
 :prefix PREFIX          Variable prefix, default \"vimpulse-\".
 :advice TYPE            Toggle advice type, default `after'.
@@ -236,11 +242,13 @@ of `viper-change-state'. :advice specifies the advice type
                            [&rest [keywordp sexp]]
                            def-body))
            (indent defun))
-  (let (advice basic-map basic-mode enable enable-modes-alist
-        enable-states-alist global-user-map global-user-mode id
-        id-string keyword local-user-map local-user-mode
-        modifier-alist modifier-mode name name-string prefix
-        prefixed-name-string state-name state-name-string)
+  (let (advice basic-map basic-mode diehard-map diehard-mode enable
+        enable-modes-alist enable-states-alist global-user-map
+        global-user-mode id id-string intercept-map intercept-mode
+        kbd-map kbd-mode keyword local-user-map local-user-mode
+        modes-alist modifier-alist modifier-mode name name-string
+        need-new-local-map prefix prefixed-name-string state-name
+        state-name-string)
     ;; Collect keywords
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
@@ -272,6 +280,18 @@ of `viper-change-state'. :advice specifies the advice type
         (setq modifier-mode (vimpulse-unquote (pop body))))
        ((memq keyword '(:state-modifier-alist :modifier-alist))
         (setq modifier-alist (vimpulse-unquote (pop body))))
+       ((memq keyword '(:diehard-mode :diehard-minor-mode))
+        (setq diehard-mode (vimpulse-unquote (pop body))))
+       ((eq :diehard-map keyword)
+        (setq diehard-map (vimpulse-unquote (pop body))))
+       ((memq keyword '(:kbd-mode :kbd-minor-mode))
+        (setq kbd-mode (vimpulse-unquote (pop body))))
+       ((eq :kbd-map keyword)
+        (setq kbd-map (vimpulse-unquote (pop body))))
+       ((memq keyword '(:intercept-mode :intercept-minor-mode))
+        (setq intercept-mode (vimpulse-unquote (pop body))))
+       ((eq :intercept-map keyword)
+        (setq intercept-map (vimpulse-unquote (pop body))))
        (t
         (pop body))))
     ;; Set up state names
@@ -283,6 +303,8 @@ of `viper-change-state'. :advice specifies the advice type
     (when (and prefix (symbolp prefix))
       (setq prefix (symbol-name prefix)))
     (setq prefix (or prefix "vimpulse-"))
+    (setq prefix (concat (replace-regexp-in-string
+                          "-$" "" prefix) "-"))
     (setq prefixed-name-string (concat prefix name-string))
     ;; Create state variables
     (setq id
@@ -302,19 +324,47 @@ of `viper-change-state'. :advice specifies the advice type
            basic-map (concat prefixed-name-string "-basic-map")
            (make-sparse-keymap) 'keymapp
            (format "The basic %s keymap.\n\n%s" state-name doc)))
-    (setq local-user-mode
+    (setq diehard-mode
           (vimpulse-define-symbol
-           local-user-mode
-           (concat prefixed-name-string "-local-user-minor-mode")
-           nil nil (format "Auxiliary minor mode for user-defined \
-local bindings in %s.\n\n%s" state-name doc)))
-    (setq local-user-map
+           diehard-mode
+           (concat prefixed-name-string "-diehard-minor-mode")
+           nil nil (format "This minor mode is in effect when \
+the user wants Viper to be vi.\n\n%s" doc)))
+    (setq diehard-map
           (vimpulse-define-symbol
-           local-user-map
-           (concat prefixed-name-string "-local-user-map")
+           diehard-map
+           (concat prefixed-name-string "-diehard-map")
            (make-sparse-keymap) 'keymapp
-           (format "Auxiliary map for per-buffer user-defined \
-keybindings in %s.\n\n%s" state-name doc)))
+           (format "This keymap is in use when the user asks \
+Viper to simulate vi very closely.
+This happens when `viper-expert-level' is 1 or 2.  \
+See `viper-set-expert-level'.\n\n%s" doc)))
+    (setq modifier-mode
+          (vimpulse-define-symbol
+           modifier-mode
+           (concat prefixed-name-string "-state-modifier-minor-mode")
+           nil nil (format "Minor mode used to make major \
+mode-specific modifications to %s.\n\n%s" state-name doc)))
+    (setq modifier-alist
+          (vimpulse-define-symbol
+           modifier-alist
+           (concat prefixed-name-string "-state-modifier-alist")
+           nil 'listp))
+    (setq kbd-mode
+          (vimpulse-define-symbol
+           kbd-mode
+           (concat prefixed-name-string "-kbd-minor-mode")
+           nil nil
+           (format "Minor mode for Ex command macros in Vi state.
+The corresponding keymap stores key bindings of Vi macros defined with
+the Ex command :map.\n\n%s" doc)))
+    (setq kbd-map
+          (vimpulse-define-symbol
+           kbd-map
+           (concat prefixed-name-string "-kbd-map")
+           (make-sparse-keymap) 'keymapp
+           (format "This keymap keeps keyboard macros defined \
+via the :map command.\n\n%s" doc)))
     (setq global-user-mode
           (vimpulse-define-symbol
            global-user-mode
@@ -328,20 +378,36 @@ user-defined bindings in %s.\n\n%s" state-name doc)))
            (make-sparse-keymap) 'keymapp
            (format "Auxiliary map for global user-defined keybindings \
 in %s.\n\n%s" state-name doc)))
-    (setq modifier-mode
+    (setq local-user-mode
           (vimpulse-define-symbol
-           modifier-mode
-           (concat prefixed-name-string "-state-modifier-minor-mode")
-           nil nil (format "Minor mode used to make major \
-mode-specific modifications to %s.\n\n%s" state-name doc)))
-    (setq modifier-alist
+           local-user-mode
+           (concat prefixed-name-string "-local-user-minor-mode")
+           nil nil (format "Auxiliary minor mode for user-defined \
+local bindings in %s.\n\n%s" state-name doc)))
+    (setq local-user-map
           (vimpulse-define-symbol
-           modifier-alist
-           (concat prefixed-name-string "-state-modifier-alist")
-           nil 'listp))
+           local-user-map
+           (concat prefixed-name-string "-local-user-map")
+           (make-sparse-keymap) 'keymapp
+           (format "Auxiliary map for per-buffer user-defined \
+keybindings in %s.\n\n%s" state-name doc)))
+    (setq intercept-mode
+          (vimpulse-define-symbol
+           intercept-mode
+           (concat prefixed-name-string "-intercept-minor-mode")
+           nil nil
+           (format "Mode for binding Viper's vital keys.\n\n%s" doc)))
+    (setq intercept-map
+          (vimpulse-define-symbol
+           intercept-map
+           (concat prefixed-name-string "-intercept-map")
+           viper-vi-intercept-map 'keymapp
+           (format "Keymap for binding Viper's vital keys.\n\n%s" doc)))
     ;; Index the keymaps
     (add-to-list 'vimpulse-state-maps-alist
                  (cons basic-mode basic-map))
+    (add-to-list 'vimpulse-state-maps-alist
+                 (cons diehard-mode diehard-map))
     (add-to-list 'vimpulse-state-maps-alist
                  (cons modifier-mode
                        `(if (keymapp
@@ -350,9 +416,19 @@ mode-specific modifications to %s.\n\n%s" state-name doc)))
                             (cdr (assoc major-mode
                                         ,modifier-alist)))))
     (add-to-list 'vimpulse-state-maps-alist
+                 (cons kbd-mode kbd-map))
+    (add-to-list 'vimpulse-state-maps-alist
                  (cons global-user-mode global-user-map))
     (add-to-list 'vimpulse-state-maps-alist
                  (cons local-user-mode local-user-map))
+    (add-to-list 'vimpulse-state-maps-alist
+                 (cons intercept-mode intercept-map))
+    (setq need-new-local-map
+          (vimpulse-define-symbol
+           need-new-local-map
+           (concat prefix "need-new-" name-string "-local-map")
+           t nil nil t))
+    (put need-new-local-map 'permanent-local t)
     ;; Re-normalize keymaps for good measure
     (viper-normalize-minor-mode-map-alist)
     ;; Index the minor modes.
@@ -371,12 +447,19 @@ mode-specific modifications to %s.\n\n%s" state-name doc)))
           (add-to-list 'enable-modes-alist (cons mode val) t)))))
     ;; Then add the state's own modes to the front
     ;; if they're not already there
-    (dolist (mode (list basic-mode
-                        modifier-mode
-                        global-user-mode
-                        local-user-mode))
-      (unless (assq mode enable-modes-alist)
-        (add-to-list 'enable-modes-alist (cons mode t))))
+    (setq modes-alist
+          (list (cons basic-mode t)
+                (cons diehard-mode
+                      '(not (or viper-want-emacs-keys-in-vi
+                                (viper-is-in-minibuffer))))
+                (cons modifier-mode t)
+                (cons kbd-mode '(not (viper-is-in-minibuffer)))
+                (cons global-user-mode t)
+                (cons local-user-mode t)
+                (cons intercept-mode t)))
+    (dolist (mode modes-alist)
+      (unless (assq (car mode) enable-modes-alist)
+        (add-to-list 'enable-modes-alist mode)))
     ;; Finally, add the modes of other states
     (dolist (entry enable-states-alist)
       (let ((state (car entry)) (val (cdr entry)))
@@ -410,14 +493,16 @@ mode-specific modifications to %s.\n\n%s" state-name doc)))
     exp))
 
 (defun vimpulse-define-symbol
-  (sym-or-val varname varval &optional val-p doc)
+  (sym-or-val varname varval &optional val-p doc local)
   "Accept a symbol or a value and define a variable for it.
- If SYM-OR-VAL is a symbol, set that symbol's value to VARVAL.
- If SYM-OR-VAL is a value, set VARNAME's value to SYM-OR-VAL.
- VAL-P checks whether SYM-OR-VAL's value is \"valid\", in which case it is kept;
- otherwise we default to VARVAL.
- DOC is the docstring for the defined variable.
- Return the result."
+If SYM-OR-VAL is a symbol, set that symbol's value to VARVAL.
+If SYM-OR-VAL is a value, set VARNAME's value to SYM-OR-VAL.
+VAL-P checks whether SYM-OR-VAL's value is \"valid\", in which
+case it is kept; otherwise we default to VARVAL. DOC is the
+docstring for the defined variable. If LOCAL is non-nil,
+create a buffer-local variable.
+
+Returns the result."
   (cond
    ((and sym-or-val (symbolp sym-or-val)) ; nil is a symbol
     (setq varname sym-or-val))
@@ -428,7 +513,9 @@ mode-specific modifications to %s.\n\n%s" state-name doc)))
   (unless (and (boundp varname) val-p
                (funcall val-p (eval varname)))
     (eval `(defvar ,varname (quote ,varval) ,doc))
-    (set varname varval))
+    (set varname varval)
+    (when local
+      (make-variable-buffer-local varname)))
   varname)
 
 ;;
@@ -700,9 +787,9 @@ DEFAULT-VALUE is the default value and DOCUMENTATION is the
 docstring. The variable becomes buffer-local whenever set."
   (declare (indent defun))
   `(progn
-    (defvar ,var ,default-value
-      ,(format "%s\n\(buffer local\)" documentation))
-    (make-variable-buffer-local ',var)))
+     (defvar ,var ,default-value
+       ,(format "%s\n\(buffer local\)" documentation))
+     (make-variable-buffer-local ',var)))
 
 (provide 'vimpulse-viper-function-redefinitions)
 

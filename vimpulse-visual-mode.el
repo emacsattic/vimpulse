@@ -9,16 +9,36 @@
 ;;; Basic Minor Mode code ;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(vimpulse-define-state visual
+  "Visual mode is a flexible and easy way to select text.
+To use Visual mode, press v in vi (command) mode. Then use the
+motion commands to expand the selection. Press d to delete, c to
+change, r to replace, or y to copy. You can use p to paste.
+For Line selection, press V instead of v; then you can copy and
+paste whole lines. For Block selection, press C-v; now you can
+copy and paste the selected rectangle. In Block selection, you
+may use I or A to insert or append text before or after the
+selection on each line."
+  :id "<VIS> "
+  :basic-minor-mode 'vimpulse-visual-mode
+  :enable '((vimpulse-visual-mode (or vimpulse-visual-mode t))
+            vi-state)
+  :advice 'around
+  (and (eq 'visual-state viper-current-state)
+       (eq 'insert-state new-state)
+       (viper-move-marker-locally 'viper-insert-point (point)))
+  ad-do-it
+  (cond
+   ((eq 'visual-state new-state)
+    (unless (memq vimpulse-visual-mode '(normal line block))
+      (vimpulse-visual-mode 1)))
+   (t
+    (vimpulse-visual-mode -1))))
+
 (defgroup vimpulse-visual nil
-  "visual-mode for viper"
+  "Visual mode for Viper."
   :prefix "vimpulse-visual-"
   :group  'vimpulse)
-
-(defcustom vimpulse-visual-basic-map (make-sparse-keymap)
-  "Visual mode keymap.
-This keymap is active when in Visual mode."
-  :type  'keymap
-  :group 'vimpulse-visual)
 
 (define-minor-mode vimpulse-visual-mode
   "Toggles Visual mode in Viper."
@@ -56,24 +76,6 @@ This keymap is active when in Visual mode."
        (t
         (viper-change-state-to-vi))))
     (kill-local-variable 'vimpulse-visual-previous-state))))
-
-(vimpulse-define-state visual
-  "Visual mode is a flexible and easy way to select text."
-  :id "<VIS> "
-  :basic-minor-mode 'vimpulse-visual-mode
-  :enable '((vimpulse-visual-mode (or vimpulse-visual-mode t))
-            vi-state)
-  :advice 'around
-  (and (eq 'visual-state viper-current-state)
-       (eq 'insert-state new-state)
-       (viper-move-marker-locally 'viper-insert-point (point)))
-  ad-do-it
-  (cond
-   ((eq 'visual-state new-state)
-    (unless (memq vimpulse-visual-mode '(normal line block))
-      (vimpulse-visual-mode 1)))
-   (t
-    (vimpulse-visual-mode -1))))
 
 (defvar vimpulse-visual-mode nil
   "Current Visual mode: may be nil, `normal', `line' or `block'.")
