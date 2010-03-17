@@ -318,10 +318,6 @@ char indicates 'inner' (?i) or 'a' (?a) behavior, 'motion' indicates the text-ob
   "Helper function that prints all its arguments, plus some other values."
   (message "ARGS: %s, reg: %s" args (string viper-use-register)))
 
-(defun vimpulse-test-function (value)
-  "This function is only defined for developing purposes."
-  (viper-set-destructive-command (list 'vimpulse-message-all-args 'first-argument ?d viper-use-register "cane" nil)))
-
 ;;;;;;;;;;;;;;;;;;;;
 ;;;   Commands   ;;;
 ;;;;;;;;;;;;;;;;;;;;
