@@ -167,9 +167,11 @@ If OFFSET is specified, skip first elements of VECTOR."
 ;; Set functions for handling overlays (not yet provided by Viper)
 (cond
  ((featurep 'xemacs)                    ; XEmacs
-  (fset 'vimpulse-delete-overlay 'delete-extent))
+  (fset 'vimpulse-delete-overlay 'delete-extent)
+  (fset 'vimpulse-overlays-at 'extents-at))
  (t                                     ; GNU Emacs
-  (fset 'vimpulse-delete-overlay 'delete-overlay)))
+  (fset 'vimpulse-delete-overlay 'delete-overlay)
+  (fset 'vimpulse-overlays-at 'overlays-at)))
 
 ;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
 ;; and REAR-ADVANCE properly in XEmacs
