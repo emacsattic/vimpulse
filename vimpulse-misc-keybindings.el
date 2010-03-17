@@ -300,7 +300,7 @@ is highlighted rather than skipped past."
   (interactive "P")
   (viper-leave-region-active)
   (let ((val (viper-p-val arg))
-	(com (viper-getcom arg)))
+        (com (viper-getcom arg)))
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
     (unless (or (vimpulse-beginning-of-word-p)
@@ -357,9 +357,8 @@ is highlighted rather than skipped past."
        (indent-according-to-mode)))
 
 ;; C-o/C-i
-(viper-deflocalvar
- vimpulse-mark-list nil
- "List of mark positions to jump to with `vimpulse-jump-forward'.
+(viper-deflocalvar vimpulse-mark-list nil
+  "List of mark positions to jump to with `vimpulse-jump-forward'.
 They are stored as markers, the current position first:
 
     (car vimpulse-mark-list)  = current position (last popped)
@@ -447,9 +446,8 @@ On by default."
   :group 'vimpulse
   :type  'boolean)
 
-(viper-deflocalvar
- vimpulse-replace-alist nil
- "Alist of characters overwritten in Replace mode.
+(viper-deflocalvar vimpulse-replace-alist nil
+  "Alist of characters overwritten in Replace mode.
 Used by `vimpulse-replace-backspace' to restore text.
 The format is (POS . CHAR).")
 
