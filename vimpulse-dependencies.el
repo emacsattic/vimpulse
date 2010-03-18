@@ -1,5 +1,8 @@
 ;;; Code:
 
+(defconst vimpulse-version "0.3.1+svn"
+  "The current version of Vimpulse")
+
 ;; Load Viper
 (unless (and (boundp 'viper-mode) viper-mode)
   (setq viper-mode t)
