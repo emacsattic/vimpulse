@@ -45,100 +45,105 @@ Works like Vim's \"G\"."
 
 ;; State index variables: for keeping track of which modes belong
 ;; to which states, et cetera.
+
 (defvar vimpulse-state-vars-alist
   '((vi-state
-     . ((id . viper-vi-state-id)
-        (basic-mode . viper-vi-basic-minor-mode)
-        (basic-map . viper-vi-basic-map)
-        (diehard-mode . viper-vi-diehard-minor-mode)
-        (diehard-map . viper-vi-diehard-map)
-        (modifier-mode . viper-vi-state-modifier-minor-mode)
-        (modifier-alist . viper-vi-state-modifier-alist)
-        (kbd-mode . viper-vi-kbd-minor-mode)
-        (kbd-map . viper-vi-kbd-map)
-        (global-user-mode . viper-vi-global-user-minor-mode)
-        (global-user-map . viper-vi-global-user-map)
-        (local-user-mode . viper-vi-local-user-minor-mode)
-        (local-user-map . viper-vi-local-user-map)
-        (need-local-map . viper-need-new-vi-local-map)
-        (intercept-mode . viper-vi-intercept-minor-mode)
-        (intercept-map . viper-vi-intercept-map)))
+     (id . viper-vi-state-id)
+     (basic-mode . viper-vi-basic-minor-mode)
+     (basic-map . viper-vi-basic-map)
+     (diehard-mode . viper-vi-diehard-minor-mode)
+     (diehard-map . viper-vi-diehard-map)
+     (modifier-mode . viper-vi-state-modifier-minor-mode)
+     (modifier-alist . viper-vi-state-modifier-alist)
+     (kbd-mode . viper-vi-kbd-minor-mode)
+     (kbd-map . viper-vi-kbd-map)
+     (global-user-mode . viper-vi-global-user-minor-mode)
+     (global-user-map . viper-vi-global-user-map)
+     (local-user-mode . viper-vi-local-user-minor-mode)
+     (local-user-map . viper-vi-local-user-map)
+     (need-local-map . viper-need-new-vi-local-map)
+     (intercept-mode . viper-vi-intercept-minor-mode)
+     (intercept-map . viper-vi-intercept-map))
     (insert-state
-     . ((id . viper-insert-state-id)
-        (basic-mode . viper-insert-basic-minor-mode)
-        (basic-map . viper-insert-basic-map)
-        (diehard-mode . viper-insert-diehard-minor-mode)
-        (diehard-map . viper-insert-diehard-map)
-        (modifier-mode . viper-insert-state-modifier-minor-mode)
-        (modifier-alist . viper-insert-state-modifier-alist)
-        (kbd-mode . viper-insert-kbd-minor-mode)
-        (kbd-map . viper-insert-kbd-map)
-        (global-user-mode . viper-insert-global-user-minor-mode)
-        (global-user-map . viper-insert-global-user-map)
-        (local-user-mode . viper-insert-local-user-minor-mode)
-        (local-user-map . viper-insert-local-user-map)
-        (need-local-map . viper-need-new-insert-local-map)
-        (intercept-mode . viper-insert-intercept-minor-mode)
-        (intercept-map . viper-insert-intercept-map)))
+     (id . viper-insert-state-id)
+     (basic-mode . viper-insert-basic-minor-mode)
+     (basic-map . viper-insert-basic-map)
+     (diehard-mode . viper-insert-diehard-minor-mode)
+     (diehard-map . viper-insert-diehard-map)
+     (modifier-mode . viper-insert-state-modifier-minor-mode)
+     (modifier-alist . viper-insert-state-modifier-alist)
+     (kbd-mode . viper-insert-kbd-minor-mode)
+     (kbd-map . viper-insert-kbd-map)
+     (global-user-mode . viper-insert-global-user-minor-mode)
+     (global-user-map . viper-insert-global-user-map)
+     (local-user-mode . viper-insert-local-user-minor-mode)
+     (local-user-map . viper-insert-local-user-map)
+     (need-local-map . viper-need-new-insert-local-map)
+     (intercept-mode . viper-insert-intercept-minor-mode)
+     (intercept-map . viper-insert-intercept-map))
+    (replace-state
+     (id . viper-replace-state-id)
+     (basic-mode . viper-replace-minor-mode)
+     (basic-map . viper-replace-map))
     (emacs-state
-     . ((id . viper-emacs-state-id)
-        (modifier-mode . viper-emacs-state-modifier-minor-mode)
-        (modifier-alist . viper-emacs-state-modifier-alist)
-        (kbd-mode . viper-emacs-kbd-minor-mode)
-        (kbd-map . viper-emacs-kbd-map)
-        (global-user-mode . viper-emacs-global-user-minor-mode)
-        (global-user-map . viper-emacs-global-user-map)
-        (local-user-mode . viper-emacs-local-user-minor-mode)
-        (local-user-map . viper-emacs-local-user-map)
-        (need-local-map . viper-need-new-emacs-local-map)
-        (intercept-mode . viper-emacs-intercept-minor-mode)
-        (intercept-map . viper-emacs-intercept-map))))
+     (id . viper-emacs-state-id)
+     (modifier-mode . viper-emacs-state-modifier-minor-mode)
+     (modifier-alist . viper-emacs-state-modifier-alist)
+     (kbd-mode . viper-emacs-kbd-minor-mode)
+     (kbd-map . viper-emacs-kbd-map)
+     (global-user-mode . viper-emacs-global-user-minor-mode)
+     (global-user-map . viper-emacs-global-user-map)
+     (local-user-mode . viper-emacs-local-user-minor-mode)
+     (local-user-map . viper-emacs-local-user-map)
+     (need-local-map . viper-need-new-emacs-local-map)
+     (intercept-mode . viper-emacs-intercept-minor-mode)
+     (intercept-map . viper-emacs-intercept-map)))
   "Alist of Vimpulse state variables.
 Entries have the form (STATE . ((VAR-TYPE . VAR) ...)).
 For example, the basic state keymap has the VAR-TYPE `basic-map'.")
 
 (defvar vimpulse-state-modes-alist
   '((vi-state
-     . ((viper-vi-intercept-minor-mode . t)
-        (viper-vi-minibuffer-minor-mode . (viper-is-in-minibuffer))
-        (viper-vi-local-user-minor-mode . t)
-        (viper-vi-kbd-minor-mode . (not (viper-is-in-minibuffer)))
-        (viper-vi-global-user-minor-mode . t)
-        (viper-vi-state-modifier-minor-mode . t)
-        (viper-vi-diehard-minor-mode
-         . (not (or viper-want-emacs-keys-in-vi
-                    (viper-is-in-minibuffer))))
-        (viper-vi-basic-minor-mode . t)))
+     (viper-vi-intercept-minor-mode . t)
+     (viper-vi-minibuffer-minor-mode . (viper-is-in-minibuffer))
+     (viper-vi-local-user-minor-mode . t)
+     (viper-vi-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+     (viper-vi-global-user-minor-mode . t)
+     (viper-vi-state-modifier-minor-mode . t)
+     (viper-vi-diehard-minor-mode
+      . (not (or viper-want-emacs-keys-in-vi
+                 (viper-is-in-minibuffer))))
+     (viper-vi-basic-minor-mode . t))
     (insert-state
-     . ((viper-insert-intercept-minor-mode . t)
-        (viper-replace-minor-mode . (eq state 'replace-state))
-        (viper-insert-minibuffer-minor-mode . (viper-is-in-minibuffer))
-        (viper-insert-local-user-minor-mode . t)
-        (viper-insert-kbd-minor-mode . (not (viper-is-in-minibuffer)))
-        (viper-insert-global-user-minor-mode . t)
-        (viper-insert-state-modifier-minor-mode . t)
-        (viper-insert-diehard-minor-mode
-         . (not (or viper-want-emacs-keys-in-insert
-                    (viper-is-in-minibuffer))))
-        (viper-insert-basic-minor-mode . t)))
+     (viper-insert-intercept-minor-mode . t)
+     (viper-replace-minor-mode . (eq state 'replace-state))
+     (viper-insert-minibuffer-minor-mode . (viper-is-in-minibuffer))
+     (viper-insert-local-user-minor-mode . t)
+     (viper-insert-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+     (viper-insert-global-user-minor-mode . t)
+     (viper-insert-state-modifier-minor-mode . t)
+     (viper-insert-diehard-minor-mode
+      . (not (or viper-want-emacs-keys-in-insert
+                 (viper-is-in-minibuffer))))
+     (viper-insert-basic-minor-mode . t))
     (replace-state
-     . ((viper-insert-intercept-minor-mode . t)
-        (viper-replace-minor-mode . (eq state 'replace-state))
-        (viper-insert-minibuffer-minor-mode . (viper-is-in-minibuffer))
-        (viper-insert-local-user-minor-mode . t)
-        (viper-insert-kbd-minor-mode . (not (viper-is-in-minibuffer)))
-        (viper-insert-global-user-minor-mode . t)
-        (viper-insert-state-modifier-minor-mode . t)
-        (viper-insert-diehard-minor-mode
-         . (not (or viper-want-emacs-keys-in-insert
-                    (viper-is-in-minibuffer))))
-        (viper-insert-basic-minor-mode . t)))
+     (viper-insert-intercept-minor-mode . t)
+     (viper-replace-minor-mode . (eq state 'replace-state))
+     (viper-insert-minibuffer-minor-mode . (viper-is-in-minibuffer))
+     (viper-insert-local-user-minor-mode . t)
+     (viper-insert-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+     (viper-insert-global-user-minor-mode . t)
+     (viper-insert-state-modifier-minor-mode . t)
+     (viper-insert-diehard-minor-mode
+      . (not (or viper-want-emacs-keys-in-insert
+                 (viper-is-in-minibuffer))))
+     (viper-insert-basic-minor-mode . t))
     (emacs-state
-     . ((viper-emacs-intercept-minor-mode . t)
-        (viper-emacs-local-user-minor-mode . t)
-        (viper-emacs-kbd-minor-mode . (not (viper-is-in-minibuffer)))
-        (viper-emacs-global-user-minor-mode . t)
-        (viper-emacs-state-modifier-minor-mode . t))))
+     (viper-emacs-intercept-minor-mode . t)
+     (viper-emacs-local-user-minor-mode . t)
+     (viper-emacs-kbd-minor-mode . (not (viper-is-in-minibuffer)))
+     (viper-emacs-global-user-minor-mode . t)
+     (viper-emacs-state-modifier-minor-mode . t)))
   "Alist of Vimpulse state mode toggling.
 Entries have the form (STATE . ((MODE . EXPR) ...)), where STATE
 is the name of a state, MODE is a mode associated with STATE and
@@ -877,16 +882,12 @@ Returns the result."
   (fset 'viper-ex 'vimpulse-ex))
 
 ;; Viper's definition lacks an indentation specification
-(defmacro viper-deflocalvar
-  (var default-value &optional documentation)
-  "Define VAR as a buffer-local variable.
+(put 'viper-deflocalvar 'lisp-indent-function 'defun)
+
+(put 'viper-deflocalvar 'function-documentation
+     "Define VAR as a buffer-local variable.
 DEFAULT-VALUE is the default value and DOCUMENTATION is the
-docstring. The variable becomes buffer-local whenever set."
-  (declare (indent defun))
-  `(progn
-     (defvar ,var ,default-value
-       ,(format "%s\n\(buffer local\)" documentation))
-     (make-variable-buffer-local ',var)))
+docstring. The variable becomes buffer-local whenever set.")
 
 (provide 'vimpulse-viper-function-redefinitions)
 
