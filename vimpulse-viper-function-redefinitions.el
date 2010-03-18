@@ -269,12 +269,13 @@ DOC is a general description and shows up in all docstrings.
 Then follows one or more optional keywords:
 
 :id ID                  Mode line indicator.
+:hook VAR               Hooks run before changing to STATE.
 :basic-mode MODE        Basic minor mode for STATE.
 :basic-map MAP          Keymap of :basic-mode.
 :diehard-mode MODE      Minor mode for when Viper want to be vi.
 :diehard-map MAP        Keymap of :diehard-mode.
 :modifier-mode MODE     Minor mode for modifying major modes.
-:modifier-alist LIST    Keymap alist of :modifier-mode.
+:modifier-alist LIST    Keymap alist for :modifier-mode.
 :kbd-mode MODE          Minor mode for Ex command macros.
 :kbd-map MAP            Keymap of :kbd-mode.
 :global-user-mode MODE  Minor mode for global user bindings.
@@ -303,18 +304,18 @@ The basic keymap of this state will then be
 Following the keywords is optional code to be executed each time
 the state is enabled or disabled. This is stored in a `defadvice'
 of `viper-change-state'. :advice specifies the advice type
-\(default `after')."
+\(default `after'). The advice runs :hook before completing."
   (declare (debug (&define name stringp
                            [&rest [keywordp sexp]]
                            def-body))
            (indent defun))
   (let (advice basic-map basic-mode diehard-map diehard-mode enable
         enable-modes-alist enable-states-alist global-user-map
-        global-user-mode id id-string intercept-map intercept-mode
-        kbd-map kbd-mode keyword local-user-map local-user-mode
-        modes-alist modifier-alist modifier-mode name name-string
-        need-local-map prefix prefixed-name-string state-name
-        state-name-string vars-alist)
+        global-user-mode hook id id-string intercept-map
+        intercept-mode kbd-map kbd-mode keyword local-user-map
+        local-user-mode modes-alist modifier-alist modifier-mode name
+        name-string need-local-map prefix prefixed-name-string
+        state-name state-name-string vars-alist)
     ;; Collect keywords
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
@@ -327,6 +328,8 @@ of `viper-change-state'. :advice specifies the advice type
         (setq advice (vimpulse-unquote (pop body))))
        ((memq keyword '(:state-id :id))
         (setq id (vimpulse-unquote (pop body))))
+       ((memq keyword '(:state-hook :hook))
+        (setq hook (vimpulse-unquote (pop body))))
        ((memq keyword '(:basic-mode :basic-minor-mode))
         (setq basic-mode (vimpulse-unquote (pop body))))
        ((eq :basic-map keyword)
@@ -387,6 +390,11 @@ of `viper-change-state'. :advice specifies the advice type
            (format "<%s> " (upcase name-string)) 'stringp
            (format "Mode line tag indicating %s.\n\n%s"
                    state-name doc)))
+    (setq hook
+          (vimpulse-define-symbol
+           hook (concat prefixed-name-string "-state-hook")
+           nil nil (format "*Hooks run just before the switch to %s \
+is completed.\n\n%s" state-name doc)))
     (setq basic-mode
           (vimpulse-define-symbol
            basic-mode
@@ -547,6 +555,7 @@ keybindings in %s.\n\n%s" state-name doc) t))
     ;; Index state variables
     (setq vars-alist
           (list (cons 'id id)
+                (cons 'hook hook)
                 (cons 'basic-mode basic-mode)
                 (cons 'basic-map basic-map)
                 (cons 'diehard-mode diehard-mode)
@@ -566,10 +575,11 @@ keybindings in %s.\n\n%s" state-name doc) t))
                  (cons state-name vars-alist) t)
     ;; Make toggle-advice (this is the macro expansion)
     (setq advice (or advice 'after))
-    (when body
-      `(defadvice viper-change-state (,advice ,state-name activate)
-         ,(format "Toggle %s." state-name)
-         ,@body))))
+    `(defadvice viper-change-state (,advice ,state-name activate)
+       ,(format "Toggle %s." state-name)
+       ,@body
+       (when (eq ',state-name new-state)
+         (run-hooks ',hook)))))
 
 ;; These are for making `vimpulse-define-state' more forgiving
 (defun vimpulse-unquote (exp)
