@@ -426,19 +426,6 @@ To go the other way, press \\[vimpulse-jump-backward]."
 (unless (key-binding "\C-c\C-o")
   (global-set-key "\C-c\C-o" 'open-line)) ; some may miss this command
 
-;; N%
-(defadvice viper-paren-match (around vimpulse activate)
-  "Go to percentage in the file when ARG >= 10."
-  (let ((val (viper-p-val arg)))
-    (cond
-     ((<= 10 val)
-      (goto-char (+ (point-min)
-                    (floor (* (- (point-max) (point-min)) 0.01
-                              (max 0 (min 100 val))))))
-      (beginning-of-line))
-     (t
-      ad-do-it))))
-
 ;; Replace backspace
 (defcustom vimpulse-backspace-restore t
   "Whether Backspace restores the original text in Replace mode.
