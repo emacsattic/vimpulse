@@ -77,7 +77,7 @@ selection on each line."
         (viper-change-state-to-vi))))
     (kill-local-variable 'vimpulse-visual-previous-state))))
 
-(defvar vimpulse-visual-mode nil
+(viper-deflocalvar vimpulse-visual-mode nil
   "Current Visual mode: may be nil, `normal', `line' or `block'.")
 
 (defcustom vimpulse-visual-block-untabify nil
