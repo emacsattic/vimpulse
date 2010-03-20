@@ -49,6 +49,7 @@ Works like Vim's \"G\"."
 (defvar vimpulse-state-vars-alist
   '((vi-state
      (id . viper-vi-state-id)
+     (change-func . viper-change-state-to-vi)
      (basic-mode . viper-vi-basic-minor-mode)
      (basic-map . viper-vi-basic-map)
      (diehard-mode . viper-vi-diehard-minor-mode)
@@ -66,6 +67,7 @@ Works like Vim's \"G\"."
      (intercept-map . viper-vi-intercept-map))
     (insert-state
      (id . viper-insert-state-id)
+     (change-func . viper-change-state-to-insert)
      (basic-mode . viper-insert-basic-minor-mode)
      (basic-map . viper-insert-basic-map)
      (diehard-mode . viper-insert-diehard-minor-mode)
@@ -83,10 +85,12 @@ Works like Vim's \"G\"."
      (intercept-map . viper-insert-intercept-map))
     (replace-state
      (id . viper-replace-state-id)
+     (change-func . viper-change-state-to-replace)
      (basic-mode . viper-replace-minor-mode)
      (basic-map . viper-replace-map))
     (emacs-state
      (id . viper-emacs-state-id)
+     (change-func . viper-change-state-to-emacs)
      (modifier-mode . viper-emacs-state-modifier-minor-mode)
      (modifier-alist . viper-emacs-state-modifier-alist)
      (kbd-mode . viper-emacs-kbd-minor-mode)
@@ -267,14 +271,15 @@ Usage:
 (fset 'viper-add-local-keys 'vimpulse-add-local-keys)
 
 ;; Macro for defining new Viper states. This saves us the trouble of
-;; indexing all those minor modes manually.
+;; defining and indexing all those minor modes manually.
 (defmacro vimpulse-define-state (state doc &rest body)
   "Define a new Viper state STATE.
 DOC is a general description and shows up in all docstrings.
 Then follows one or more optional keywords:
 
 :id ID                  Mode line indicator.
-:hook VAR               Hooks run before changing to STATE.
+:hook LIST              Hooks run before changing to STATE.
+:change-func FUNC       Function to change to STATE.
 :basic-mode MODE        Basic minor mode for STATE.
 :basic-map MAP          Keymap of :basic-mode.
 :diehard-mode MODE      Minor mode for when Viper want to be vi.
@@ -314,13 +319,13 @@ of `viper-change-state'. :advice specifies the advice type
                            [&rest [keywordp sexp]]
                            def-body))
            (indent defun))
-  (let (advice basic-map basic-mode diehard-map diehard-mode enable
-        enable-modes-alist enable-states-alist global-user-map
-        global-user-mode hook id id-string intercept-map
-        intercept-mode kbd-map kbd-mode keyword local-user-map
-        local-user-mode modes-alist modifier-alist modifier-mode name
-        name-string need-local-map prefix prefixed-name-string
-        state-name state-name-string vars-alist)
+  (let (advice basic-map basic-mode change change-func diehard-map
+        diehard-mode enable enable-modes-alist enable-states-alist
+        global-user-map global-user-mode hook id id-string
+        intercept-map intercept-mode kbd-map kbd-mode keyword
+        local-user-map local-user-mode modes-alist modifier-alist
+        modifier-mode name name-string need-local-map prefix
+        prefixed-name-string state-name state-name-string vars-alist)
     ;; Collect keywords
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
@@ -335,6 +340,8 @@ of `viper-change-state'. :advice specifies the advice type
         (setq id (vimpulse-unquote (pop body))))
        ((memq keyword '(:state-hook :hook))
         (setq hook (vimpulse-unquote (pop body))))
+       ((memq keyword '(:change-func :change))
+        (setq change-func (vimpulse-unquote (pop body))))
        ((memq keyword '(:basic-mode :basic-minor-mode))
         (setq basic-mode (vimpulse-unquote (pop body))))
        ((eq :basic-map keyword)
@@ -398,7 +405,7 @@ of `viper-change-state'. :advice specifies the advice type
     (setq hook
           (vimpulse-define-symbol
            hook (concat prefixed-name-string "-state-hook")
-           nil nil (format "*Hooks run just before the switch to %s \
+           nil 'listp (format "*Hooks run just before the switch to %s \
 is completed.\n\n%s" state-name doc)))
     (setq basic-mode
           (vimpulse-define-symbol
@@ -496,6 +503,32 @@ keybindings in %s.\n\n%s" state-name doc) t))
            (concat prefixed-name-string "-intercept-map")
            viper-vi-intercept-map 'keymapp
            (format "Keymap for binding Viper's vital keys.\n\n%s" doc)))
+    ;; Set up change function
+    (if (and change-func (symbolp change-func))
+        (setq change change-func)
+      (setq change
+            (intern (concat prefix "change-state-to-" name-string))))
+    (unless (functionp change-func)
+      (setq change-func
+            `(lambda ()
+               ,(format "Change Viper state to %s." state-name)
+               (viper-change-state ',state-name))))
+    (unless (fboundp change)
+      (fset change change-func))
+    ;; Remove old index entries
+    (dolist (entry (list basic-mode
+                         diehard-mode
+                         modifier-mode
+                         kbd-mode
+                         global-user-mode
+                         local-user-mode
+                         intercept-mode))
+      (setq vimpulse-state-maps-alist
+            (assq-delete-all entry vimpulse-state-maps-alist)))
+    (setq vimpulse-state-modes-alist
+          (assq-delete-all state-name vimpulse-state-modes-alist))
+    (setq vimpulse-state-vars-alist
+          (assq-delete-all state-name vimpulse-state-vars-alist))
     ;; Index keymap priorities
     (add-to-list 'vimpulse-state-maps-alist
                  (cons basic-mode basic-map))
@@ -561,6 +594,7 @@ keybindings in %s.\n\n%s" state-name doc) t))
     (setq vars-alist
           (list (cons 'id id)
                 (cons 'hook hook)
+                (cons 'change-func change-func)
                 (cons 'basic-mode basic-mode)
                 (cons 'basic-map basic-map)
                 (cons 'diehard-mode diehard-mode)
@@ -881,7 +915,9 @@ Returns the result."
 (when vimpulse-visual-ex
   (fset 'viper-ex 'vimpulse-ex))
 
-;; Viper's definition lacks an indentation specification
+;; Viper's definition lacks an indentation specification.
+;; TODO: e-mail Kifer about including a `declare' statement
+;; in the definition
 (put 'viper-deflocalvar 'lisp-indent-function 'defun)
 
 (put 'viper-deflocalvar 'function-documentation
