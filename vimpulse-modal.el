@@ -1,5 +1,5 @@
 ;;;;
-;;;; This file provides the functions `vimpulse-map', `vimpulse-imap'
+;;;; This provides the functions `vimpulse-map', `vimpulse-imap'
 ;;;; and `vimpulse-vmap', which mimic :map, :imap and :vmap in Vim, as
 ;;;; well as `vimpulse-define-key', a general-purpose function for
 ;;;; binding keys in a "careful" way.
@@ -385,17 +385,11 @@ only if called in the same state. The functions `vimpulse-map',
 (defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.
 Don't use this function directly; see `vimpulse-map',
-`vimpulse-imap' and `vimpulse-vmap'."
+`vimpulse-imap' and `vimpulse-vmap' instead."
   (let* ((old-state viper-current-state)
-         (maps '((vi-state viper-vi-basic-map
-                           viper-vi-global-user-map)
-                 (insert-state viper-insert-basic-map
-                               viper-insert-global-user-map)
-                 (visual-state vimpulse-visual-basic-map
-                               vimpulse-visual-global-user-map)))
-         (basic-map (eval (nth 1 (assq state maps))))
-         (global-user-map (eval (nth 2 (assq state maps))))
-         map)
+         (map (cdr (assq state vimpulse-state-vars-alist)))
+         (basic-map (eval (cdr (assq 'basic-map map))))
+         (global-user-map (eval (cdr (assq 'global-user-map map)))))
     (viper-set-mode-vars-for state)
     (let ((viper-current-state state))
       (viper-normalize-minor-mode-map-alist))
@@ -404,9 +398,7 @@ Don't use this function directly; see `vimpulse-map',
       (dolist (mode modes)
         (if (eq t mode)
             (vimpulse-define-key global-user-map key def)
-          (setq map
-                (or (cdr (assoc mode viper-vi-state-modifier-alist))
-                    (make-sparse-keymap)))
+          (setq map (vimpulse-modifier-map state mode))
           (vimpulse-define-key map key def)
           (viper-modify-major-mode mode state map))))
      (t
@@ -417,7 +409,7 @@ Don't use this function directly; see `vimpulse-map',
 (defun vimpulse-map-state-local (state key def)
   "Make a buffer-local binding for KEY and DEF in STATE.
 Don't use this function directly; see `vimpulse-map-local',
-`vimpulse-imap-local' and `vimpulse-vmap-local'."
+`vimpulse-imap-local' and `vimpulse-vmap-local' instead."
   (viper-add-local-keys state `((,key . ,def))))
 
 (defun vimpulse-map (key def &rest modes)
