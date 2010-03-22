@@ -917,7 +917,7 @@ Returns the result."
 
 ;; Viper's definition lacks an indentation specification.
 ;; TODO: e-mail Kifer about including a `declare' statement
-;; in the definition
+;; in the original definition
 (put 'viper-deflocalvar 'lisp-indent-function 'defun)
 
 (put 'viper-deflocalvar 'function-documentation
