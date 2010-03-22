@@ -92,6 +92,8 @@ SYM is unquoted. Returns VAL."
   (vimpulse-setq viper-ESC-moves-cursor-back t)
   ;; Not in Vim: C-h is indispensable in Emacs
   (vimpulse-setq viper-want-ctl-h-help t)
+  ;; Immediately echo keystrokes
+  (vimpulse-setq echo-keystrokes 0.1)
   ;; Refresh Viper settings
   (viper-change-state-to-vi))
 
