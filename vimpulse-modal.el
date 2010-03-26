@@ -268,16 +268,14 @@ functions, respectively."
                 (vimpulse-modal-check key-sequence))
       ;; Unread last event
       (setq vimpulse-last-command-event
-            (elt key-sequence
-                 (- (length key-sequence) 1)))
+            (elt key-sequence (1- (length key-sequence))))
       (when (featurep 'xemacs)
         (setq vimpulse-last-command-event
               (character-to-event vimpulse-last-command-event)))
       (add-to-list 'unread-command-events vimpulse-last-command-event)
       ;; Change command loop variables
       (setq vimpulse-last-command-event
-            (elt key-sequence
-                 (- (length key-sequence) 2)))
+            (elt key-sequence (1- (1- (length key-sequence)))))
       (unless (featurep 'xemacs) ; if XEmacs, do this with advice
         (setq last-command-event vimpulse-last-command-event)
         (setq last-command-char  vimpulse-last-command-event)
@@ -381,6 +379,21 @@ only if called in the same state. The functions `vimpulse-map',
           (vimpulse-def-binding
            keymap key def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
+
+(defvar vimpulse-modal-map (make-sparse-keymap)
+ "Keymap of bindings overwritten by `vimpulse-map' et al.")
+
+(define-minor-mode vimpulse-modal-minor-mode
+  "Minor mode of bindings overwritten by `vimpulse-map' et al."
+  :keymap vimpulse-modal-map
+  (dolist (entry vimpulse-modal-alist)
+    (unless (lookup-key vimpulse-modal-map (car entry))
+      (define-key vimpulse-modal-map (car entry) (cdr entry))))
+  (when vimpulse-modal-minor-mode
+    (viper-normalize-minor-mode-map-alist)))
+
+(add-to-list 'vimpulse-state-maps-alist
+             (cons 'vimpulse-modal-minor-mode 'vimpulse-modal-map))
 
 (defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.
