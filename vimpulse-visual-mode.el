@@ -23,11 +23,6 @@ selection on each line."
   :basic-minor-mode 'vimpulse-visual-mode
   :enable '((vimpulse-visual-mode (or vimpulse-visual-mode t))
             vi-state)
-  :advice 'around
-  (and (eq 'visual-state viper-current-state)
-       (eq 'insert-state new-state)
-       (viper-move-marker-locally 'viper-insert-point (point)))
-  ad-do-it
   (cond
    ((eq 'visual-state new-state)
     (unless (memq vimpulse-visual-mode '(normal line block))
@@ -64,7 +59,7 @@ selection on each line."
     ;; Deactivate mark
     (when vimpulse-visual-vars-alist
       (vimpulse-deactivate-mark t))
-    (vimpulse-visual-transient-restore)
+    (vimpulse-transient-restore)
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
     ;; If Viper state is not already changed,
@@ -350,6 +345,7 @@ If POS if specified, set mark at POS instead."
 (defun vimpulse-transient-mark (&optional arg)
   "Enable Transient Mark mode (and Cua mode) if not already enabled.
  Enable forcefully with positive ARG. Disable with negative ARG."
+  (setq deactivate-mark nil)
   (let (deactivate-mark)
     (cond
      ;; Disable Transient Mark/Cua
@@ -363,18 +359,28 @@ If POS if specified, set mark at POS instead."
       (and (boundp 'zmacs-regions)
            (setq zmacs-regions nil)))
      ;; Enable Transient Mark/Cua
-     ((and (fboundp 'cua-mode)
-           (vimpulse-visual-before (eq cua-mode t))
-           (or (not cua-mode) (numberp arg)))
-      (cua-mode 1))
-     ((and (fboundp 'transient-mark-mode)
-           (or (not transient-mark-mode) (numberp arg)))
-      (transient-mark-mode 1))
-     ((and (boundp 'zmacs-regions)
-           (or (not zmacs-regions) (numberp arg)))
-      (setq zmacs-regions t)))))
+     (t
+      (unless vimpulse-visual-vars-alist
+        (when (boundp 'transient-mark-mode)
+          (add-to-list 'vimpulse-visual-vars-alist
+                       (cons 'transient-mark-mode
+                             transient-mark-mode)))
+        (when (boundp 'cua-mode)
+          (add-to-list 'vimpulse-visual-vars-alist
+                       (cons 'cua-mode cua-mode))))
+      (cond
+       ((and (fboundp 'cua-mode)
+             (vimpulse-visual-before (eq cua-mode t))
+             (or (not cua-mode) (numberp arg)))
+        (cua-mode 1))
+       ((and (fboundp 'transient-mark-mode)
+             (or (not transient-mark-mode) (numberp arg)))
+        (transient-mark-mode 1))
+       ((and (boundp 'zmacs-regions)
+             (or (not zmacs-regions) (numberp arg)))
+        (setq zmacs-regions t)))))))
 
-(defun vimpulse-visual-transient-restore ()
+(defun vimpulse-transient-restore ()
   "Restore Transient Mark mode to what is was before Visual mode.
  Also restores Cua mode."
   (when vimpulse-visual-vars-alist
@@ -878,9 +884,12 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         (kill-new replaced-text t)
         (kill-new inserted-text))
       (vimpulse-visual-delete (region-beginning) (region-end) t)
-      (and (eq 'normal mode)
-           (viper-end-with-a-newline-p inserted-text)
-           (newline)))
+      (when (and (eq 'normal mode)
+                 (viper-end-with-a-newline-p inserted-text))
+        (newline))
+      (when (and (eq 'line mode)
+                 (not (viper-end-with-a-newline-p inserted-text)))
+        (save-excursion (newline))))
      ((vimpulse-mark-active)
       (delete-region (region-beginning) (region-end))))
     (if (and killed-rectangle
@@ -1441,11 +1450,11 @@ To go the other way, use `vimpulse-visual-block-corner'."
           (vimpulse-move-to-column end-col))
         (point)))))
 
-(defun vimpulse-visual-block-corner (&optional symbol pos)
+(defun vimpulse-visual-block-corner (&optional symbolic pos)
   "Return the current Visual Block corner as a number from 0 to 3.
 Corners are numbered clockwise, starting with the upper-left corner.
 Return as one of `upper-left', `upper-right', `lower-left' and
-`lower-right' if SYMBOL is non-nil.
+`lower-right' if SYMBOLIC is non-nil.
 
         0---1        upper-left +---+ upper-right
         |   |                   |   |
@@ -1470,7 +1479,9 @@ like `vimpulse-visual-block-position' and
           (dolist (i '(upper-right lower-right) corner)
             (when (eq pos (vimpulse-visual-block-position i))
               (setq corner i)))))
-    (eval corner)))
+    (if symbolic
+        corner
+      (eval corner))))
 
 (defun vimpulse-visual-block-rotate (corner &optional beg end)
   "In Visual Block selection, rotate point and mark clockwise.
