@@ -9,6 +9,20 @@
 (unless vimpulse-want-C-u-like-Vim
   (define-key viper-vi-basic-map "\C-u" 'universal-argument))
 
+;; Apropos
+(defcustom vimpulse-want-vi-keys-in-apropos t
+  "Whether to use vi keys in Apropos mode, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(eval-after-load 'apropos
+  '(when vimpulse-want-vi-keys-in-apropos
+     (add-to-list 'viper-vi-state-mode-list 'apropos-mode)
+     (let ((map apropos-mode-map))
+       (vimpulse-add-core-movement-cmds map)
+       (vimpulse-inhibit-destructive-cmds map)
+       (viper-modify-major-mode 'apropos-mode 'vi-state map))))
+
 ;; Buffer-menu
 (defcustom vimpulse-want-vi-keys-in-buffmenu t
   "Whether to use vi keys in Buffer menu, on by default."
