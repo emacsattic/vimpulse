@@ -164,6 +164,30 @@ If OFFSET is specified, skip first elements of VECTOR."
   "Return face of region."
   (if (featurep 'xemacs) 'zmacs-region 'region))
 
+(defun vimpulse-set-region (beg end &optional widen)
+  "Set Emacs region to BEG and END.
+Preserves the order of point and mark.
+If WIDEN is non-nil, only modifies region if
+it does not already encompass BEG and END.
+Returns nil if region is unchanged."
+  (cond
+   (widen
+    (vimpulse-set-region
+     (min beg end (region-beginning))
+     (max beg end (region-end))))
+   (t
+    (let* ((oldpoint (point))
+           (oldmark  (or (mark t) oldpoint))
+           (newpoint (min beg end))
+           (newmark  (max beg end)))
+      (when (< oldmark oldpoint)
+        (setq newpoint (prog1 newmark
+                         (setq newmark newpoint))))
+      (unless (and (= oldpoint newpoint)
+                   (= oldmark  newmark))
+        (set-mark newmark)
+        (goto-char newpoint))))))
+
 ;; Set functions for handling overlays (not yet provided by Viper)
 (cond
  ((featurep 'xemacs)                    ; XEmacs
