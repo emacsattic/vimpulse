@@ -53,6 +53,7 @@
      (let ((map dired-mode-map))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
+       (define-key map ":" 'viper-ex)
        (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
 ;; Info
