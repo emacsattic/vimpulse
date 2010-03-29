@@ -53,7 +53,6 @@
      (let ((map dired-mode-map))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
-       (define-key map ":" 'viper-ex)
        (add-to-list 'ex-token-alist '("e" (epa-dired-do-encrypt)))
        (add-to-list 'ex-token-alist '("s" (epa-dired-do-sign)))
        (add-to-list 'ex-token-alist '("v" (epa-dired-do-verify)))
