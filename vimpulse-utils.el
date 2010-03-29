@@ -31,7 +31,8 @@
   '(viper-backward-char
     viper-next-line
     viper-previous-line
-    viper-forward-char)
+    viper-forward-char
+    viper-ex)
   "List of Viper \"core\" movement commands.
 These should be present in every mode, to avoid confusion.")
 
