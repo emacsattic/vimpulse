@@ -406,11 +406,10 @@ This is based on `vimpulse-visual-vars-alist'."
 
 (defun vimpulse-move-to-column (column &optional dir force)
   "Move point to column COLUMN in the current line.
+Places point at left of the tab character (at the right
+if DIR is non-nil) and returns point.
 If `vimpulse-visual-block-untabify' is non-nil, then
-if the column is in the middle of a tab character,
-change it to spaces. (FORCE untabifies regardless.)
-Otherwise, place point at left of the tab character
-\(at the right if DIR is non-nil). The return value is point."
+tabs are changed to spaces. (FORCE untabifies regardless.)"
   (interactive "p")
   (if (or vimpulse-visual-block-untabify force)
       (move-to-column column t)
@@ -533,49 +532,29 @@ Under the hood, this function changes Emacs' `point' and `mark'.
 The boundaries of the Visual selection are deduced from these and
 the current Visual mode via `vimpulse-visual-beginning' and
 `vimpulse-visual-end'."
-  (cond
-   (widen
-    (vimpulse-visual-select
-     (min beg end (vimpulse-visual-beginning))
-     (max beg end (vimpulse-visual-end))))
-   (t
-    (let ((opoint (point)) (omark (mark t)) mark-active)
-      (cond
-       ((< (point) (mark t))
-        (goto-char (min beg end))
-        ;; `vimpulse-visual-end' is always 1 larger than region's end
-        ;; to ensure at least one character is selected. Therefore
-        ;; subtract 1 from region's end (but avoid END < BEG).
-        (set-mark (max (min beg end)
-                       (1- (max beg end)))))
-       (t
-        (set-mark (min beg end))
-        (goto-char (max (min beg end)
-                        (1- (max beg end))))))
-      ;; Was selection changed?
-      (not (and (= opoint (point))
-                (= omark  (mark t))))))))
+  (let (mark-active)
+    ;; `vimpulse-visual-end' is always 1 larger than region's end
+    ;; so that the character under the cursor is selected.
+    ;; Therefore, subtract 1 from END (but avoid END < BEG).
+    (vimpulse-set-region (min beg end)
+                         (max (min beg end)
+                              (1- (max beg end)))
+                         widen)))
 
 (defun vimpulse-visual-expand-region (&optional no-trailing-newline)
   "Expand Emacs region to Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
 exclude that newline from the region."
-  (let* (vimpulse-visual-region-changed
-         newmark newpoint mark-active)
-    (setq newpoint (vimpulse-visual-beginning)
-          newmark  (vimpulse-visual-end))
+  (let (vimpulse-visual-region-changed
+        beg end mark-active)
+    (setq beg (vimpulse-visual-beginning)
+          end (vimpulse-visual-end))
     (when no-trailing-newline
       (save-excursion
-        (goto-char newmark)
+        (goto-char end)
         (and (bolp) (not (bobp))
-             (setq newmark (max newpoint (1- newmark))))))
-    ;; Currently, newpoint < newmark. If point > mark,
-    ;; swap them so that newpoint > newmark.
-    (when (< (or (mark t) 1) (point))
-      (setq newpoint (prog1 newmark
-                       (setq newmark newpoint))))
-    (set-mark  newmark)
-    (goto-char newpoint)))
+             (setq end (max beg (1- end))))))
+    (vimpulse-set-region beg end)))
 
 (defun vimpulse-visual-contract-region (&optional keep-point)
   "Opposite of `vimpulse-visual-expand-region'.
@@ -587,22 +566,6 @@ Return nil if selection is unchanged."
     (when keep-point (goto-char opoint))
     (not (and (= opoint (point))
               (= omark  (mark t))))))
-
-(defun vimpulse-visual-markers (&optional point mark)
-  "Refresh `vimpulse-visual-point' and `vimpulse-visual-mark'."
-  (setq mark  (or mark (mark t) 1)
-        point (or point
-                  ;; If the cursor has somehow gotten to the very end
-                  ;; of the line, where it shouldn't be, fix it
-                  (if (and (eolp) (not (bolp)))
-                      (1- (point))
-                    (point))))
-  (viper-move-marker-locally 'vimpulse-visual-point point)
-  (viper-move-marker-locally 'vimpulse-visual-mark  mark)
-  (set-marker-insertion-type vimpulse-visual-point
-                             (<= point mark))
-  (set-marker-insertion-type vimpulse-visual-mark
-                             (> point mark)))
 
 (defun vimpulse-visual-restore ()
   "Restore previous selection."
@@ -628,6 +591,22 @@ Return nil if selection is unchanged."
       (when (eq 'insert last)
         (vimpulse-visual-contract-region))
       (vimpulse-visual-highlight)))))
+
+(defun vimpulse-visual-markers (&optional point mark)
+  "Refresh `vimpulse-visual-point' and `vimpulse-visual-mark'."
+  (setq mark  (or mark (mark t) 1)
+        point (or point
+                  ;; If the cursor has somehow gotten to the very end
+                  ;; of the line, where it shouldn't be, fix it
+                  (if (and (eolp) (not (bolp)))
+                      (1- (point))
+                    (point))))
+  (viper-move-marker-locally 'vimpulse-visual-point point)
+  (viper-move-marker-locally 'vimpulse-visual-mark  mark)
+  (set-marker-insertion-type vimpulse-visual-point
+                             (<= point mark))
+  (set-marker-insertion-type vimpulse-visual-mark
+                             (> point mark)))
 
 (defun vimpulse-visual-highlight (&optional arg)
   "Highlight Visual selection, depending on region and Visual mode.
@@ -835,7 +814,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
        (vimpulse-visual-region-changed
         (vimpulse-visual-restore)
         (setq vimpulse-visual-region-changed nil)))
-      (vimpulse-visual-highlight))))
+      (let (vimpulse-visual-region-changed)
+        (vimpulse-visual-highlight)))))
    ;; Not in the Visual state, but maybe mark is active
    ;; in vi (command) state?
    ((and (vimpulse-mark-active)
