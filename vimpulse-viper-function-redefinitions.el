@@ -593,6 +593,7 @@ keybindings in %s.\n\n%s" state-name doc) t))
     (add-to-list 'vimpulse-state-modes-alist
                  (cons state-name enable-modes-alist) t)
     (vimpulse-refresh-state-modes-alist)
+    (viper-normalize-minor-mode-map-alist)
     ;; Index state variables
     (setq vars-alist
           (list (cons 'id id)
@@ -615,8 +616,6 @@ keybindings in %s.\n\n%s" state-name doc) t))
                 (cons 'intercept-map intercept-map)))
     (add-to-list 'vimpulse-state-vars-alist
                  (cons state-name vars-alist) t)
-    ;; Re-normalize keymaps for good measure
-    (viper-normalize-minor-mode-map-alist)
     ;; Make toggle-advice (this is the macro expansion)
     (setq advice (or advice 'after))
     `(defadvice viper-change-state (,advice ,state-name activate)
@@ -688,35 +687,6 @@ create a buffer-local variable. Returns the result."
             (assq-delete-all state vimpulse-state-modes-alist))
       (add-to-list 'vimpulse-state-modes-alist
                    (cons state state-entry) t)))))
-
-;; (defun vimpulse-refresh-state-modes-alist ()
-;;   "Expand state references in `vimpulse-state-modes-alist'."
-;;   (dolist (entry vimpulse-state-modes-alist)
-;;     (let ((state (car entry))
-;;           (modes (cdr entry))
-;;           updated-modes)
-;;       (dolist (entry (reverse modes))
-;;         (let ((mode (car entry))
-;;               (toggle (cdr entry)))
-;;           (cond
-;;            ((assq mode vimpulse-state-modes-alist)
-;;             (dolist (entry (reverse
-;;                             (cdr
-;;                              (assq mode
-;;                                    vimpulse-state-modes-alist))))
-;;               (setq updated-modes
-;;                     (assq-delete-all (car entry) updated-modes))
-;;               (if toggle
-;;                   (add-to-list 'updated-modes entry)
-;;                 (add-to-list 'updated-modes (cons (car entry) nil)))))
-;;            (t
-;;             (setq updated-modes
-;;                   (assq-delete-all mode updated-modes))
-;;             (add-to-list 'updated-modes entry)))))
-;;       (setq vimpulse-state-modes-alist
-;;             (assq-delete-all state vimpulse-state-modes-alist))
-;;       (add-to-list 'vimpulse-state-modes-alist
-;;                    (cons state updated-modes) t))))
 
 ;; Thanks to the anonymous poster for the idea on how to modify the viper
 ;; function to add the di da ci and ca partial commands.
