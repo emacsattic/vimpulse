@@ -661,7 +661,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         beg-col end-col new nlines overlay window-beg window-end)
     ;; Calculate the rectangular region represented by BEG and END,
     ;; but put BEG in the north-west corner and END in the south-east
-    ;; corner if not already so
+    ;; corner if not already there
     (save-excursion
       (setq beg-col (save-excursion (goto-char beg)
                                     (current-column))
@@ -914,6 +914,12 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                        viper-window-middle
                        viper-window-top)))
     ad-do-it))
+
+;; Block selection disables Transient Mark mode
+(defadvice deactivate-mark (after vimpulse-visual activate)
+  "Deactivate Visual Block mode."
+  (when (eq 'block vimpulse-visual-mode)
+    (vimpulse-visual-mode -1)))
 
 (defmacro vimpulse-visual-mouse-advice (cmd)
   "Advise mouse command CMD to enable Visual mode."
