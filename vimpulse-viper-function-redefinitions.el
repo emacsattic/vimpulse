@@ -14,6 +14,7 @@ like in Vim."
    (t
     ;; We don't want Viper's Replace mode when changing text;
     ;; just delete and enter Insert state.
+    (setq viper-began-as-replace t)
     (kill-region beg end)
     (viper-change-state-to-insert))))
 
