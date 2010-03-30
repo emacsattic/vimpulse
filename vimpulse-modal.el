@@ -325,30 +325,35 @@ but in some other map which is active only in a certain
 state (say, Insert mode), this function can detect that binding
 only if called in the same state. The functions `vimpulse-map',
 `vimpulse-imap' and `vimpulse-vmap' take care of this."
-  (let (temp-sequence current-binding previous-binding)
-    ;; For each subset of KEY (stored in `temp-sequence'), check
+  (let (key-vector temp-sequence current-binding previous-binding)
+    ;; For each subset of KEY-VECTOR (stored in `temp-sequence'), check
     ;; the binding (stored in `current-binding'); if it isn't bound,
     ;; use `previous-binding'.
-    (setq define-func (or define-func 'define-key)
-          key (vconcat key))
+    (setq define-func (or define-func 'define-key))
+    (setq key-vector key)
+    (when (stringp key-vector)
+      (condition-case nil
+          (setq key-vector (kbd key-vector))
+        (error nil)))
+    (setq key-vector (vconcat key-vector))
     (cond
      ;; nil unbinds the key-sequence
      ((not def)
-      (funcall define-func keymap key def)
-      (while (and (< 1 (length key))
-                  (not (lookup-key keymap key)))
-        (vimpulse-modal-remove key t)
-        (setq key (vimpulse-truncate key -1))))
+      (funcall define-func keymap key-vector def)
+      (while (and (< 1 (length key-vector))
+                  (not (lookup-key keymap key-vector)))
+        (vimpulse-modal-remove key-vector t)
+        (setq key-vector (vimpulse-truncate key-vector -1))))
      ;; undefined also unbinds, but less forcefully
      ((eq 'undefined def)
-      (if (keymapp (lookup-key keymap key))
-          (vimpulse-def-binding keymap key nil t define-func)
-        (funcall define-func keymap key def))
-      (vimpulse-modal-remove key))
+      (if (keymapp (lookup-key keymap key-vector))
+          (vimpulse-def-binding keymap key-vector nil t define-func)
+        (funcall define-func keymap key-vector def))
+      (vimpulse-modal-remove key-vector))
      ;; Regular binding: convert previous bindings to default bindings
      (t
-      (dotimes (i (1- (length key)))
-        (setq temp-sequence (vimpulse-truncate key (1+ i)))
+      (dotimes (i (1- (length key-vector)))
+        (setq temp-sequence (vimpulse-truncate key-vector (1+ i)))
         (setq current-binding (lookup-key keymap temp-sequence t))
         (when (or (numberp current-binding) (not current-binding))
           (setq current-binding
@@ -373,15 +378,15 @@ only if called in the same state. The functions `vimpulse-map',
                                   define-func))
           (setq previous-binding current-binding)))
       ;; Defaults are taken care of; we may now bind the key.
-      ;; If a longer binding starting with KEY exists,
+      ;; If a longer binding starting with KEY-VECTOR exists,
       ;; make a default binding so it's not overwritten.
-      (if (keymapp (lookup-key keymap key))
+      (if (keymapp (lookup-key keymap key-vector))
           (vimpulse-def-binding
-           keymap key def (not dont-list) define-func)
+           keymap key-vector def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
 
 (defvar vimpulse-modal-map (make-sparse-keymap)
- "Keymap of bindings overwritten by `vimpulse-map' et al.")
+  "Keymap of bindings overwritten by `vimpulse-map' et al.")
 
 (define-minor-mode vimpulse-modal-minor-mode
   "Minor mode of bindings overwritten by `vimpulse-map' et al."
