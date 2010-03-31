@@ -1,3 +1,5 @@
+;;;; Redefinitions of some of Viper's functions
+
 (defcustom vimpulse-want-change-state nil
   "Whether commands like \"cw\" invoke Replace state, vi-like.
 The default is to delete the text and enter Insert state,
@@ -43,11 +45,10 @@ Works like Vim's \"G\"."
   (fset 'viper-goto-line 'vimpulse-goto-line)
   (define-key viper-vi-basic-map "G" 'vimpulse-goto-line))
 
-;;; CODE FOR ADDING EXTRA STATES
+;;; Code for adding extra states
 
-;; State index variables: for keeping track of which modes belong
-;; to which states, et cetera.
-
+;; State index variables: for keeping track of which modes
+;; belong to which states, et cetera
 (defvar vimpulse-state-vars-alist
   '((vi-state
      (id . viper-vi-state-id)
@@ -161,7 +162,7 @@ Entries have the form (MODE . MAP-EXPR), where MAP-EXPR is an
 expression for determining the keymap of MODE. The first entries
 get the highest priority.")
 
-;; State-changing code: this uses the variables above.
+;; State-changing code: this uses the variables above
 (defadvice viper-normalize-minor-mode-map-alist
   (after vimpulse-states activate)
   "Normalize Vimpulse state maps."
@@ -678,7 +679,7 @@ create a buffer-local variable. Returns the result."
           (setq state-entry (assq-delete-all (car entry) state-entry))
           (if toggle
               (add-to-list 'state-entry entry)
-            (add-to-list 'state-entry (cons (car entry nil))))))))
+            (add-to-list 'state-entry (cons (car entry) nil)))))))
    (t
     (dolist (state-entry vimpulse-state-modes-alist)
       (setq state (car state-entry))
@@ -826,15 +827,12 @@ create a buffer-local variable. Returns the result."
 (when vimpulse-text-objects
   (fset 'viper-prefix-arg-com 'vimpulse-prefix-arg-com))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Redefining viper-ex to get a similar behavior to vim when ;;;
-;;; issuing ":" when visual selecting.                        ;;;
-;;; NOTE: this is a kludge.                                   ;;;
-;;;       Vimpulse eats 'y and 'z marks to emulate vim's      ;;;
-;;;       behavior instead of introducing '< and '>, because  ;;;
-;;;       introducing them would introduce even more kludges  ;;;
-;;;       like this one.                                      ;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Redefinition of `viper-ex' to get a similar behavior
+;;; to Vim when issuing ":" in Visual mode
+
+;; This is a kludge. Vimpulse eats 'y and 'z marks to emulate
+;; Vim's behavior instead of introducing '< and '>, because
+;; introducing them would introduce even more kludges like this one.
 (defcustom vimpulse-visual-ex t
   "Ex support for visual selections, on by default."
   :group 'vimpulse
@@ -948,15 +946,66 @@ create a buffer-local variable. Returns the result."
 (when vimpulse-visual-ex
   (fset 'viper-ex 'vimpulse-ex))
 
-;; Viper's definition lacks an indentation specification.
-;; TODO: e-mail Kifer about including a `declare' statement
-;; in the original definition
-(put 'viper-deflocalvar 'lisp-indent-function 'defun)
+;;; Viper bugs (should be forwarded to Kifer)
 
+;; `viper-deflocalvar's definition lacks a `declare' statement,
+;; so Emacs tends to mess up the indentation. Luckily, the
+;; relevant symbol properties can be set up with `put'.
+;; TODO: E-mail Michael Kifer about updating the definition
+(put 'viper-deflocalvar 'lisp-indent-function 'defun)
+(put 'viper-loop 'lisp-indent-function 'defun)
 (put 'viper-deflocalvar 'function-documentation
      "Define VAR as a buffer-local variable.
 DEFAULT-VALUE is the default value and DOCUMENTATION is the
 docstring. The variable becomes buffer-local whenever set.")
+
+;; e/E bug: on a single-letter word, ce may change two words
+(defun vimpulse-end-of-word-kernel ()
+  (when (viper-looking-at-separator)
+    (viper-skip-all-separators-forward))
+  (cond
+   ((viper-looking-at-alpha)
+    (viper-skip-alpha-forward "_"))
+   ((not (viper-looking-at-alphasep))
+    (viper-skip-nonalphasep-forward))))
+
+(defun vimpulse-end-of-word (arg &optional careful)
+  "Move point to end of current word."
+  (interactive "P")
+  (viper-leave-region-active)
+  (let ((val (viper-p-val arg))
+        (com (viper-getcom arg)))
+    (cond
+     (com
+      (viper-move-marker-locally 'viper-com-point (point)))
+     ((viper-end-of-word-p)
+      (setq val (1+ val))))
+    (viper-loop val (viper-end-of-word-kernel))
+    (if com
+        (viper-execute-com 'viper-end-of-word val com)
+      (viper-backward-char-carefully))))
+
+(defun vimpulse-end-of-Word (arg)
+  "Forward to end of word delimited by white character."
+  (interactive "P")
+  (viper-leave-region-active)
+  (let ((val (viper-p-val arg))
+        (com (viper-getcom arg)))
+    (cond
+     (com
+      (viper-move-marker-locally 'viper-com-point (point)))
+     ((viper-end-of-word-p)
+      (setq val (1+ val))))
+    (viper-loop val
+      (viper-end-of-word-kernel)
+      (viper-skip-nonseparators 'forward))
+    (if com
+        (viper-execute-com 'viper-end-of-word val com)
+      (viper-backward-char-carefully))))
+
+(fset 'viper-end-of-word-kernel 'vimpulse-end-of-word-kernel)
+(fset 'viper-end-of-word 'vimpulse-end-of-word)
+(fset 'viper-end-of-Word 'vimpulse-end-of-Word)
 
 (provide 'vimpulse-viper-function-redefinitions)
 

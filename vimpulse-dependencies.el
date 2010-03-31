@@ -19,7 +19,8 @@
       (require 'redo)
     (error nil)))
 
-;; Customization group for Vimpulse
+;;; Customization group for Vimpulse
+
 (defgroup vimpulse nil
   "Vim emulation within Emacs."
   :group  'emulations
@@ -72,7 +73,8 @@ SYM is unquoted. Returns VAL."
      (setq-default ,sym ,val)
      (setq ,sym ,val))))
 
-;; Carefully set Viper/woman variables
+;;; Carefully set Viper/woman variables
+
 (defun vimpulse-initialize-variables ()
   "Set various variables, unless customized."
   ;; Can backspace past start of insert/line

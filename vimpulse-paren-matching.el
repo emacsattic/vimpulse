@@ -1,17 +1,17 @@
-;;;;
-;;;; When highlighting matching parentheses, Emacs matches the closing
-;;;; parenthesis before the cursor, instead of under it (like in Vim).
-;;;; This file provides an alternate parenthesis matching function
-;;;; used when Viper is in vi (command) mode, so that the parenthesis
-;;;; under the cursor is matched. This makes it possible to visually
-;;;; inspect a closing parenthesis at the end of the line.
-;;;;
-;;;; In Insert mode, Emacs' scheme is deemed best and kept as is.
-;;;;
-;;;; Custom paren-matching LOADED BY DEFAULT.
-;;;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
-;;;; in your .emacs before loading Vimpulse.
-;;;;
+;;;; Paren matching
+
+;; When highlighting matching parentheses, Emacs matches the closing
+;; parenthesis before the cursor, instead of under it (like in Vim).
+;; This code provides an alternate parenthesis matching function
+;; used when Viper is in vi (command) mode, so that the parenthesis
+;; under the cursor is matched. This makes it possible to visually
+;; inspect a closing parenthesis at the end of the line.
+;;
+;; In Insert mode, Emacs' scheme is deemed best and kept as is.
+;;
+;; Custom paren-matching LOADED BY DEFAULT.
+;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
+;; in your .emacs before loading Vimpulse.
 
 ;;; Begin Paren Matching Code {{{
 

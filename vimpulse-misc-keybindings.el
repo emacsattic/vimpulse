@@ -1,6 +1,7 @@
-;;; Add vi navigation to help buffers
+;;;; Add vi navigation to help buffers
 
-;; C-u
+;;; C-u
+
 (defcustom vimpulse-want-C-u-like-Vim nil
   "Whether C-u scrolls like in Vim, off by default."
   :group 'vimpulse
@@ -9,7 +10,8 @@
 (unless vimpulse-want-C-u-like-Vim
   (define-key viper-vi-basic-map "\C-u" 'universal-argument))
 
-;; Apropos
+;;; Apropos
+
 (defcustom vimpulse-want-vi-keys-in-apropos t
   "Whether to use vi keys in Apropos mode, on by default."
   :group 'vimpulse
@@ -23,7 +25,8 @@
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'apropos-mode 'vi-state map))))
 
-;; Buffer-menu
+;;; Buffer-menu
+
 (defcustom vimpulse-want-vi-keys-in-buffmenu t
   "Whether to use vi keys in Buffer menu, on by default."
   :group 'vimpulse
@@ -39,7 +42,8 @@
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'Buffer-menu-mode 'vi-state map))))
 
-;; Dired
+;;; Dired
+
 (defcustom vimpulse-want-vi-keys-in-dired t
   "Whether to use vi keys in Dired mode, on by default."
   :group 'vimpulse
@@ -59,7 +63,8 @@
        (add-to-list 'ex-token-alist '("d" (epa-dired-do-decrypt)))
        (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
-;; Info
+;;; Info
+
 (defcustom vimpulse-want-vi-keys-in-Info t
   "Whether to use vi keys in Info mode, on by default."
   :group 'vimpulse
@@ -81,7 +86,8 @@
        (define-key map [backspace] 'Info-scroll-down)
        (viper-modify-major-mode 'Info-mode 'vi-state map))))
 
-;; Help
+;;; Help
+
 (defcustom vimpulse-want-vi-keys-in-help t
   "Whether to use vi keys in Help mode, on by default."
   :group 'vimpulse
@@ -97,17 +103,17 @@
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'help-mode 'vi-state map))))
 
-;; ElDoc compatibility
+;;; ElDoc compatibility
+
 (eval-after-load 'eldoc
   '(apply 'eldoc-add-command
           (append vimpulse-viper-movement-cmds
                   vimpulse-core-movement-cmds)))
-;;;;
-;;;; Almost all of this code is taken from extended-viper
-;;;; coded by Brad Beveridge (bradbev at gmail.com)
-;;;; - I changed the prefix of the custom functions to `vimpulse'
-;;;;   to avoid multiple prefixes
-;;;;
+
+;; Almost all of this code is taken from extended-viper
+;; coded by Brad Beveridge (bradbev at gmail.com)
+;; - I changed the prefix of the custom functions to `vimpulse'
+;;   to avoid multiple prefixes
 (defcustom vimpulse-fold-level 0
   "Default fold level."
   :type  'boolean
@@ -141,6 +147,8 @@
 (when (fboundp 'global-reveal-mode)
   (global-reveal-mode 1))
 
+;;; vi (command) mode keys
+
 (define-key viper-vi-basic-map "K" 'woman)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding
 (define-key viper-vi-basic-map "gb" 'vimpulse-end-of-previous-word)
@@ -162,6 +170,7 @@
 (define-key viper-vi-basic-map "_" 'vimpulse-next-line-skip-white)
 (define-key viper-vi-basic-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-basic-map "\C-t" 'pop-tag-mark)
+
 ;; Map undo and redo from XEmacs' redo.el
 (define-key viper-vi-basic-map "u" 'undo)
 (when (fboundp 'redo)
@@ -187,31 +196,45 @@
   (define-key viper-vi-basic-map "\C-wl" 'windmove-right))
 
 ;;; Insert mode keys
+
 ;; Vim-like completion keys
 (define-key viper-insert-basic-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-basic-map "\C-n" 'vimpulse-abbrev-expand-after)
-;; (define-key viper-insert-basic-map [backspace] 'backward-delete-char-untabify) ; vim doesn't do this!
 (define-key viper-insert-basic-map [delete] 'delete-char) ;; delete key
                                         ; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
-;;; My code (Alessandro)
+;; My code (Alessandro)
 (defun vimpulse-indent-lines (count)
   (save-excursion
     (dotimes (i count)
       (indent-according-to-mode)
       (forward-line))))
 
-;;; His code (Brad)
-(defun vimpulse-goto-first-line ()
-  "Send point to the start of the first line."
-  (interactive)
-  (viper-goto-line 1))
+;; His code (Brad)
+(defun vimpulse-goto-first-line (arg)
+  "Go to first line."
+  (interactive "P")
+  (let ((val (viper-P-val arg))
+        (com (viper-getCom arg)))
+    (when (eq ?c com) (setq com ?C))
+    (viper-move-marker-locally 'viper-com-point (point))
+    (viper-deactivate-mark)
+    (push-mark nil t)
+    (cond
+     ((null val)
+      (goto-char (point-min)))
+     (t
+      (goto-line val)))
+    (when com
+      (viper-execute-com 'vimpulse-goto-line val com))))
 
 (defun vimpulse-cycle-windows ()
   "Cycle point to another window."
   (interactive)
   (select-window (next-window)))
+
+;;; +, _
 
 (defun vimpulse-previous-line-skip-white (&optional arg)
   "Go ARG lines backward and to the first non-blank character."
@@ -236,6 +259,8 @@
     (back-to-indentation)
     (when com
       (viper-execute-com 'vimpulse-next-line-nonblank val com))))
+
+;;; *, #
 
 (defun vimpulse-search-string (&optional pos thing backward regexp)
   "Find something to search for near POS or point.
@@ -302,16 +327,14 @@ is highlighted rather than skipped past."
   (interactive)
   (vimpulse-search-for-symbol t))
 
-(defun vimpulse-beginning-of-word-p ()
+;;; gb
+
+(defun vimpulse-beginning-of-Word-p ()
   (save-excursion
     (or (bobp)
-        (cond
-         ((viper-looking-at-alpha)
+        (when (viper-looking-at-alpha)
           (backward-char)
-          (not (viper-looking-at-alpha)))
-         ((not (viper-looking-at-alphasep))
-          (backward-char)
-          (viper-looking-at-alphasep))))))
+          (not (viper-looking-at-alpha))))))
 
 (defun vimpulse-end-of-previous-word (arg)
   "Move point to end of previous word."
@@ -321,14 +344,16 @@ is highlighted rather than skipped past."
         (com (viper-getcom arg)))
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
-    (unless (or (vimpulse-beginning-of-word-p)
-                (not (viper-looking-at-alpha)))
-      (viper-backward-Word 1))
+    (unless (vimpulse-beginning-of-Word-p)
+            (viper-backward-Word 1))
     (viper-backward-Word val)
-    (unless (viper-end-of-word-p)
-      (viper-end-of-word 1))
+    (viper-end-of-Word '(1 . ?r))
+    (unless com
+      (backward-char))
     (when com
       (viper-execute-com 'viper-end-of-word val com))))
+
+;;; gd
 
 (defun vimpulse-goto-definition ()
   "Go to definition or first occurrence of symbol under cursor."
@@ -367,14 +392,16 @@ is highlighted rather than skipped past."
   (let ((tag (thing-at-point 'word)))
     (find-tag tag)))
 
-;; Auto-indent
+;;; Auto-indent
+
 (defadvice viper-line (after vimpulse activate)
   "Indent if `viper-auto-indent' is t."
   (and (boundp 'viper-auto-indent) viper-auto-indent
        (eq ?C (cdr arg))
        (indent-according-to-mode)))
 
-;; C-o/C-i
+;;; C-o, C-i
+
 (viper-deflocalvar vimpulse-mark-list nil
   "List of mark positions to jump to with `vimpulse-jump-forward'.
 They are stored as markers, the current position first:
@@ -444,7 +471,8 @@ To go the other way, press \\[vimpulse-jump-backward]."
 (unless (key-binding "\C-c\C-o")
   (global-set-key "\C-c\C-o" 'open-line)) ; some may miss this command
 
-;; Replace backspace
+;;; Replace backspace
+
 (defcustom vimpulse-backspace-restore t
   "Whether Backspace restores the original text in Replace mode.
 On by default."
@@ -494,7 +522,7 @@ call `viper-del-backward-char-in-replace' instead."
   "Map <backspace> to `vimpulse-replace-backspace' in Replace mode."
   (define-key viper-replace-map [backspace] 'vimpulse-replace-backspace))
 
-;;; cppjavaperl's code
+;; cppjavaperl's code
 (defun vimpulse-abbrev-expand-after ()
   (interactive)
   (dabbrev-expand -1))

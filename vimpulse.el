@@ -1,4 +1,5 @@
-;; Load vimpulse components
+;;;; Load Vimpulse components
+
 (require 'vimpulse-dependencies)
 (require 'vimpulse-viper-function-redefinitions)
 (require 'vimpulse-utils)

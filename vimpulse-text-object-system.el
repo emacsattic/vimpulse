@@ -1,24 +1,22 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; TEXT OBJECT SUPPORT                                             ;;;;
-;;;;                                                                 ;;;;
-;;;; This code implements support for text objects and commands like ;;;;
-;;;; diw, daw, ciw, caw. Currently, the most common objects are      ;;;;
-;;;; supported:                                                      ;;;;
-;;;;                                                                 ;;;;
-;;;;    - paren-blocks: b B { [ ( < > ) ] }                          ;;;;
-;;;;    - sentences: s                                               ;;;;
-;;;;    - paragraphs: p                                              ;;;;
-;;;;    - quoted expressions: " and '                                ;;;;
-;;;;    - words: w and W                                             ;;;;
-;;;;                                                                 ;;;;
-;;;; Vimpulse's text objects are very close to Vim's, but the        ;;;;
-;;;; behavior on certain occasions (e.g., daw issued with the cursor ;;;;
-;;;; on whitespace) may be a little different. My aim was not to     ;;;;
-;;;; achieve the exact same behavior in all limit cases, but rather  ;;;;
-;;;; to give a close and consistent behavior to the commands.        ;;;;
-;;;;                                                                 ;;;;
-;;;; Alessandro Piras                                                ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Text objects support
+
+;; The following code implements support for text objects and commands
+;; like diw, daw, ciw, caw. Currently, the most common objects are
+;; supported:
+;;
+;;    - paren-blocks: b B { [ ( < > ) ] }
+;;    - sentences: s
+;;    - paragraphs: p
+;;    - quoted expressions: " and '
+;;    - words: w and W
+;;
+;; Vimpulse's text objects are very close to Vim's, but the
+;; behavior on certain occasions (e.g., daw issued with the cursor
+;; on whitespace) may be a little different. My aim was not to
+;; achieve the exact same behavior in all limit cases, but rather
+;; to give a close and consistent behavior to the commands.
+;;
+;; Alessandro Piras
 
 ;;; Begin Text Objects code {{{
 
@@ -318,9 +316,7 @@ char indicates 'inner' (?i) or 'a' (?a) behavior, 'motion' indicates the text-ob
   "Helper function that prints all its arguments, plus some other values."
   (message "ARGS: %s, reg: %s" args (string viper-use-register)))
 
-;;;;;;;;;;;;;;;;;;;;
-;;;   Commands   ;;;
-;;;;;;;;;;;;;;;;;;;;
+;;; Commands
 
 (defun vimpulse-unify-multiple-bounds (pos char count motion)
   "Returns the boundaries of a multiple text object motion.
@@ -418,12 +414,16 @@ The kind of text object is asked interactively to the user using `read-char'."
   (interactive)
   (let ((motion (read-char)))
     (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))))
-;; This is for silencing viper when he checks if the insertion must be repeated, never true for
-;; this kind of commands.
-(defvar vimpulse-text-objects-command (list 'vimpulse-delete-text-objects-function
-                                            'vimpulse-change-text-objects-function
-                                            'vimpulse-yank-text-objects-function))
-(defadvice viper-repeat-insert-command (around vimpulse-text-objects-repeat-insert-command-fix activate)
+
+;; This is for silencing Viper when it checks if the insertion must be
+;; repeated, never true for this kind of commands.
+(defvar vimpulse-text-objects-command
+  '(vimpulse-delete-text-objects-function
+    vimpulse-change-text-objects-function
+    vimpulse-yank-text-objects-function))
+
+(defadvice viper-repeat-insert-command
+  (around vimpulse-text-objects-repeat-insert-command-fix activate)
   (when (not (memq (car viper-d-com) vimpulse-text-objects-command))
     ad-do-it))
 
