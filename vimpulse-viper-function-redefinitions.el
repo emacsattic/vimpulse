@@ -977,7 +977,10 @@ docstring. The variable becomes buffer-local whenever set.")
         (com (viper-getcom arg)))
     (cond
      (com
-      (viper-move-marker-locally 'viper-com-point (point)))
+      (viper-move-marker-locally 'viper-com-point (point))
+      (when (and (not (viper-looking-at-alpha))
+                 (not (viper-looking-at-alphasep)))
+        (setq val (1+ val))))
      ((viper-end-of-word-p)
       (setq val (1+ val))))
     (viper-loop val (viper-end-of-word-kernel))
@@ -993,7 +996,10 @@ docstring. The variable becomes buffer-local whenever set.")
         (com (viper-getcom arg)))
     (cond
      (com
-      (viper-move-marker-locally 'viper-com-point (point)))
+      (viper-move-marker-locally 'viper-com-point (point))
+      (when (and (not (viper-looking-at-alpha))
+                 (not (viper-looking-at-alphasep)))
+        (setq val (1+ val))))
      ((viper-end-of-word-p)
       (setq val (1+ val))))
     (viper-loop val
