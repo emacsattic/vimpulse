@@ -193,6 +193,7 @@ but only for bindings listed in `vimpulse-modal-alist'."
   (let ((temp-sequence (vimpulse-strip-prefix key-sequence)))
     (setq temp-sequence (vimpulse-truncate temp-sequence -1))
     (and this-command ; may be nil
+         (not (key-binding key-sequence)) ; only default bindings
          (eq this-command
              (cdr (assoc temp-sequence vimpulse-modal-alist))))))
 
@@ -371,12 +372,9 @@ only if called in the same state. The functions `vimpulse-map',
                   (or (key-binding temp-sequence t) previous-binding))
             (define-key keymap
               (vimpulse-truncate temp-sequence -1) nil)
-            ;; Only create a default binding if the current binding
-            ;; differs from the one we wish to create
-            (unless (eq def current-binding)
-              (vimpulse-def-binding
-               keymap temp-sequence current-binding
-               (not dont-list) define-func)))
+            (vimpulse-def-binding
+             keymap temp-sequence current-binding
+             (not dont-list) define-func))
           (setq previous-binding current-binding)))
       ;; Defaults are taken care of; we may now bind the key.
       ;; If a longer binding starting with KEY-VECTOR exists,
