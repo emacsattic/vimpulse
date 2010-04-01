@@ -159,6 +159,46 @@ If OFFSET is specified, skip first elements of VECTOR."
     (dotimes (idx length result)
       (aset result idx (aref vector (+ idx offset))))))
 
+;;; Movement
+
+(defun vimpulse-backward-up-list (&optional arg)
+  "Like `backward-up-list', but breaks out of strings."
+  (interactive "p")
+  (let ((orig (point)))
+    (setq arg (or arg 1))
+    (while (progn
+             (condition-case
+                 nil (backward-up-list arg)
+               (error nil))
+             (when (eq orig (point))
+               (backward-char)
+               (setq orig (point)))))))
+
+(defun vimpulse-skip-regexp (regexp dir &rest bounds)
+  "Move point in DIR direction based on REGEXP and BOUNDS.
+REGEXP is passed to `looking-at' or `looking-back'.
+If DIR is positive, move forwards to the end of the regexp match,
+but not beyond any buffer positions listed in BOUNDS.
+If DIR is negative, move backwards to the beginning of the match.
+Returns the new position."
+  (let ((orig (point)))
+    (setq regexp (or regexp ""))
+    (setq dir (or dir 1))
+    (cond
+     ((> 0 dir)
+      (when (looking-back regexp nil t)
+        (dolist (bound bounds)
+          (when (or (not (numberp bound)) (> bound orig))
+            (setq bounds (delq bound bounds))))
+        (goto-char (apply 'max (match-beginning 0) bounds))))
+     (t
+      (when (looking-at regexp)
+        (dolist (bound bounds)
+          (when (or (not (numberp bound)) (< bound orig))
+            (setq bounds (delq bound bounds))))
+        (goto-char (apply 'min (match-end 0) bounds)))))
+    (point)))
+
 ;;; Region
 
 (defun vimpulse-region-face ()
@@ -179,8 +219,8 @@ BEG and END. Returns nil if region is unchanged."
      (max beg end (region-end))
      nil dir))
    (t
-    (let* ((oldmark  (or (mark t) oldpoint))
-           (oldpoint (point))
+    (let* ((oldpoint (point))
+           (oldmark  (or (mark t) oldpoint))
            (newmark  (min beg end))
            (newpoint (max beg end)))
       (when (or (and (numberp dir) (> 0 dir))
