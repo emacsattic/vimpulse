@@ -176,8 +176,8 @@ lower bound of the position, LIME is the upper bound to the position."
            (forward-char)
            (viper-backward-word arg))
          (lambda (arg)
-           (unless (viper-end-of-word-p)
-             (viper-end-of-word arg)))))))))
+           (viper-end-of-word (cons arg ?r))
+           (viper-backward-char-carefully))))))))
 
 (defun vimpulse-get-vWord-bounds (pos)
   "Returns the boundaries of a Word."
