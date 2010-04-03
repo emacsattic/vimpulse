@@ -161,6 +161,52 @@ If OFFSET is specified, skip first elements of VECTOR."
 
 ;;; Movement
 
+(defmacro vimpulse-limit (lower upper &rest body)
+  "Eval BODY, but limit point to buffer-positions LOWER and UPPER.
+Both may be nil. Returns position."
+  (declare (indent 2))
+  `(let ((lower ,lower) (upper ,upper))
+     (when (and (numberp lower) (numberp upper))
+       (setq lower (prog1 (min lower upper)
+                     (setq upper (max lower upper)))))
+     ,@body
+     (when (numberp lower)
+       (goto-char (max (point) lower)))
+     (when (numberp upper)
+       (goto-char (min (point) upper)))
+     (point)))
+
+(defmacro vimpulse-skip (dir bounds &rest body)
+  "Eval BODY, but limit point to BOUNDS in DIR direction.
+Returns position."
+  (declare (indent 2))
+  `(let ((dir ,dir) (bounds ,bounds) lower upper)
+     (setq dir (if (and (numberp dir) (> 0 dir)) -1 1))
+     (dolist (bound bounds)
+       (unless (numberp bound)
+         (setq bounds (delq bound bounds))))
+     (when bounds
+       (if (> 0 dir)
+           (setq lower (apply 'min bounds))
+         (setq upper (apply 'max bounds))))
+     (vimpulse-limit lower upper ,@body)))
+
+(defun vimpulse-skip-regexp (regexp dir &rest bounds)
+  "Move point in DIR direction based on REGEXP and BOUNDS.
+REGEXP is passed to `looking-at' or `looking-back'.
+If DIR is positive, move forwards to the end of the regexp match,
+but not beyond any buffer positions listed in BOUNDS.
+If DIR is negative, move backwards to the beginning of the match.
+Returns the new position."
+  (setq dir (if (and (numberp dir) (> 0 dir)) -1 1))
+  (setq regexp (or regexp ""))
+  (vimpulse-skip dir bounds
+    (if (> 0 dir)
+        (when (looking-back regexp nil t)
+          (goto-char (match-beginning 0)))
+      (when (looking-at regexp)
+        (goto-char (match-end 0))))))
+
 (defun vimpulse-backward-up-list (&optional arg)
   "Like `backward-up-list', but breaks out of strings."
   (interactive "p")
@@ -173,31 +219,6 @@ If OFFSET is specified, skip first elements of VECTOR."
              (when (eq orig (point))
                (backward-char)
                (setq orig (point)))))))
-
-(defun vimpulse-skip-regexp (regexp dir &rest bounds)
-  "Move point in DIR direction based on REGEXP and BOUNDS.
-REGEXP is passed to `looking-at' or `looking-back'.
-If DIR is positive, move forwards to the end of the regexp match,
-but not beyond any buffer positions listed in BOUNDS.
-If DIR is negative, move backwards to the beginning of the match.
-Returns the new position."
-  (let ((orig (point)))
-    (setq regexp (or regexp ""))
-    (setq dir (or dir 1))
-    (cond
-     ((> 0 dir)
-      (when (looking-back regexp nil t)
-        (dolist (bound bounds)
-          (when (or (not (numberp bound)) (> bound orig))
-            (setq bounds (delq bound bounds))))
-        (goto-char (apply 'max (match-beginning 0) bounds))))
-     (t
-      (when (looking-at regexp)
-        (dolist (bound bounds)
-          (when (or (not (numberp bound)) (< bound orig))
-            (setq bounds (delq bound bounds))))
-        (goto-char (apply 'min (match-end 0) bounds)))))
-    (point)))
 
 ;;; Region
 
