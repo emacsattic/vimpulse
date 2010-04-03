@@ -402,7 +402,7 @@ only if called in the same state. The functions `vimpulse-map',
 (defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.
 Don't use this function directly; see `vimpulse-map',
-`vimpulse-imap' and `vimpulse-vmap' instead."
+`vimpulse-imap', `vimpulse-vmap' and `vimpulse-omap' instead."
   (let* ((old-state viper-current-state)
          (map (cdr (assq state vimpulse-state-vars-alist)))
          (basic-map (eval (cdr (assq 'basic-map map))))
@@ -477,6 +477,22 @@ Pass t to MODES to create an universal binding with presedence
 over mode-specific bindings."
   (vimpulse-map-state 'visual-state key def modes))
 
+(defun vimpulse-omap (key def &rest modes)
+  "Modally bind KEY to DEF in the Operator-Pending state.
+The syntax is the same as that of `global-set-key', e.g.,
+
+    (vimpulse-omap \"abc\" 'abc-command)
+
+The optional MODES argument specifies which major modes the
+binding is seen in:
+
+    (vimpulse-omap \"abc\" 'abc-command 'lisp-mode 'text-mode)
+
+Otherwise, the binding is universal, but has lower priority.
+Pass t to MODES to create an universal binding with presedence
+over mode-specific bindings."
+  (vimpulse-map-state 'operator-state key def modes))
+
 (defun vimpulse-map! (key def &rest modes)
   "Bind KEY to DEF in vi (command) state and the Visual state.
 To bind in Insert state, use `vimpulse-imap'."
@@ -511,6 +527,16 @@ The syntax is the same as that of `local-set-key', e.g.,
 
 You would typically use this in a mode hook. To make a global
 binding, use `vimpulse-vmap'."
+  (vimpulse-map-state-local 'visual-state key def))
+
+(defun vimpulse-omap-local (key def)
+  "Make a buffer-local binding of KEY to DEF in the Operator-Pending state.
+The syntax is the same as that of `local-set-key', e.g.,
+
+    (vimpulse-omap-local \"abc\" 'abc-command)
+
+You would typically use this in a mode hook. To make a global
+binding, use `vimpulse-omap'."
   (vimpulse-map-state-local 'visual-state key def))
 
 (provide 'vimpulse-modal)
