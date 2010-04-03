@@ -14,6 +14,7 @@ type Header ^
      vimpulse-modal.el ^
      vimpulse-ex.el ^
      vimpulse-paren-matching.el ^
+     vimpulse-operator.el ^
      vimpulse-text-object-system.el ^
      vimpulse-visual-mode.el ^
      vimpulse.el ^

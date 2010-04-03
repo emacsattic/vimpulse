@@ -6,6 +6,7 @@ vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
                  vimpulse-utils.el vimpulse-modal.el \
                  vimpulse-misc-keybindings.el vimpulse-ex.el \
                  vimpulse-paren-matching.el \
+                 vimpulse-operator.el \
                  vimpulse-text-object-system.el \
                  vimpulse-visual-mode.el vimpulse.el
 	cat Header \
@@ -23,6 +24,7 @@ vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
 	    vimpulse-modal.el \
 	    vimpulse-ex.el \
 	    vimpulse-paren-matching.el \
+	    vimpulse-operator.el \
 	    vimpulse-text-object-system.el \
 	    vimpulse-visual-mode.el \
 	    vimpulse.el \
