@@ -10,422 +10,436 @@
 ;;    - quoted expressions: " and '
 ;;    - words: w and W
 ;;
-;; Vimpulse's text objects are very close to Vim's, but the
-;; behavior on certain occasions (e.g., daw issued with the cursor
-;; on whitespace) may be a little different. My aim was not to
-;; achieve the exact same behavior in all limit cases, but rather
-;; to give a close and consistent behavior to the commands.
-;;
-;; Alessandro Piras
+;; Vimpulse's text objects are fairly close to Vim's, and are based on
+;; Viper's movement commands. More objects can easily be added.
 
 ;;; Begin Text Objects code {{{
 
-(defvar vimpulse-last-object-selection nil
-  "Last object selection, in list format: (COUNT CHAR MOTION).")
+(defun vimpulse-mark-range (range-func count &rest range-args)
+  "Select range determined by RANGE-FUNC.
+COUNT and RANGE-ARGS are the arguments to RANGE-FUNC.
+RANGE-FUNC must evaluate to a range (BEG END).
 
-(defun vimpulse-text-object-bounds
-  (backward-func forward-func &optional arg pos)
-  "Returns the boundaries of one or more text objects.
+In Visual mode, the current selection is expanded to include the range.
+If RANGE-FUNC fails to produce a range not already selected, it
+may be called again at a different position in the buffer."
+  (let (vimpulse-this-motion
+        vimpulse-last-motion
+        range beg end dir)
+    (cond
+     ((vimpulse-mark-active)
+      (setq dir (if (< (point) (mark t)) -1 1))
+      (when (eq 'line vimpulse-visual-mode)
+        (vimpulse-visual-activate 'normal))
+      (when (and vimpulse-visual-mode
+                 (not vimpulse-visual-region-expanded))
+        (vimpulse-visual-expand-region))
+      (setq range (apply range-func (* dir count) range-args))
+      (setq beg (car range)
+            end (cadr range))
+      (unless (vimpulse-set-region beg end t)
+        ;; Are we stuck (unchanged region)?
+        ;; Move forward and try again.
+        (viper-forward-char-carefully dir)
+        (setq range (apply range-func (* dir count) range-args))
+        (setq beg (car range)
+              end (cadr range))
+        (vimpulse-set-region beg end t)))
+     (t
+      (setq range (apply range-func count range-args)
+            beg (car range)
+            end (cadr range))
+      (vimpulse-set-region beg end)))))
+
+(defun vimpulse-object-range
+  (count backward-func forward-func &optional pos)
+  "Return a text object range (BEG END).
 BACKWARD-FUNC moves point to the object's beginning,
 FORWARD-FUNC moves to its end. Schematically,
 
-\(vimpulse-text-object-bounds <beg-of-object> <end-of-object>)
+\(vimpulse-object-range <num> <beg-of-object> <end-of-object>)
 
-Boundaries are returned as (START END). If specified,
-ARG controls the number of objects and POS the starting point
-\(`point' by default)."
+COUNT is the number of objects. If negative,
+swap BACKWARD-FUNC and FORWARD-FUNC.
+
+Note: Some of Viper's movement commands, like
+`viper-end-of-word', may not move past the last character
+unless executed in \"range mode\", that is, with an argument
+like (COUNT . ?r). Use a `lambda' wrapper in those cases."
   (let (beg end)
-    (setq arg (or arg 1))
-    ;; If ARG is negative, swap BACKWARD-FUNC and FORWARD-FUNC
-    (cond
-     ((> 0 arg)
-      (setq beg backward-func)
-      (setq backward-func forward-func)
-      (setq forward-func beg))
-     ((= 0 arg)
-      (setq arg 1)))
-    ;; To avoid errors when hitting upon buffer boundaries,
-    ;; we make extensive use of `condition-case' ...
     (save-excursion
-      (when pos
-        (goto-char pos))
-      ;; We might already be at the ending character --
-      ;; go one character back so we don't run past it.
+      (setq count (or (if (eq 0 count) 1 count) 1))
+      (when (> 0 count)
+        (setq forward-func
+              (prog1 backward-func
+                (setq backward-func forward-func))))
       (condition-case nil
-          (if (> 0 arg) (forward-char)
-            (backward-char))
-        (error nil))
-      (condition-case nil
-          (funcall forward-func 1)
-        (error nil))
-      (condition-case nil
-          (funcall backward-func 1)
+          (funcall forward-func (abs count))
         (error nil))
       (setq beg (point))
       (condition-case nil
-          (funcall forward-func (abs arg))
+          (funcall backward-func (abs count))
         (error nil))
-      (setq end (point)))
-    (sort (list beg end) '<)))
+      (setq end (point))
+      (list (min beg end) (max beg end)))))
 
-(defun vimpulse-get-syntaxes-bounds (pos syntaxes)
-  "Returns the bounds of contiguous character that match SYNTAXES,
-where syntaxes is an Emacs' syntax specification."
-  (let ((result))
+(defun vimpulse-an-object-range
+  (count backward-func forward-func &optional include-newlines regexp)
+  "Return a text object range (BEG END) with whitespace.
+Unless INCLUDE-NEWLINES is t, whitespace inclusion is restricted
+to the line(s) the object is on. REGEXP is a regular expression
+for matching whitespace; the default is \"[[:blank:]\\n\\r]+\".
+See `vimpulse-object-range' for more details."
+  (let (range beg end line-beg line-end mark-active-p)
     (save-excursion
-      (goto-char pos)
-      (skip-syntax-forward syntaxes)
-      (add-to-list 'result (1- (point)))
-      (skip-syntax-backward syntaxes)
-      (cons (point) result))))
+      (setq count (or (if (eq 0 count) 1 count) 1))
+      (setq regexp (or regexp "[[:blank:]\n\r]+"))
+      (setq range (vimpulse-object-range
+                   count backward-func forward-func))
+      ;; Let `end' be the boundary furthest from point,
+      ;; based on the direction we are going
+      (if (> 0 count)
+          (setq beg (cadr range)
+                end (car range))
+        (setq beg (car range)
+              end (cadr range)))
+      ;; If INCLUDE-NEWLINES is nil, never move past
+      ;; the line boundaries of the text object
+      (unless include-newlines
+        (setq line-beg (line-beginning-position)
+              line-end (line-end-position))
+        (when (< (max (* count line-beg) (* count line-end))
+                 (* count beg))
+          (setq count (- count))
+          (setq range (vimpulse-object-range
+                       count backward-func forward-func))
+          (if (> 0 count)
+              (setq beg (cadr range)
+                    end (car range))
+            (setq beg (car range)
+                  end (cadr range))))
+        (setq line-beg (save-excursion
+                         (goto-char (min beg end))
+                         (line-beginning-position))
+              line-end (save-excursion
+                         (goto-char (max beg end))
+                         (line-end-position))))
+      ;; Generally only include whitespace at one side (but see below).
+      ;; If we are before the object, include leading whitespace;
+      ;; if we are inside the object, include trailing whitespace.
+      ;; If trailing whitespace inclusion fails, include leading.
+      (setq count (if (> 0 count) -1 1))
+      (when (or (< (* count (point)) (* count beg))
+                (eq end (setq end (save-excursion
+                                    (goto-char end)
+                                    (vimpulse-skip-regexp
+                                     regexp count line-beg line-end)))))
+        (setq beg (save-excursion
+                    (goto-char beg)
+                    (if (and (not include-newlines)
+                             (looking-back "^[[:blank:]]*"))
+                        beg
+                      (vimpulse-skip-regexp
+                       regexp (- count) line-beg line-end))))
+        ;; Before/after adjustment for whole lines: if the object is
+        ;; followed by a blank line, include that as trailing
+        ;; whitespace and subtract a line from the leading whitespace
+        (when include-newlines
+          (goto-char end)
+          (forward-line count)
+          (when (looking-at "[[:blank:]]*$")
+            (setq end (line-beginning-position))
+            (goto-char beg)
+            (when (looking-at "[[:blank:]]*$")
+              (forward-line count)
+              (setq beg (line-beginning-position))))))
+      ;; Return the range
+      (list (min beg end) (max beg end)))))
 
-(defvar vimpulse-paren-matching-table
-  (make-hash-table)
-  "Table used for paren matching:
-table[key] = (match . opening-paren)"
-  )
-(puthash ?\(
-         '( ?\) . ?\( )
-         vimpulse-paren-matching-table)
-(puthash ?\)
-         '( ?\( . ?\( )
-         vimpulse-paren-matching-table)
-(puthash ?{
-         '( ?} . ?\{ )
-         vimpulse-paren-matching-table)
-(puthash ?}
-         '( ?{ . ?\{ )
-         vimpulse-paren-matching-table)
-(puthash ?\[
-         '( ?\] . ?\[)
-         vimpulse-paren-matching-table)
-(puthash ?\]
-         '( ?\[ . ?\[ )
-         vimpulse-paren-matching-table)
-(puthash ?\<
-         '( ?\> . ?\< )
-         vimpulse-paren-matching-table)
-(puthash ?\>
-         '( ?\< . ?\< )
-         vimpulse-paren-matching-table)
+(defun vimpulse-inner-object-range
+  (count backward-func forward-func)
+  "Return a text object range (BEG END) including point.
+If point is outside the object, it is included in the range.
+To include whitespace, use `vimpulse-an-object-range'.
+See `vimpulse-object-range' for more details."
+  (let (range beg end line-beg line-end)
+    (setq count (or (if (eq 0 count) 1 count) 1))
+    (setq range (vimpulse-object-range
+                 count backward-func forward-func))
+    (setq beg (car range)
+          end (cadr range))
+    (setq line-beg (line-beginning-position)
+          line-end (line-end-position))
+    (when (< (max (* count line-beg) (* count line-end))
+             (min (* count beg) (* count end)))
+      (setq count (- count))
+      (setq range (vimpulse-object-range
+                   count backward-func forward-func)
+            beg (car range)
+            end (cadr range)))
+    ;; Return the range, including point
+    (list (min beg (point)) (max end (point)))))
 
-(defun vimpulse-skip-until-delimiters (pos paren match limb lime dir)
-  "Skips all the character different from PAREN and MATCH starting
-from POS following the direction DIR, with POS in [LIMB, LIME]."
-  (let ((pos-1 pos))
-    (while (and (/= (char-after pos-1) paren)
-                (/= (char-after pos-1) match)
-                (or (and (= dir -1) (/= pos-1 limb)) ;; reached limits
-                    (and (= dir 1) (/= pos-1 lime))))
-      (setq pos-1 (+ dir pos-1)))
-    pos-1))
+(defun vimpulse-paren-range (count &optional open close include-parentheses)
+  "Return a parenthetical expression range (BEG END).
+The type of parentheses may be specified with OPEN and CLOSE,
+which must be characters. INCLUDE-PARENTHESES specifies
+whether to include the parentheses in the range."
+  (let ((beg (point)) (end (point)))
+    (setq count (if (eq 0 count) 1 (abs count)))
+    (save-excursion
+      (setq open  (if (characterp open)
+                      (regexp-quote (string open)) "")
+            close (if (characterp close)
+                      (regexp-quote (string close)) ""))
+      (when (and (not (string= "" open))
+                 (looking-at open))
+        (forward-char))
+      (while (progn
+               (vimpulse-backward-up-list 1)
+               (not (when (looking-at open)
+                      (when (save-excursion
+                              (forward-sexp)
+                              (when (looking-back close)
+                                (setq end (point))))
+                        (if (<= 0 count)
+                            (setq beg (point))
+                          (setq count (1- count)) nil))))))
+      (if include-parentheses
+          (list beg end)
+        (list (min (1+ beg) end) (max (1- end) beg))))))
 
-(defun vimpulse-find-first-unbalanced-1 (pos paren match limb lime dir)
-  "Finds the first unbalanced PAREN following the direction DIR, starting
-from position POS. MATCH is the paren that matches with PAREN, LIMB is the
-lower bound of the position, LIME is the upper bound to the position."
-  (cond
-   ((or (eq pos 'not-found))
-    'not-found)
-   ((= (char-after pos) paren)
-    pos)
-   ((or (and (= dir -1) (= pos limb)) ;; reached limits
-        (and (= dir 1) (= pos lime)))
-    'not-found)
-   ((= (char-after pos) match) ;;
-    (let ((pos-1 (vimpulse-find-first-unbalanced-1 (+ dir pos) paren match limb lime dir)))
-      (vimpulse-find-first-unbalanced-1 (+ dir pos-1) paren match limb lime dir)))
-   (t
-    (let ((pos-1 (vimpulse-skip-until-delimiters pos paren match limb lime dir)))
-      (vimpulse-find-first-unbalanced-1 pos-1 paren match limb lime dir)))))
+(defun vimpulse-quote-range (count &optional quote include-quotes)
+  "Return a quoted expression range (BEG END).
+QUOTE is a quote character (default ?\\\"). INCLUDE-QUOTES
+specifies whether to include the quote marks in the range."
+  (let ((beg (point)) (end (point)))
+    (setq count (if (eq 0 count) 1 (abs count)))
+    (setq quote (or quote ?\"))
+    (save-excursion
+      (setq quote (if (characterp quote)
+                      (regexp-quote (string quote)) ""))
+      (when (and (not (string= "" quote))
+                 (looking-at quote))
+        (forward-char))
+      ;; Search forward for a closing quote
+      (while (and (< 0 count)
+                  (re-search-forward (concat "[^\\\\]" quote) nil t))
+        (setq count (1- count))
+        (setq end (point))
+        ;; Find the matching opening quote
+        (condition-case nil
+            (setq beg (scan-sexps end -1))
+          ;; Finding the opening quote failed. Maybe we're already at
+          ;; the opening quote and should look for the closing instead?
+          (error (condition-case nil
+                     (progn
+                       (viper-backward-char-carefully)
+                       (setq beg (point))
+                       (setq end (scan-sexps beg 1)))
+                   (error (setq end beg))))))
+      (if include-quotes
+          (list beg end)
+        (list (min (1+ beg) end) (max (1- end) beg))))))
 
-(defvar vimpulse-balanced-bounds-char-list
-  (list
-   ?\( ?\) ?\[ ?\] ?\{ ?\} ?\< ?\>)
-  "Parens supported by the text-object system.")
+(defun vimpulse-a-word (arg)
+  "Select a word."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-an-object-range arg
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-backward-word (cons arg ?r))))
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-end-of-word (cons arg ?r))))))
 
-(defun vimpulse-get-balanced-bounds (pos paren)
-  "Returns the boundaries of a balanced expression."
-  (let* ((limb (point-min))
-         (lime (1- (point-max)))
-         (paren-o (cdr (gethash paren vimpulse-paren-matching-table)))
-         (paren-c (car (gethash paren-o vimpulse-paren-matching-table)))
-         (pos-o (vimpulse-find-first-unbalanced-1 pos paren-o paren-c limb lime -1))
-         (pos-c (vimpulse-find-first-unbalanced-1 (if (integerp pos-o) (1+ pos-o) pos-o) paren-c paren-o limb lime 1)))
-    (cond
-     ((eq pos-c 'not-found)
-      nil)
-     (t
-      (list pos-o pos-c)))))
+(defun vimpulse-inner-word (arg)
+  "Select inner word."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-inner-object-range arg
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-backward-word (cons arg ?r))))
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-end-of-word (cons arg ?r))))))
 
-(defun vimpulse-get-vword-bounds (pos)
-  "Returns the boundaries of a word."
-  (let (syntax)
-    (unless (eobp)
-      (setq syntax (char-syntax (char-after pos))))
-    (cond
-     ((eq syntax ?\))
-      (vimpulse-get-syntaxes-bounds pos (string syntax)))
-     ((eq syntax ?\()
-      (vimpulse-get-syntaxes-bounds pos (string syntax)))
-     (t
-      (save-excursion
-        (goto-char pos)
-        (vimpulse-text-object-bounds
-         (lambda (arg)
-           (forward-char)
-           (viper-backward-word arg))
-         (lambda (arg)
-           (viper-end-of-word (cons arg ?r))
-           (viper-backward-char-carefully))))))))
+(defun vimpulse-a-Word (arg)
+  "Select a Word."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-an-object-range arg
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-backward-Word (cons arg ?r))))
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-end-of-Word (cons arg ?r))))))
 
-(defun vimpulse-get-vWord-bounds (pos)
-  "Returns the boundaries of a Word."
-  (save-excursion
-    (goto-char pos)
-    (vimpulse-text-object-bounds
-     (lambda (arg)
-       (forward-char)
-       (viper-backward-Word arg))
-     (lambda (arg)
-       (unless (looking-at "[[:space:]]"))
-       (viper-end-of-Word arg)))))
+(defun vimpulse-inner-Word (arg)
+  "Select inner Word."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-inner-object-range arg
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-backward-Word (cons arg ?r))))
+   (lambda (arg)
+     (vimpulse-limit (line-beginning-position) (line-end-position)
+       (viper-end-of-Word (cons arg ?r))))))
 
-(defun vimpulse-get-sentence-bounds (pos)
-  "Returns the boundaries of a sentence."
-  (save-excursion
-    (goto-char pos)
-    (vimpulse-text-object-bounds
-     (lambda (arg)
-       (viper-backward-sentence arg)
-       (when (looking-at "[[:space:]]*$")
-         (forward-char)))
-     (lambda (arg)
-       (viper-forward-sentence arg)
-       (backward-char)))))
+(defun vimpulse-a-sentence (arg)
+  "Select a sentence."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-an-object-range arg
+   (lambda (arg)
+     (viper-backward-sentence arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+   (lambda (arg)
+     (viper-forward-sentence arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1))))
 
-(defun vimpulse-get-paragraph-bounds (pos)
-  "Returns the boundaries of a paragraph."
-  (save-excursion
-    (goto-char pos)
-    (vimpulse-text-object-bounds
-     (lambda (arg)
-       (viper-backward-paragraph arg)
-       (unless (bobp) (forward-char)))
-     (lambda (arg)
-       (viper-forward-paragraph arg)
-       (backward-char)))))
+(defun vimpulse-inner-sentence (arg)
+  "Select inner sentence."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-inner-object-range arg
+   (lambda (arg)
+     (viper-backward-sentence arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+   (lambda (arg)
+     (viper-forward-sentence arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1))))
 
-(defun vimpulse-get-paired-bounds (pos char)
-  "Returns the boundaries of a CHAR-quoted expression."
-  (save-excursion
-    (goto-char pos)
-    (if (= (char-before (point)) ?\\) (backward-char))
-    (let ((result))
-      (when (re-search-forward (concat "[^\\\\]" (string char)) (point-max) t)
-        (add-to-list 'result (1- (point)))
-        (condition-case ()
-            (add-to-list 'result (scan-sexps (point) -1))
-          (error (setq result nil))))
-      result)))
+(defun vimpulse-a-paragraph (arg)
+  "Select a paragraph."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-an-object-range arg
+   (lambda (arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1)
+     (viper-backward-paragraph arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+   (lambda (arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1)
+     (viper-forward-paragraph arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1)) t))
 
-(defvar vimpulse-paired-expression-delimiters (list ?\" ?\')
-  "Quotes supported by the text-object system.")
+(defun vimpulse-inner-paragraph (arg)
+  "Select inner paragraph."
+  (interactive "p")
+  (vimpulse-mark-range
+   'vimpulse-inner-object-range arg
+   (lambda (arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1)
+     (viper-backward-paragraph arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+   (lambda (arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1)
+     (viper-forward-paragraph arg)
+     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1))))
 
-(defun vimpulse-get-text-object-bounds-i (pos motion)
-  "Returns the inner boundaries of a text object at point POS.
-MOTION identifies the text object:
-  - w -> word
-  - W -> Word
-  - s -> sentence
-  - p -> paragraph
-  - <paren> -> paren block (see variable `vimpulse-paren-matching-table'
-               to see the supported parens).
-  - <quote> -> quoted expression (see variable `paired-expression-delimiter'
-               to see the type of quotes supported)."
-  (cond
-   ((= motion ?w) (vimpulse-get-vword-bounds pos))
-   ((= motion ?W) (vimpulse-get-vWord-bounds pos))
-   ((= motion ?s) (vimpulse-get-sentence-bounds pos))
-   ((= motion ?p) (vimpulse-get-paragraph-bounds pos))
-   ((memq motion vimpulse-paired-expression-delimiters)
-    (let ((bounds (vimpulse-get-paired-bounds pos motion)))
-      (when bounds
-        (let ((s (car bounds)) (e (cadr bounds)))
-          (list (1+ s) (1- e))))))
-   ((or (= motion ?b) (= motion ?B)
-        (memq motion vimpulse-balanced-bounds-char-list))
-    (when (= motion ?b) (setq motion ?\())
-    (when (= motion ?B) (setq motion ?\{))
-    (let ((bounds (vimpulse-get-balanced-bounds pos motion)))
-      (when bounds
-        (let ((s (car bounds)) (e (cadr bounds)))
-          (list (1+ s) (1- e))))))))
+(defun vimpulse-a-paren (arg)
+  "Select a parenthesis."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?\( nil t))
 
-(defun vimpulse-get-bounds-with-whitespace (func pos &optional trailing-newlines)
-  "Given a function that returns inner boundaries, returns a boundary that includes
-the whitespace needed to get the \"a\" behavior. The logic
-followed is the same:
-  - include all whitespace and newlines before the text object
-  - include the text object
-  - include trailing whitespace
-  - if trailing-newlines is t, include also the trailing newlines"
-  (save-excursion
-    (goto-char pos)
-    (let ((start (point))
-          (end nil))
-      (skip-chars-forward "[:blank:]\n\r")
-      (let ((bounds (apply func  (list (point)))))
-        (cond
-         (bounds
-          (goto-char (1+ (cadr bounds)))
-          (skip-chars-forward (if trailing-newlines "[:blank:]\n\r" "[:blank:]"))
-          (list (min start (car bounds)) (1- (point))))
-         (t nil))))))
+(defun vimpulse-inner-paren (arg)
+  "Select inner parenthesis."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?\())
 
-(defun vimpulse-get-text-object-bounds-a (pos motion)
-  "Returns the boundaries of \"a\" text object, including whitespace."
-  (cond
-   ((= motion ?w)
-    (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vword-bounds pos))
-   ((= motion ?W) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-vWord-bounds pos))
-   ((= motion ?s) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-sentence-bounds pos t))
-   ((= motion ?p) (vimpulse-get-bounds-with-whitespace 'vimpulse-get-paragraph-bounds pos t))
-   ((= motion ?b)
-    (setq motion ?\()
-    (vimpulse-get-balanced-bounds pos motion))
-   ((= motion ?B)
-    (setq motion ?\{)
-    (vimpulse-get-balanced-bounds pos motion))
-   ((memq motion vimpulse-paired-expression-delimiters)
-    (vimpulse-get-paired-bounds pos motion))
-   ((memq motion vimpulse-balanced-bounds-char-list)
-    (vimpulse-get-balanced-bounds pos motion))))
+(defun vimpulse-a-bracket (arg)
+  "Select a bracket parenthesis."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?\[ nil t))
 
-(defun vimpulse-get-text-object-bounds (pos char motion)
-  "Returns the boundaries of a text object. 'pos' indicates the start position,
-char indicates 'inner' (?i) or 'a' (?a) behavior, 'motion' indicates the text-object."
-  (cond
-   ((= char ?a) (vimpulse-get-text-object-bounds-a pos motion))
-   ((= char ?i) (vimpulse-get-text-object-bounds-i pos motion))
-   ((= char ?r) (list pos (+ pos (- (cadr motion) (car motion) 1))))
-   ((= char ?l) (vimpulse-get-line-margins pos))
-   (t (error "called with wrong arguments"))))
+(defun vimpulse-inner-bracket (arg)
+  "Select inner bracket parenthesis."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?\[))
 
-(defun vimpulse-message-all-args (&rest args)
-  "Helper function that prints all its arguments, plus some other values."
-  (message "ARGS: %s, reg: %s" args (string viper-use-register)))
+(defun vimpulse-a-curly (arg)
+  "Select a curly parenthesis."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?{ nil t))
 
-;;; Commands
+(defun vimpulse-inner-curly (arg)
+  "Select inner curly parenthesis."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?{))
 
-(defun vimpulse-unify-multiple-bounds (pos char count motion)
-  "Returns the boundaries of a multiple text object motion.
-POS is the starting position,
-CHAR indicates 'inner' or 'a' behavior,
-COUNT indicates how many text objects to include,
-MOTION indicates the kind of text object."
-  (let* ((bounds-1 (vimpulse-get-text-object-bounds pos char motion))
-         (start (when bounds-1 (car bounds-1)))
-         (end (when bounds-1 (cadr bounds-1))))
-    (dotimes (i (1- count))
-      (setq end (cadr (vimpulse-get-text-object-bounds (1+ end) char motion))))
-    (if end (list start end) nil)))
+(defun vimpulse-an-angle (arg)
+  "Select an angle bracket."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?< nil t))
 
-(defun vimpulse-delete-text-objects-function (arg)
-  "Deletes COUNT text objects of MOTION kind starting from `point',
-following the behavior indicated by CHAR: ?i stands for \"inner\",
-?a stands for \"a\". ARG has the form ((COUNT CHAR MOTION) . ?d)."
-  (let* ((count  (nth 0 (car arg)))
-         (char   (nth 1 (car arg)))
-         (motion (nth 2 (car arg)))
-         (bounds (vimpulse-unify-multiple-bounds
-                  (point) char count motion)))
-    (when bounds
-      (when viper-use-register          ; copy stuff to registers
-        ;; This code is taken from `viper-exec-delete'
-        (cond
-         ((viper-valid-register viper-use-register '(letter digit))
-          (copy-to-register
-           viper-use-register (car bounds) (1+ (cadr bounds)) nil))
-         ((viper-valid-register viper-use-register '(Letter))
-          (viper-append-to-register
-           (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
-         (t (setq viper-use-register nil)
-            (error viper-InvalidRegister viper-use-register)))
-        (setq viper-use-register nil))
-      ;; End of `viper-exec-delete' code
-      (goto-char (car bounds))
-      (set-mark (1+ (cadr bounds)))
-      (kill-region (car bounds) (1+ (cadr bounds))))))
+(defun vimpulse-inner-angle (arg)
+  "Select inner angle bracket."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-paren-range arg ?<))
 
-(defun vimpulse-delete-text-objects-command (count char)
-  "Deletes COUNT text objects following the behavior CHAR ('inner' or 'a').
-The user is queried for the type of object with `read-char'."
-  (interactive)
-  (let ((motion (read-char)))
-    (viper-set-destructive-command (list 'vimpulse-delete-text-objects-function
-                                         (list count char motion) ?d viper-use-register nil nil))
-    (vimpulse-delete-text-objects-function (cons (list count char motion) ?d))))
+(defun vimpulse-a-single-quote (arg)
+  "Select a single quoted expression."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-quote-range arg ?' t))
 
-(defun vimpulse-change-text-objects-function (arg)
-  "Executes `vimpulse-delete-text-objects-function' passing ARG to it and yanks the last insertion."
-  (vimpulse-delete-text-objects-function arg)
-  (viper-yank-last-insertion))
+(defun vimpulse-inner-single-quote (arg)
+  "Select inner single quoted expression."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-quote-range arg ?'))
 
-(defun vimpulse-change-text-objects-command (count char)
-  "Changes COUNT text objects following the behavior CHAR (\"inner\" or \"a\").
-The kind of text object is asked interactively to the user using `read-char'."
-  (interactive)
-  (let ((motion (read-char)))
-    (viper-set-destructive-command (list 'vimpulse-change-text-objects-function (list count char motion)
-                                         ?c viper-use-register nil nil))
-    (vimpulse-delete-text-objects-function (cons (list count char motion) ?c))
-    (viper-change-state-to-insert)))
+(defun vimpulse-a-double-quote (arg)
+  "Select a double quoted expression."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-quote-range arg ?\" t))
 
-(defun vimpulse-yank-text-objects-function (arg)
-  "Yanks COUNT text objects of MOTION kind starting from `point',
-following the behavior indicated by CHAR: ?i stands for \"inner\",
-?a stands for \"a\". ARG has the form ((COUNT CHAR MOTION) . ?d)."
-  (let* ((count  (nth 0 (car arg)))
-         (char   (nth 1 (car arg)))
-         (motion (nth 2 (car arg)))
-         (bounds (vimpulse-unify-multiple-bounds
-                  (point) char count motion)))
-    (when bounds
-      (when viper-use-register        ; copy stuff to registers
-        ;; This code is taken from `viper-exec-delete'
-        (cond
-         ((viper-valid-register viper-use-register '(letter digit))
-          (copy-to-register
-           viper-use-register (car bounds) (1+ (cadr bounds)) nil))
-         ((viper-valid-register viper-use-register '(Letter))
-          (viper-append-to-register
-           (downcase viper-use-register) (car bounds) (1+ (cadr bounds))))
-         (t (setq viper-use-register nil)
-            (error viper-InvalidRegister viper-use-register)))
-        (setq viper-use-register nil))
-      ;; End of `viper-exec-delete' code
-      (copy-region-as-kill (car bounds) (1+ (cadr bounds)))
-      (goto-char (car bounds)))))
+(defun vimpulse-inner-double-quote (arg)
+  "Select inner double quoted expression."
+  (interactive "p")
+  (vimpulse-mark-range 'vimpulse-quote-range arg ?\"))
 
-(defun vimpulse-yank-text-objects-command (count char)
-  "Yanks COUNT text objects following the behavior CHAR ('inner' or 'a').
-The kind of text object is asked interactively to the user using `read-char'."
-  (interactive)
-  (let ((motion (read-char)))
-    (vimpulse-yank-text-objects-function (cons (list count char motion) ?y))))
+(defun vimpulse-line (&optional arg)
+  "Select ARG lines."
+  (setq arg (or arg 1))
+  (set-mark (line-beginning-position (1+ arg)))
+  (beginning-of-line))
 
-;; This is for silencing Viper when it checks if the insertion must be
-;; repeated, never true for this kind of commands.
-(defvar vimpulse-text-objects-command
-  '(vimpulse-delete-text-objects-function
-    vimpulse-change-text-objects-function
-    vimpulse-yank-text-objects-function))
-
-(defadvice viper-repeat-insert-command
-  (around vimpulse-text-objects-repeat-insert-command-fix activate)
-  (when (not (memq (car viper-d-com) vimpulse-text-objects-command))
-    ad-do-it))
+(define-key vimpulse-operator-basic-map "aw" 'vimpulse-a-word)
+(define-key vimpulse-operator-basic-map "iw" 'vimpulse-inner-word)
+(define-key vimpulse-operator-basic-map "aW" 'vimpulse-a-Word)
+(define-key vimpulse-operator-basic-map "iW" 'vimpulse-inner-Word)
+(define-key vimpulse-operator-basic-map "as" 'vimpulse-a-sentence)
+(define-key vimpulse-operator-basic-map "is" 'vimpulse-inner-sentence)
+(define-key vimpulse-operator-basic-map "ap" 'vimpulse-a-paragraph)
+(define-key vimpulse-operator-basic-map "ip" 'vimpulse-inner-paragraph)
+(define-key vimpulse-operator-basic-map "ab" 'vimpulse-a-paren)
+(define-key vimpulse-operator-basic-map "a(" 'vimpulse-a-paren)
+(define-key vimpulse-operator-basic-map "a)" 'vimpulse-a-paren)
+(define-key vimpulse-operator-basic-map "ib" 'vimpulse-inner-paren)
+(define-key vimpulse-operator-basic-map "i(" 'vimpulse-inner-paren)
+(define-key vimpulse-operator-basic-map "i)" 'vimpulse-inner-paren)
+(define-key vimpulse-operator-basic-map "aB" 'vimpulse-a-curly)
+(define-key vimpulse-operator-basic-map "a{" 'vimpulse-a-curly)
+(define-key vimpulse-operator-basic-map "a}" 'vimpulse-a-curly)
+(define-key vimpulse-operator-basic-map "iB" 'vimpulse-inner-curly)
+(define-key vimpulse-operator-basic-map "i{" 'vimpulse-inner-curly)
+(define-key vimpulse-operator-basic-map "i}" 'vimpulse-inner-curly)
+(define-key vimpulse-operator-basic-map "a[" 'vimpulse-a-bracket)
+(define-key vimpulse-operator-basic-map "a]" 'vimpulse-a-bracket)
+(define-key vimpulse-operator-basic-map "i[" 'vimpulse-inner-bracket)
+(define-key vimpulse-operator-basic-map "i]" 'vimpulse-inner-bracket)
+(define-key vimpulse-operator-basic-map "a<" 'vimpulse-an-angle)
+(define-key vimpulse-operator-basic-map "a>" 'vimpulse-an-angle)
+(define-key vimpulse-operator-basic-map "i<" 'vimpulse-inner-angle)
+(define-key vimpulse-operator-basic-map "i>" 'vimpulse-inner-angle)
+(define-key vimpulse-operator-basic-map "a\"" 'vimpulse-a-double-quote)
+(define-key vimpulse-operator-basic-map "i\"" 'vimpulse-inner-double-quote)
+(define-key vimpulse-operator-basic-map "a'" 'vimpulse-a-single-quote)
+(define-key vimpulse-operator-basic-map "i'" 'vimpulse-inner-single-quote)
 
 ;;; }}} End Text Objects code
 
