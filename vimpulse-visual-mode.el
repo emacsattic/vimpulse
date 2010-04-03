@@ -243,8 +243,6 @@ May also be used to change the Visual mode."
     (vimpulse-transient-mark 1)
     (vimpulse-activate-mark))))
 
-(defalias 'vimpulse-change-state-to-visual 'vimpulse-visual-activate)
-
 (defun vimpulse-visual-toggle (mode)
   "Enable Visual MODE if this is not the current mode.
 Otherwise disable Visual mode."
@@ -523,10 +521,20 @@ See also `vimpulse-visual-beginning'."
         (line-beginning-position 2))))
      ;; End of region plus one character (but not at end of line)
      (t
-      (goto-char (max (point) (or (mark t) 1)))
-      (if (eolp)
+      (if (save-excursion
+            (goto-char (max (point) (or (mark t) 1)))
+            (and (eolp)
+                 (not (bolp))))
           (max (point) (or (mark t) 1))
         (1+ (max (point) (or (mark t) 1))))))))
+
+(defun vimpulse-visual-range ()
+  "Return Visual selection range (BEG END)."
+  (if vimpulse-visual-mode
+      (list (vimpulse-visual-beginning)
+            (vimpulse-visual-end))
+    (list (or (region-beginning) (point))
+          (or (region-end) (point)))))
 
 (defun vimpulse-visual-select (beg end &optional widen)
   "Visually select text from BEG to END.
