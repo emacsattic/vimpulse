@@ -7,6 +7,7 @@
 (require 'vimpulse-modal)
 (require 'vimpulse-ex)
 (require 'vimpulse-paren-matching)
+(require 'vimpulse-operator)
 (require 'vimpulse-text-object-system)
 (require 'vimpulse-visual-mode)
 

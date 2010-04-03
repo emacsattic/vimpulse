@@ -15,7 +15,8 @@
 ;; This is pretty transparent, except that we don't wish to do any
 ;; translating when the user is just moving around in the buffer.
 ;; To that end, the variable `vimpulse-movement-cmds' lists all of
-;; Viper's movement commands, so that translation can be postphoned.
+;; Viper's movement commands, so that translation can be postphoned
+;; until the user executes a non-movement command.
 ;;
 ;; Block selections are rectangle compatible. This means Emacs'
 ;; rectangular commands are applicable on the selection, and you can
@@ -34,6 +35,8 @@ selection on each line."
   :id "<VIS> "
   :basic-minor-mode 'vimpulse-visual-mode
   :enable '((vimpulse-visual-mode (or vimpulse-visual-mode t))
+            (vimpulse-operator-remap-minor-mode nil)
+            operator-state
             vi-state)
   (cond
    ((eq 'visual-state new-state)
@@ -980,9 +983,9 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     vimpulse-goto-definition vimpulse-goto-first-line
     vimpulse-goto-first-line vimpulse-visual-block-rotate
     vimpulse-visual-exchange-corners vimpulse-visual-restore
-    vimpulse-visual-select-text-object vimpulse-visual-toggle-block
-    vimpulse-visual-toggle-line vimpulse-visual-toggle-normal
-    viper-backward-Word viper-backward-char viper-backward-paragraph
+    vimpulse-visual-toggle-block vimpulse-visual-toggle-line
+    vimpulse-visual-toggle-normal viper-backward-Word
+    viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
     viper-beginning-of-line viper-end-of-Word viper-end-of-word
     viper-exec-mapped-kbd-macro viper-find-char-backward
@@ -1264,12 +1267,6 @@ If DONT-SAVE is non-nil, just delete it."
       (viper-next-line (cons nlines ?>)))
     (vimpulse-connect-undos)))
 
-;;; Intermediate commands
-
-(defun vimpulse-visual-set-current-register ()
-  (interactive)
-  (setq viper-use-register (read-char)))
-
 ;;; Non-destructive commands
 
 (defun vimpulse-visual-yank (beg end)
@@ -1291,48 +1288,6 @@ If DONT-SAVE is non-nil, just delete it."
     (error "Not in Visual mode")))
   (vimpulse-visual-mode -1)
   (goto-char beg))
-
-(defun vimpulse-visual-select-text-object
-  (count &optional char motion)
-  "Visually select a text object, read from keyboard."
-  (interactive "p")
-  (let* ((char   (or char last-command-event))
-         (motion (or motion (read-char)))
-         (bounds (vimpulse-unify-multiple-bounds
-                  (point) char count motion))
-         (beg    (car bounds))
-         (end    (cadr bounds)))
-    (when (and beg end)
-      (setq end (1+ end))
-      (unless (vimpulse-visual-select beg end t)
-        ;; We're stuck; move and try again
-        (if (< (point) (mark t))
-            (backward-char) (forward-char))
-        (setq bounds (vimpulse-unify-multiple-bounds
-                      (point) char count motion)
-              beg (car bounds)
-              end (cadr bounds))
-        (when (and beg end)
-          (vimpulse-visual-select beg end t)))
-      (setq vimpulse-last-object-selection
-            (list count char motion)))))
-
-(defun vimpulse-widen-selection (beg end)
-  "Widen Visual selection to BEG and END.
-When called interactively, derives BEG and END from
-previous text object selection."
-  (interactive
-   (let ((count  (nth 0 vimpulse-last-object-selection))
-         (char   (nth 1 vimpulse-last-object-selection))
-         (motion (nth 2 vimpulse-last-object-selection)))
-     (when vimpulse-last-object-selection
-       (vimpulse-visual-select-text-object count char motion))
-     '(nil nil)))                       ; that's it, we're done
-  (cond
-   ((or (not (numberp beg)) (not (numberp end)))
-    nil)
-   (t
-    (vimpulse-visual-select beg end t))))
 
 ;;; Block selection
 
@@ -1617,7 +1572,6 @@ Returns the insertion point."
 (define-key vimpulse-visual-basic-map "C" 'vimpulse-visual-change)
 (define-key vimpulse-visual-basic-map "s" 'vimpulse-visual-change)
 (define-key vimpulse-visual-basic-map "S" 'vimpulse-visual-change)
-(define-key vimpulse-visual-basic-map "\"" 'vimpulse-visual-set-current-register)
 (define-key vimpulse-visual-basic-map "o" 'exchange-point-and-mark)
 (define-key vimpulse-visual-basic-map "O" 'vimpulse-visual-exchange-corners)
 (define-key vimpulse-visual-basic-map "I" 'vimpulse-visual-insert)
@@ -1629,8 +1583,6 @@ Returns the insertion point."
 (define-key vimpulse-visual-basic-map "<" 'vimpulse-visual-shift-left)
 (define-key vimpulse-visual-basic-map ">" 'vimpulse-visual-shift-right)
 (define-key vimpulse-visual-basic-map "=" 'indent-region)
-(define-key vimpulse-visual-basic-map "a" 'vimpulse-visual-select-text-object)
-(define-key vimpulse-visual-basic-map "i" 'vimpulse-visual-select-text-object)
 ;; Keys that have no effect in Visual mode
 (define-key vimpulse-visual-basic-map [remap viper-repeat] 'viper-nil)
 
