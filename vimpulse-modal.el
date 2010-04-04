@@ -170,7 +170,7 @@ This is useful for deriving a \"standard\" key-sequence from
          (length (length temp-sequence)))
     ;; If XEmacs, get rid of the event object type
     (and (featurep 'xemacs) (eventp key)
-         (setq key (event-to-character key)))
+         (setq key (event-to-character key nil t)))
     ;; Any keys bound to `universal-argument', `digit-argument' or
     ;; `negative-argument' or bound in `universal-argument-map'
     ;; are considered prefix keys.
@@ -184,7 +184,7 @@ This is useful for deriving a \"standard\" key-sequence from
                 (< offset length))
       (setq key (aref temp-sequence offset))
       (and (featurep 'xemacs) (eventp key)
-           (setq key (event-to-character key))))
+           (setq key (event-to-character key nil t))))
     (vimpulse-truncate temp-sequence length offset)))
 
 (defun vimpulse-modal-check (key-sequence)

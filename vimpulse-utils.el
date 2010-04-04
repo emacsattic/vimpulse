@@ -207,6 +207,31 @@ Returns the new position."
       (when (looking-at regexp)
         (goto-char (match-end 0))))))
 
+;; XEmacs only has `looking-at'
+(unless (fboundp 'looking-back)
+  (defun looking-back (regexp &optional limit greedy)
+    "Return t if text before point matches regular expression REGEXP."
+    (let ((start (point))
+          (pos
+           (save-excursion
+             (and (re-search-backward
+                   (concat "\\(?:" regexp "\\)\\=") limit t)
+                  (point)))))
+      (if (and greedy pos)
+          (save-restriction
+            (narrow-to-region (point-min) start)
+            (while (and (> pos (point-min))
+                        (save-excursion
+                          (goto-char pos)
+                          (backward-char 1)
+                          (looking-at
+                           (concat "\\(?:" regexp "\\)\\'"))))
+              (setq pos (1- pos)))
+            (save-excursion
+              (goto-char pos)
+              (looking-at (concat "\\(?:"  regexp "\\)\\'")))))
+      (not (null pos)))))
+
 (defun vimpulse-backward-up-list (&optional arg)
   "Like `backward-up-list', but breaks out of strings."
   (interactive "p")
@@ -226,6 +251,34 @@ Returns the new position."
   "Return face of region."
   (if (featurep 'xemacs) 'zmacs-region 'region))
 
+(defun vimpulse-deactivate-region (&optional now)
+  "Deactivate region, respecting Emacs version."
+  (cond
+   ((and (boundp 'cua-mode) cua-mode)
+    (cua--deactivate now))
+   ((featurep 'xemacs)
+    (let ((zmacs-region-active-p t))
+      (zmacs-deactivate-region)))
+   (now
+    (setq mark-active nil))
+   (t
+    (setq deactivate-mark t))))
+
+(defun vimpulse-activate-region (&optional pos)
+  "Activate mark if there is one. Otherwise set mark at point.
+If POS if specified, set mark at POS instead."
+  (setq pos (or pos (mark t) (point)))
+  (cond
+   ((and (boundp 'cua-mode) cua-mode)
+    (let ((opoint (point))
+          cua-toggle-set-mark)
+      (goto-char (or pos (mark t) (point)))
+      (cua-set-mark)
+      (goto-char opoint)))
+   (t
+    (let (this-command)
+      (push-mark pos t t)))))
+
 (defun vimpulse-set-region (beg end &optional widen dir)
   "Set Emacs region to BEG and END.
 Preserves the order of point and mark, unless specified by DIR:
@@ -240,6 +293,8 @@ BEG and END. Returns nil if region is unchanged."
      (max beg end (region-end))
      nil dir))
    (t
+    (unless (vimpulse-mark-active)
+      (vimpulse-activate-region))
     (let* ((oldpoint (point))
            (oldmark  (or (mark t) oldpoint))
            (newmark  (min beg end))
