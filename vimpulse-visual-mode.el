@@ -296,9 +296,8 @@ Otherwise disable Visual mode."
 
 (defun vimpulse-mark-active (&optional force)
   "Return t if mark is meaningfully active.
-That is, if it's not about to be deactivated,
-and if there is a Transient Mark mode (or similar)
-to handle it."
+That is, `mark-active' is t, it's not about to be deactivated,
+and there is a Transient Mark mode (or similar) to handle it."
   (cond
    ((featurep 'xemacs)
     (region-exists-p))
@@ -319,33 +318,11 @@ to handle it."
    ((and vimpulse-visual-mode
          (not (eq 'block vimpulse-visual-mode)))
     nil)
-   ((and (boundp 'cua-mode) cua-mode)
-    (cua--deactivate now))
-   ((featurep 'xemacs)
-    (let ((zmacs-region-active-p t))
-      (zmacs-deactivate-region)))
-   (now
-    (setq mark-active nil))
    (t
-    (setq deactivate-mark t))))
+    (vimpulse-deactivate-region now))))
 
 (fset 'viper-deactivate-mark 'vimpulse-deactivate-mark)
-
-;; Complement to `vimpulse-deactivate-mark'
-(defun vimpulse-activate-mark (&optional pos)
-  "Activate mark if there is one. Otherwise set mark at point.
-If POS if specified, set mark at POS instead."
-  (setq pos (or pos (mark t) (point)))
-  (cond
-   ((and (boundp 'cua-mode) cua-mode)
-    (let ((opoint (point))
-          cua-toggle-set-mark)
-      (goto-char (or pos (mark t) (point)))
-      (cua-set-mark)
-      (goto-char opoint)))
-   (t
-    (let (this-command)
-      (push-mark pos t t)))))
+(fset 'vimpulse-activate-mark 'vimpulse-activate-region)
 
 (defun vimpulse-transient-mark (&optional arg)
   "Enable Transient Mark mode (and Cua mode) if not already enabled.
@@ -1046,11 +1023,13 @@ If DONT-SAVE is non-nil, just delete it."
       (viper-prefix-arg-com ?r 1 ?d)
       (viper-set-destructive-command
        (list 'viper-forward-char
-             length ?d viper-use-register nil nil)))
+             length ?d viper-use-register nil nil))
+      (vimpulse-visual-mode -1))
      ((eq 'line vimpulse-visual-mode)
       (setq length (count-lines beg end))
       (goto-char (min vimpulse-visual-point vimpulse-visual-mark))
-      (viper-line (cons length ?D)))
+      (viper-line (cons length ?D))
+      (vimpulse-visual-mode -1))
      ((eq 'block vimpulse-visual-mode)
       ;; Associate the rectangle with the last entry in the kill-ring
       (unless kill-ring

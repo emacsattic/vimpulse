@@ -81,6 +81,9 @@
 
 (defvar vimpulse-operator-remap-map (make-sparse-keymap))
 
+(defvar vimpulse-operator-remap-alist nil
+  "Association list of command remappings in Operator-Pending mode.")
+
 (define-minor-mode vimpulse-operator-remap-minor-mode
   "Minor mode of bindings overwritten by `vimpulse-map' et al."
   :keymap vimpulse-operator-remap-map)
@@ -110,7 +113,20 @@ Used by `vimpulse-operator-repeat'.")
   "Last repeated motion.
 Used by `vimpulse-operator-repeat'.")
 
+(defcustom vimpulse-want-operator-pending-cursor t
+  "Whether the cursor changes in Operator-Pending mode, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
+(when (featurep 'xemacs)
+  (setq vimpulse-want-operator-pending-cursor nil))
+
 (defun vimpulse-set-operator-cursor-type ()
+  "Change cursor appearance in Operator-Pending mode."
+  (when vimpulse-want-operator-pending-cursor
+    (vimpulse-half-height-cursor)))
+
+(defun vimpulse-half-height-cursor ()
   "Change cursor to a half-height box.
 \(This is really just a thick horizontal bar.)"
   ;; Doesn't work in XEmacs, which lacks
@@ -168,7 +184,7 @@ range to whole lines."
         (setq vimpulse-this-motion (vimpulse-keypress-parser t))
         (setq count (cadr vimpulse-this-motion)
               vimpulse-this-motion (car vimpulse-this-motion))
-        ;; Act on the current line if operator calls itself
+        ;; Return current line motion if operator calls itself
         (if (eq vimpulse-this-operator vimpulse-this-motion)
             (setq vimpulse-this-motion 'vimpulse-line)
           (setq vimpulse-this-motion
@@ -237,7 +253,7 @@ In Visual Mode, return selection boundaries."
      ((vimpulse-mark-active)
       (prog1
           (list (region-beginning) (region-end))
-        (deactivate-mark)
+        (vimpulse-deactivate-region)
         (vimpulse-transient-restore)))
      ;; Otherwise, range is defined by `viper-com-point'
      ;; and point (Viper type motion)
@@ -261,7 +277,8 @@ of CMD. Both COUNT and CMD may be nil."
              ;; Read a keypress, respecting Emacs version,
              ;; and convert it to ASCII representation
              (if (featurep 'xemacs)
-                 (setq char (event-to-char (next-command-event)))
+                 (setq char (event-to-character
+                             (next-command-event) nil t))
                (setq char (read-event))
                (when (symbolp char)
                  (setq char (or (get char 'ascii-character) char))))
@@ -444,37 +461,38 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 (defmacro vimpulse-remap (keymap from to)
   "Remap FROM to TO in KEYMAP."
   (if (featurep 'xemacs)
-      `(let ((remap-alist (get ',keymap 'remap-alist)))
-         (when (remap-alist)
-           (add-to-list remap-alist (cons from to)))))
-  `(define-key ,keymap [remap ,from] ',to))
+      `(let ((remap-alist (get ',keymap 'remap-alist))
+             (from ,from) (to ,to))
+         (when remap-alist
+           (add-to-list remap-alist (cons from to))))
+    `(let ((keymap ,keymap) (from ,from) (to ,to))
+       (define-key keymap `[remap ,from] to))))
 
 (defmacro vimpulse-operator-remap (from to)
   "Remap FROM to TO in Operator-Pending mode."
-  `(vimpulse-remap vimpulse-operator-remap-map ,from ,to))
+  `(let ((from ,from) (to ,to))
+     (vimpulse-remap vimpulse-operator-remap-map from to)))
 
 (defun vimpulse-operator-remapping (cmd)
-  "Return Operator-Pending remapping for CMD.
-This only makes a difference in XEmacs, which lacks support for
-remapping in keymaps."
+  "Return Operator-Pending remapping for CMD."
   (if (featurep 'xemacs)
       (or (cdr (assq cmd vimpulse-operator-remap-alist)) cmd)
     vimpulse-operator-remap-minor-mode
     (or (command-remapping cmd) cmd)))
 
-(vimpulse-operator-remap redo viper-nil)
-(vimpulse-operator-remap undo viper-nil)
-(vimpulse-operator-remap viper-Put-back viper-nil)
-(vimpulse-operator-remap viper-delete-backward-char viper-nil)
-(vimpulse-operator-remap viper-delete-char viper-nil)
-(vimpulse-operator-remap viper-insert viper-nil)
-(vimpulse-operator-remap viper-intercept-ESC-key viper-nil)
-(vimpulse-operator-remap viper-line-to-bottom viper-nil)
-(vimpulse-operator-remap viper-line-to-middle viper-nil)
-(vimpulse-operator-remap viper-line-to-top viper-nil)
-(vimpulse-operator-remap viper-put-back viper-nil)
-(vimpulse-operator-remap viper-repeat viper-nil)
-(vimpulse-operator-remap viper-substitute viper-nil)
+(vimpulse-operator-remap 'redo 'viper-nil)
+(vimpulse-operator-remap 'undo 'viper-nil)
+(vimpulse-operator-remap 'viper-Put-back 'viper-nil)
+(vimpulse-operator-remap 'viper-delete-backward-char 'viper-nil)
+(vimpulse-operator-remap 'viper-delete-char 'viper-nil)
+(vimpulse-operator-remap 'viper-insert 'viper-nil)
+(vimpulse-operator-remap 'viper-intercept-ESC-key 'viper-nil)
+(vimpulse-operator-remap 'viper-line-to-bottom 'viper-nil)
+(vimpulse-operator-remap 'viper-line-to-middle 'viper-nil)
+(vimpulse-operator-remap 'viper-line-to-top 'viper-nil)
+(vimpulse-operator-remap 'viper-put-back 'viper-nil)
+(vimpulse-operator-remap 'viper-repeat 'viper-nil)
+(vimpulse-operator-remap 'viper-substitute 'viper-nil)
 
 ;;; Compatibility code allowing old-style Viper motions to work
 
@@ -545,7 +563,7 @@ remapping in keymaps."
     (setq motion-name (intern motion-name))
     (eval-after-load 'vimpulse-visual-mode
       `(add-to-list 'vimpulse-movement-cmds ',motion-name))
-    (eval `(vimpulse-operator-remap ,motion ,motion-name))
+    (vimpulse-operator-remap motion motion-name)
     (eval `(defun ,motion-name (arg)
              ,(format "Operator-pending part of `%s'.\n\n%s"
                       motion (or docstring ""))

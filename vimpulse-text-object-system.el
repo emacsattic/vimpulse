@@ -88,12 +88,12 @@ like (COUNT . ?r). Use a `lambda' wrapper in those cases."
   "Return a text object range (BEG END) with whitespace.
 Unless INCLUDE-NEWLINES is t, whitespace inclusion is restricted
 to the line(s) the object is on. REGEXP is a regular expression
-for matching whitespace; the default is \"[[:blank:]\\n\\r]+\".
+for matching whitespace; the default is \"[ \\f\\t\\n\\r\\v]+\".
 See `vimpulse-object-range' for more details."
   (let (range beg end line-beg line-end mark-active-p)
     (save-excursion
       (setq count (or (if (eq 0 count) 1 count) 1))
-      (setq regexp (or regexp "[[:blank:]\n\r]+"))
+      (setq regexp (or regexp "[ \f\t\n\r\v]+"))
       (setq range (vimpulse-object-range
                    count backward-func forward-func))
       ;; Let `end' be the boundary furthest from point,
@@ -137,7 +137,7 @@ See `vimpulse-object-range' for more details."
         (setq beg (save-excursion
                     (goto-char beg)
                     (if (and (not include-newlines)
-                             (looking-back "^[[:blank:]]*"))
+                             (looking-back "^[ \t]*"))
                         beg
                       (vimpulse-skip-regexp
                        regexp (- count) line-beg line-end))))
@@ -147,10 +147,10 @@ See `vimpulse-object-range' for more details."
         (when include-newlines
           (goto-char end)
           (forward-line count)
-          (when (looking-at "[[:blank:]]*$")
+          (when (looking-at "[ \t]*$")
             (setq end (line-beginning-position))
             (goto-char beg)
-            (when (looking-at "[[:blank:]]*$")
+            (when (looking-at "[ \t]*$")
               (forward-line count)
               (setq beg (line-beginning-position))))))
       ;; Return the range
@@ -297,10 +297,10 @@ specifies whether to include the quote marks in the range."
    'vimpulse-an-object-range arg
    (lambda (arg)
      (viper-backward-sentence arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1))
    (lambda (arg)
      (viper-forward-sentence arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1))))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1))))
 
 (defun vimpulse-inner-sentence (arg)
   "Select inner sentence."
@@ -309,10 +309,10 @@ specifies whether to include the quote marks in the range."
    'vimpulse-inner-object-range arg
    (lambda (arg)
      (viper-backward-sentence arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1))
    (lambda (arg)
      (viper-forward-sentence arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1))))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1))))
 
 (defun vimpulse-a-paragraph (arg)
   "Select a paragraph."
@@ -320,13 +320,13 @@ specifies whether to include the quote marks in the range."
   (vimpulse-mark-range
    'vimpulse-an-object-range arg
    (lambda (arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1)
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)
      (viper-backward-paragraph arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1))
    (lambda (arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1)
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1)
      (viper-forward-paragraph arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1)) t))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)) t))
 
 (defun vimpulse-inner-paragraph (arg)
   "Select inner paragraph."
@@ -334,13 +334,13 @@ specifies whether to include the quote marks in the range."
   (vimpulse-mark-range
    'vimpulse-inner-object-range arg
    (lambda (arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1)
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)
      (viper-backward-paragraph arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1))
    (lambda (arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" 1)
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1)
      (viper-forward-paragraph arg)
-     (vimpulse-skip-regexp "[[:blank:]\n\r]+" -1))))
+     (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1))))
 
 (defun vimpulse-a-paren (arg)
   "Select a parenthesis."
@@ -405,8 +405,8 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-line (&optional arg)
   "Select ARG lines."
   (setq arg (or arg 1))
-  (set-mark (line-beginning-position (1+ arg)))
-  (beginning-of-line))
+  (vimpulse-set-region (line-beginning-position)
+                       (line-beginning-position (1+ arg))))
 
 (define-key vimpulse-operator-basic-map "aw" 'vimpulse-a-word)
 (define-key vimpulse-operator-basic-map "iw" 'vimpulse-inner-word)
