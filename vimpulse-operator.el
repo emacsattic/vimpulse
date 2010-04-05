@@ -103,6 +103,9 @@ In general, motions and operators are orthogonal, with some exceptions:
 Operators may check this variable if they need to know what
 motion produced the current range. See also `vimpulse-this-operator'.")
 
+(defvar vimpulse-this-count nil
+  "Current count.")
+
 (defvar vimpulse-last-operator nil
   "Last repeated operator.
 Used by `vimpulse-operator-repeat'.")
@@ -159,8 +162,9 @@ The command becomes repeatable with \\[viper-repeat]
 unless NO-REPEAT is specified. WHOLE-LINES extends the
 range to whole lines."
   (let (viper-ESC-moves-cursor-back
-        beg end count range)
+        beg end range)
     (save-excursion
+      (setq vimpulse-this-count nil)
       (setq vimpulse-this-operator this-command)
       (setq range (list (point) (point)))
       (cond
@@ -172,14 +176,14 @@ range to whole lines."
         ;; If in Visual Line mode, repeat should act on whole lines
         (if (eq 'line vimpulse-visual-mode)
             (setq vimpulse-this-motion 'vimpulse-line
-                  count (count-lines beg end))
+                  vimpulse-this-count (count-lines beg end))
           (setq vimpulse-this-motion 'viper-forward-char
-                count (- end beg))))
+                vimpulse-this-count (- end beg))))
        ;; Not in Visual mode: read motion and return motion range
        (t
         (vimpulse-change-state-to-operator)
         (setq vimpulse-this-motion (vimpulse-keypress-parser t))
-        (setq count (cadr vimpulse-this-motion)
+        (setq vimpulse-this-count (cadr vimpulse-this-motion)
               vimpulse-this-motion (car vimpulse-this-motion))
         ;; Return current line motion if operator calls itself
         (if (eq vimpulse-this-operator vimpulse-this-motion)
@@ -194,13 +198,13 @@ range to whole lines."
           (setq quit-flag t))
          (t
           ;; Multiply operator count and motion count together
-          (when (or current-prefix-arg count)
-            (setq count
+          (when (or current-prefix-arg vimpulse-this-count)
+            (setq vimpulse-this-count
                   (* (prefix-numeric-value current-prefix-arg)
-                     (prefix-numeric-value count))))
+                     (prefix-numeric-value vimpulse-this-count))))
           ;; Calculate motion range
           (setq range (vimpulse-motion-range
-                       count vimpulse-this-motion)
+                       vimpulse-this-count vimpulse-this-motion)
                 beg (apply 'min range)
                 end (apply 'max range))
           (viper-change-state-to-vi)))))
@@ -214,14 +218,14 @@ range to whole lines."
                           (save-excursion
                             (goto-char end)
                             (line-beginning-position 2)))
-              count (count-lines beg end)))
+              vimpulse-this-count (count-lines beg end)))
       ;; Set up repeat
       (unless no-repeat
         (setq vimpulse-last-operator vimpulse-this-operator
               vimpulse-last-motion   vimpulse-this-motion)
         (viper-set-destructive-command
          (list 'vimpulse-operator-repeat
-               count nil viper-use-register nil nil)))
+               vimpulse-this-count nil viper-use-register nil nil)))
       ;; Return range
       range)))
 
@@ -518,7 +522,7 @@ If called interactively, read REGISTER and COMMAND from keyboard."
                   (vimpulse-operator-remapping m-com))
         (setq vimpulse-this-motion (vimpulse-operator-remapping m-com))
         (setcar (nthcdr 2 viper-d-com) com))
-      (setcar (nthcdr 1 viper-d-com) val)
+      (setq vimpulse-this-count val)
       (setcar (nthcdr 5 viper-d-com)
               (viper-array-to-string
                (if (arrayp viper-this-command-keys)
