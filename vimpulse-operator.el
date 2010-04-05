@@ -21,8 +21,8 @@
 ;;
 ;; When the latter command is run, `vimpulse-range' will query the
 ;; user for a motion and determine the resulting range to pass on to
-;; the command. (In Visual mode, however, it returns the selection
-;; boundaries instead.)
+;; the command. (In Visual mode, however, it skips the querying and
+;; returns the selection boundaries instead.)
 ;;
 ;; While a motion is read from the keyboard, a temporary Viper state,
 ;; Operator-Pending mode, is entered. This state inherits bindings
@@ -32,19 +32,17 @@
 ;; simply as selection commands.
 ;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
-;; code separation. In the original scheme, every Viper motion must do
+;; code separation. In the original scheme, every Viper motion does
 ;; the work itself of deleting/changing/yanking the text it moves
-;; over, making that action repeatable, etc. The new framework handles
-;; this automatically and orthogonally, enabling the use of plain
-;; Emacs movement commands (like S-exp navigation) as motions.
+;; over, making that action repeatable, etc. This framework handles
+;; everything automatically and orthogonally, enabling the use of
+;; plain Emacs movement commands (like S-exp navigation) as motions.
 ;;
-;; Also, in some cases, the operator-pending behavior is slightly
-;; different: "w" moves to the beginning of the next word while "cw"
-;; changes to the end of the current word, for example. Rather than
-;; placing all of this in one big command, the latter part can be
-;; defined separately and bound in the Operator-Pending state.
-;; (A remap binding lets us associate it with its regular
-;; counterpart.)
+;; In most cases, the motion range is determined by calling the motion
+;; just as it would be in vi state. Occasionally, the operator-pending
+;; behavior is slightly different. In those cases, a separate command
+;; is bound in the Operator-Pending state, and associated with the
+;; regular motion with a remap binding.
 ;;
 ;; What about those old Viper motions doing everything at once?
 ;; A couple of compatibility macros tries to separate the
@@ -118,6 +116,7 @@ Used by `vimpulse-operator-repeat'.")
   :group 'vimpulse
   :type  'boolean)
 
+;; XEmacs lacks a horizontal bar cursor option
 (when (featurep 'xemacs)
   (setq vimpulse-want-operator-pending-cursor nil))
 
@@ -129,8 +128,6 @@ Used by `vimpulse-operator-repeat'.")
 (defun vimpulse-half-height-cursor ()
   "Change cursor to a half-height box.
 \(This is really just a thick horizontal bar.)"
-  ;; Doesn't work in XEmacs, which lacks
-  ;; a horizontal bar cursor option
   (unless (featurep 'xemacs)
     (condition-case nil
         (let (height)
@@ -368,6 +365,17 @@ COM is discarded."
         (vimpulse-this-motion motion))
     (funcall operator (car range) (cadr range))))
 
+(defun vimpulse-region-cmd-p (cmd)
+  "Return t if CMD is a region command."
+  (let ((spec (car (cdr (interactive-form cmd)))))
+    (and (stringp spec)
+         (not (not (string-match "r" spec))))))
+
+(defun vimpulse-operator-cmd-p (cmd)
+  "Return t if CMD is an operator command."
+  (vimpulse-memq-recursive 'vimpulse-range
+                           (interactive-form cmd)))
+
 ;;; Operators (yank, delete, change)
 
 (defun vimpulse-yank (beg end)
@@ -468,10 +476,9 @@ If called interactively, read REGISTER and COMMAND from keyboard."
     `(let ((keymap ,keymap) (from ,from) (to ,to))
        (define-key keymap `[remap ,from] to))))
 
-(defmacro vimpulse-operator-remap (from to)
+(defun vimpulse-operator-remap (from to)
   "Remap FROM to TO in Operator-Pending mode."
-  `(let ((from ,from) (to ,to))
-     (vimpulse-remap vimpulse-operator-remap-map from to)))
+  (vimpulse-remap vimpulse-operator-remap-map from to))
 
 (defun vimpulse-operator-remapping (cmd)
   "Return Operator-Pending remapping for CMD."
@@ -581,6 +588,62 @@ If called interactively, read REGISTER and COMMAND from keyboard."
                           (cons arg com))))))
     `(quote ,motion-name)))
 
+;; d%: when point is before the parenthetical expression,
+;; include it in the resulting range
+(defun vimpulse-operator-paren-match (arg)
+  "Operator-pending part of `viper-paren-match'.
+
+Go to the matching parenthesis."
+  (interactive "p")
+  (vimpulse-activate-mark (point))
+  (viper-paren-match (cons arg ?r))
+  (when (< (point) (mark t))
+    (vimpulse-set-region (point) (1+ (mark t)))))
+
+(vimpulse-operator-remap 'viper-paren-match 'vimpulse-operator-paren-match)
+
+(defvar vimpulse-goto-line t
+  "*Goto line with \"G\" like in Vim.")
+
+(defun vimpulse-goto-line (arg)
+  "Go to ARG's line; without ARG go to end of buffer.
+Works like Vim's \"G\"."
+  (interactive "P")
+  (let ((val (viper-P-val arg))
+        (com (viper-getCom arg)))
+    (when (eq ?c com) (setq com ?C))
+    (viper-move-marker-locally 'viper-com-point (point))
+    (viper-deactivate-mark)
+    (push-mark nil t)
+    (cond
+     ((null val)
+      (goto-char (point-max)))
+     (t
+      (goto-line val)))
+    (when com
+      (viper-execute-com 'vimpulse-goto-line val com))))
+
+(when vimpulse-goto-line
+  (fset 'viper-goto-line 'vimpulse-goto-line)
+  (define-key viper-vi-basic-map "G" 'vimpulse-goto-line))
+
+(defun vimpulse-goto-first-line (arg)
+  "Go to first line."
+  (interactive "P")
+  (let ((val (viper-P-val arg))
+        (com (viper-getCom arg)))
+    (when (eq ?c com) (setq com ?C))
+    (viper-move-marker-locally 'viper-com-point (point))
+    (viper-deactivate-mark)
+    (push-mark nil t)
+    (cond
+     ((null val)
+      (goto-char (point-min)))
+     (t
+      (goto-line val)))
+    (when com
+      (viper-execute-com 'vimpulse-goto-line val com))))
+
 ;; Create Operator-Pending wrappers for Viper motions
 (vimpulse-operator-map-define vimpulse-goto-first-line)
 (vimpulse-operator-map-define vimpulse-goto-line)
@@ -606,7 +669,6 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 (vimpulse-operator-map-define viper-goto-mark)
 (vimpulse-operator-map-define viper-goto-mark-and-skip-white)
 (vimpulse-operator-map-define viper-next-line)
-(vimpulse-operator-map-define viper-paren-match)
 (vimpulse-operator-map-define viper-previous-line)
 (vimpulse-operator-map-define viper-search-Next)
 (vimpulse-operator-map-define viper-search-backward)
