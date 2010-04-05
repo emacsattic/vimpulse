@@ -15,35 +15,10 @@ like in Vim."
     ad-do-it)
    (t
     ;; We don't want Viper's Replace mode when changing text;
-    ;; just delete and enter Insert state.
+    ;; just delete and enter Insert state
     (setq viper-began-as-replace t)
     (kill-region beg end)
     (viper-change-state-to-insert))))
-
-(defvar vimpulse-goto-line t
-  "*Goto line with \"G\" like in Vim.")
-
-(defun vimpulse-goto-line (arg)
-  "Go to ARG's line; without ARG go to end of buffer.
-Works like Vim's \"G\"."
-  (interactive "P")
-  (let ((val (viper-P-val arg))
-        (com (viper-getCom arg)))
-    (when (eq ?c com) (setq com ?C))
-    (viper-move-marker-locally 'viper-com-point (point))
-    (viper-deactivate-mark)
-    (push-mark nil t)
-    (cond
-     ((null val)
-      (goto-char (point-max)))
-     (t
-      (goto-line val)))
-    (when com
-      (viper-execute-com 'vimpulse-goto-line val com))))
-
-(when vimpulse-goto-line
-  (fset 'viper-goto-line 'vimpulse-goto-line)
-  (define-key viper-vi-basic-map "G" 'vimpulse-goto-line))
 
 ;;; Code for adding extra states
 
@@ -154,13 +129,13 @@ For example, the basic state keymap has the VAR-TYPE `basic-map'.")
   "Alist of Vimpulse state mode toggling.
 Entries have the form (STATE . ((MODE . EXPR) ...)), where STATE
 is the name of a state, MODE is a mode associated with STATE and
-EXPR is an expression with which to enable or disable MODE.")
+EXPR is an expression with which to enable or disable MODE.
+The first modes get the highest priority.")
 
 (defvar vimpulse-state-maps-alist nil
-  "Alist of Vimpulse state keymaps priority.
+  "Alist of Vimpulse modes and keymaps.
 Entries have the form (MODE . MAP-EXPR), where MAP-EXPR is an
-expression for determining the keymap of MODE. The first entries
-get the highest priority.")
+expression for determining the keymap of MODE.")
 
 ;; State-changing code: this uses the variables above
 (defadvice viper-normalize-minor-mode-map-alist

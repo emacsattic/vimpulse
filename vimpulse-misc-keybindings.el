@@ -212,23 +212,6 @@
       (forward-line))))
 
 ;; His code (Brad)
-(defun vimpulse-goto-first-line (arg)
-  "Go to first line."
-  (interactive "P")
-  (let ((val (viper-P-val arg))
-        (com (viper-getCom arg)))
-    (when (eq ?c com) (setq com ?C))
-    (viper-move-marker-locally 'viper-com-point (point))
-    (viper-deactivate-mark)
-    (push-mark nil t)
-    (cond
-     ((null val)
-      (goto-char (point-min)))
-     (t
-      (goto-line val)))
-    (when com
-      (viper-execute-com 'vimpulse-goto-line val com))))
-
 (defun vimpulse-cycle-windows ()
   "Cycle point to another window."
   (interactive)
@@ -345,7 +328,7 @@ is highlighted rather than skipped past."
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
     (unless (vimpulse-beginning-of-Word-p)
-            (viper-backward-Word 1))
+      (viper-backward-Word 1))
     (viper-backward-Word val)
     (viper-end-of-Word '(1 . ?r))
     (unless com
