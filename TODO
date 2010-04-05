@@ -84,8 +84,6 @@
 ;;       where tabs aren't whitespace, and you need at least two spaces
 ;;       after the punctuation mark.
 ;;
-;; - Make :q and :q! work as in Vim.
-;;
 ;; - Implement smartcase searching.
 ;;
 ;; - Try to get Vimpulse included with upstream Viper; also, ideally,
