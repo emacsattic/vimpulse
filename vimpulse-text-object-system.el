@@ -4,18 +4,18 @@
 ;; like diw, daw, ciw, caw. Currently, the most common objects are
 ;; supported:
 ;;
-;;    - paren-blocks: b B { [ ( < > ) ] }
-;;    - sentences: s
-;;    - paragraphs: p
-;;    - quoted expressions: " and '
-;;    - words: w and W
+;;   - paren-blocks: b B { [ ( < > ) ] }
+;;   - sentences: s
+;;   - paragraphs: p
+;;   - quoted expressions: " and '
+;;   - words: w and W
 ;;
 ;; Vimpulse's text objects are fairly close to Vim's, and are based on
-;; Viper's movement commands. More objects can easily be added.
+;; Viper's movement commands. More objects are easily added.
 
 ;;; Begin Text Objects code {{{
 
-(defun vimpulse-mark-range (range-func count &rest range-args)
+(defun vimpulse-mark-object (range-func count &rest range-args)
   "Select range determined by RANGE-FUNC.
 COUNT and RANGE-ARGS are the arguments to RANGE-FUNC.
 RANGE-FUNC must evaluate to a range (BEG END).
@@ -25,7 +25,7 @@ If RANGE-FUNC fails to produce a range not already selected, it
 may be called again at a different position in the buffer."
   (let (vimpulse-this-motion
         vimpulse-last-motion
-        range beg end dir)
+        range dir)
     (cond
      ((vimpulse-mark-active)
       (setq dir (if (< (point) (mark t)) -1 1))
@@ -35,21 +35,22 @@ may be called again at a different position in the buffer."
                  (not vimpulse-visual-region-expanded))
         (vimpulse-visual-expand-region))
       (setq range (apply range-func (* dir count) range-args))
-      (setq beg (car range)
-            end (cadr range))
-      (unless (vimpulse-set-region beg end t)
+      (unless (vimpulse-mark-range range t)
         ;; Are we stuck (unchanged region)?
         ;; Move forward and try again.
         (viper-forward-char-carefully dir)
         (setq range (apply range-func (* dir count) range-args))
-        (setq beg (car range)
-              end (cadr range))
-        (vimpulse-set-region beg end t)))
+        (vimpulse-mark-range range t)))
      (t
-      (setq range (apply range-func count range-args)
-            beg (car range)
-            end (cadr range))
-      (vimpulse-set-region beg end)))))
+      (setq range (apply range-func count range-args))
+      (vimpulse-mark-range range)))))
+
+(defun vimpulse-mark-range (range &optional widen)
+  "Mark RANGE, which has the form (BEG END).
+If WIDEN is non-nil, expand existing region."
+  (let ((beg (apply 'min range))
+        (end (apply 'max range)))
+    (vimpulse-set-region beg end widen)))
 
 (defun vimpulse-object-range
   (count backward-func forward-func &optional pos)
@@ -185,7 +186,8 @@ See `vimpulse-object-range' for more details."
 The type of parentheses may be specified with OPEN and CLOSE,
 which must be characters. INCLUDE-PARENTHESES specifies
 whether to include the parentheses in the range."
-  (let ((beg (point)) (end (point)))
+  (let ((beg (point)) (end (point))
+        line-beg line-end)
     (setq count (if (eq 0 count) 1 (abs count)))
     (save-excursion
       (setq open  (if (characterp open)
@@ -195,6 +197,8 @@ whether to include the parentheses in the range."
       (when (and (not (string= "" open))
                  (looking-at open))
         (forward-char))
+      ;; Find opening and closing paren with
+      ;; Emacs' S-exp facilities
       (while (progn
                (vimpulse-backward-up-list 1)
                (not (when (looking-at open)
@@ -207,7 +211,28 @@ whether to include the parentheses in the range."
                           (setq count (1- count)) nil))))))
       (if include-parentheses
           (list beg end)
-        (list (min (1+ beg) end) (max (1- end) beg))))))
+        (setq beg (prog1 (min (1+ beg) end)
+                    (setq end (max (1- end) beg))))
+        ;; Multi-line inner range: select whole lines
+        (if (>= 1 (count-lines beg end))
+            (list beg end)
+          (goto-char beg)
+          (when (looking-at "[ \f\t\n\r\v]*$")
+            (forward-line)
+            ;; Include indentation?
+            (if (and viper-auto-indent
+                     (not (eq 'vimpulse-delete
+                              vimpulse-this-operator)))
+                (back-to-indentation)
+              (beginning-of-line))
+            (setq beg (point)))
+          (goto-char end)
+          (when (and (looking-back "^[ \f\t\n\r\v]*")
+                     (not (eq 'vimpulse-delete
+                              vimpulse-this-operator)))
+            (setq end (line-end-position 0))
+            (goto-char end))
+          (list (min beg end) (max beg end)))))))
 
 (defun vimpulse-quote-range (count &optional quote include-quotes)
   "Return a quoted expression range (BEG END).
@@ -245,7 +270,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-a-word (arg)
   "Select a word."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-an-object-range arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
@@ -257,7 +282,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-inner-word (arg)
   "Select inner word."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-inner-object-range arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
@@ -269,7 +294,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-a-Word (arg)
   "Select a Word."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-an-object-range arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
@@ -281,7 +306,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-inner-Word (arg)
   "Select inner Word."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-inner-object-range arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
@@ -293,7 +318,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-a-sentence (arg)
   "Select a sentence."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-an-object-range arg
    (lambda (arg)
      (viper-backward-sentence arg)
@@ -305,7 +330,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-inner-sentence (arg)
   "Select inner sentence."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-inner-object-range arg
    (lambda (arg)
      (viper-backward-sentence arg)
@@ -317,7 +342,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-a-paragraph (arg)
   "Select a paragraph."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-an-object-range arg
    (lambda (arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)
@@ -331,7 +356,7 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-inner-paragraph (arg)
   "Select inner paragraph."
   (interactive "p")
-  (vimpulse-mark-range
+  (vimpulse-mark-object
    'vimpulse-inner-object-range arg
    (lambda (arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)
@@ -345,62 +370,62 @@ specifies whether to include the quote marks in the range."
 (defun vimpulse-a-paren (arg)
   "Select a parenthesis."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?\( nil t))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?\( nil t))
 
 (defun vimpulse-inner-paren (arg)
   "Select inner parenthesis."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?\())
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?\())
 
 (defun vimpulse-a-bracket (arg)
   "Select a bracket parenthesis."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?\[ nil t))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?\[ nil t))
 
 (defun vimpulse-inner-bracket (arg)
   "Select inner bracket parenthesis."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?\[))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?\[))
 
 (defun vimpulse-a-curly (arg)
   "Select a curly parenthesis."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?{ nil t))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?{ nil t))
 
 (defun vimpulse-inner-curly (arg)
   "Select inner curly parenthesis."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?{))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?{))
 
 (defun vimpulse-an-angle (arg)
   "Select an angle bracket."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?< nil t))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?< nil t))
 
 (defun vimpulse-inner-angle (arg)
   "Select inner angle bracket."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-paren-range arg ?<))
+  (vimpulse-mark-object 'vimpulse-paren-range arg ?<))
 
 (defun vimpulse-a-single-quote (arg)
   "Select a single quoted expression."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-quote-range arg ?' t))
+  (vimpulse-mark-object 'vimpulse-quote-range arg ?' t))
 
 (defun vimpulse-inner-single-quote (arg)
   "Select inner single quoted expression."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-quote-range arg ?'))
+  (vimpulse-mark-object 'vimpulse-quote-range arg ?'))
 
 (defun vimpulse-a-double-quote (arg)
   "Select a double quoted expression."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-quote-range arg ?\" t))
+  (vimpulse-mark-object 'vimpulse-quote-range arg ?\" t))
 
 (defun vimpulse-inner-double-quote (arg)
   "Select inner double quoted expression."
   (interactive "p")
-  (vimpulse-mark-range 'vimpulse-quote-range arg ?\"))
+  (vimpulse-mark-object 'vimpulse-quote-range arg ?\"))
 
 (defun vimpulse-line (&optional arg)
   "Select ARG lines."
