@@ -891,6 +891,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                ;; do (let (this-command) (push-mark)).
                (memq this-command
                      '(vimpulse-goto-first-line
+                       vimpulse-goto-line
                        viper-backward-paragraph
                        viper-backward-sentence
                        viper-forward-paragraph
@@ -959,7 +960,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     move-end-of-line next-line previous-line scroll-down scroll-up
     undo up-list vimpulse-end-of-previous-word
     vimpulse-goto-definition vimpulse-goto-first-line
-    vimpulse-goto-first-line vimpulse-visual-block-rotate
+    vimpulse-goto-line vimpulse-visual-block-rotate
     vimpulse-visual-exchange-corners vimpulse-visual-restore
     vimpulse-visual-toggle-block vimpulse-visual-toggle-line
     vimpulse-visual-toggle-normal viper-backward-Word
