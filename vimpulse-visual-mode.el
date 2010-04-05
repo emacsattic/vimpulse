@@ -850,6 +850,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         (kill-new inserted-text))
       (vimpulse-visual-delete (region-beginning) (region-end) t)
       (when (and (eq 'normal mode)
+                 (not (bolp))
                  (viper-end-with-a-newline-p inserted-text))
         (newline))
       (when (and (eq 'line mode)
