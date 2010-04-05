@@ -10,5 +10,6 @@
 (require 'vimpulse-operator)
 (require 'vimpulse-text-object-system)
 (require 'vimpulse-visual-mode)
+(require 'vimpulse-compatibility)
 
 (provide 'vimpulse)
