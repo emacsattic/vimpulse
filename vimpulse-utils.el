@@ -159,6 +159,18 @@ If OFFSET is specified, skip first elements of VECTOR."
     (dotimes (idx length result)
       (aset result idx (aref vector (+ idx offset))))))
 
+(defun vimpulse-memq-recursive (elt list)
+  "Return t if ELT is an element of LIST.
+LIST may be nested."
+  (let ((this (car list))
+        (rest (cdr list)))
+    (cond
+     ((listp this)
+      (vimpulse-memq-recursive elt this))
+     ((eq this elt) t)
+     (rest
+      (vimpulse-memq-recursive elt rest)))))
+
 ;;; Movement
 
 (defmacro vimpulse-limit (lower upper &rest body)
@@ -289,8 +301,8 @@ BEG and END. Returns nil if region is unchanged."
   (cond
    (widen
     (vimpulse-set-region
-     (min beg end (region-beginning))
-     (max beg end (region-end))
+     (min beg end (or (region-beginning) (point)))
+     (max beg end (or (region-end) (point)))
      nil dir))
    (t
     (unless (vimpulse-mark-active)
