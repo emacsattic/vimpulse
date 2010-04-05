@@ -17,5 +17,6 @@ type Header ^
      vimpulse-operator.el ^
      vimpulse-text-object-system.el ^
      vimpulse-visual-mode.el ^
+     vimpulse-compatibility.el ^
      vimpulse.el ^
    > vimpulse-big.el
