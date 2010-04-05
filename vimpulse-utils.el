@@ -18,7 +18,7 @@
     viper-scroll-up-one viper-window-bottom viper-window-middle
     viper-window-top vimpulse-end-of-previous-word
     vimpulse-goto-first-line vimpulse-goto-definition
-    vimpulse-search-backward-for-symbol-at-point
+    vimpulse-goto-line vimpulse-search-backward-for-symbol-at-point
     vimpulse-search-forward-for-symbol-at-point vimpulse-jump-backward
     vimpulse-jump-forward vimpulse-visual-toggle-normal
     vimpulse-visual-toggle-line vimpulse-visual-toggle-block)
