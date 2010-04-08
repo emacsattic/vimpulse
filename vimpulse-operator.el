@@ -32,8 +32,8 @@
 ;; simply as selection commands.
 ;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
-;; code separation. In the original scheme, every Viper motion does
-;; the work itself of deleting/changing/yanking the text it moves
+;; code separation. In the original scheme, every Viper motion must
+;; manually do the work of deleting/changing/yanking the text moved
 ;; over, making that action repeatable, etc. The new framework handles
 ;; everything automatically and orthogonally, enabling the use of
 ;; plain Emacs movement commands (like S-exp navigation) as motions.
@@ -109,13 +109,13 @@ motion produced the current range. See also `vimpulse-this-operator'.")
 (defvar vimpulse-this-count nil
   "Current count.")
 
-(defvar vimpulse-this-range-type nil
+(defvar vimpulse-this-motion-type nil
   "Current range type.
-May be `block', `line', `normal', `self' or nil.")
+May be `block', `line', `normal' or nil.")
 
 (defvar vimpulse-last-range-type nil
   "Last repeated range type.
-May be `block', `line', `normal', `self' or nil.")
+May be `block', `line', `normal' or nil.")
 
 (defvar vimpulse-last-operator nil
   "Last repeated operator.
@@ -170,21 +170,21 @@ This can be used in the `interactive' form of a command:
 
 When called interactively, the command will read a motion, store
 the resulting range in BEG and END, and do whatever it does on
-the text between those buffer positions. The intermediate
-behavior can be customized with the following:
+the text between those buffer positions. The optional arguments
+allow for some customization:
 
 NO-REPEAT: don't let \\[viper-repeat] repeat the command.
-DONT-MOVE-POINT: don't move point to beginning of range.
+DONT-MOVE-POINT: don't move to beginning of range in vi state.
 WHOLE-LINES: extend range to whole lines.
 KEEP-VISUAL: don't disable Visual selection.
 
 After these arguments may follow a custom MOTION and COUNT
 to use in vi (command) state. If specified, the command
-will use these instad of reading a motion."
+will not read a motion in vi state."
   (let ((range (list (point) (point)))
         (beg (point)) (end (point))
         viper-ESC-moves-cursor-back)
-    (setq vimpulse-this-range-type nil
+    (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
           vimpulse-this-motion nil
           vimpulse-this-operator this-command)
@@ -194,7 +194,7 @@ will use these instad of reading a motion."
       (setq range (vimpulse-visual-range)
             beg (apply 'min range)
             end (apply 'max range)
-            vimpulse-this-range-type vimpulse-visual-mode
+            vimpulse-this-motion-type vimpulse-visual-mode
             motion nil)
       ;; Set up repeat
       (setq vimpulse-this-motion 'vimpulse-visual-reselect)
@@ -205,7 +205,7 @@ will use these instad of reading a motion."
           (vimpulse-deactivate-region)))
       ;; Extend range to whole lines
       (when (and whole-lines
-                 (not (eq 'line vimpulse-this-range-type)))
+                 (not (eq 'line vimpulse-this-motion-type)))
         (setq range (list (save-excursion
                             (goto-char beg)
                             (line-beginning-position))
@@ -214,7 +214,7 @@ will use these instad of reading a motion."
                             (line-beginning-position 2)))
               vimpulse-visual-last 'line
               vimpulse-visual-height (count-lines beg end)))
-      (if (eq 'block vimpulse-this-range-type)
+      (if (eq 'block vimpulse-this-motion-type)
           (vimpulse-visual-block-rotate 'upper-left beg end)
         (goto-char beg)))
      ;; Not in Visual mode: use MOTION if specified,
@@ -230,7 +230,7 @@ will use these instad of reading a motion."
         ;; Return current line motion if operator calls itself
         (if (eq vimpulse-this-operator vimpulse-this-motion)
             (setq vimpulse-this-motion 'vimpulse-line
-                  vimpulse-this-range-type 'self)
+                  vimpulse-this-motion-type 'line)
           (setq vimpulse-this-motion
                 (vimpulse-operator-remapping vimpulse-this-motion))))
       (cond
@@ -252,7 +252,7 @@ will use these instad of reading a motion."
               end (apply 'max range))
         ;; Extend range to whole lines
         (when (and whole-lines
-                   (not (eq 'line vimpulse-this-range-type)))
+                   (not (eq 'line vimpulse-this-motion-type)))
           (setq range (list (save-excursion
                               (goto-char beg)
                               (line-beginning-position))
@@ -261,13 +261,15 @@ will use these instad of reading a motion."
                               (line-beginning-position 2)))
                 vimpulse-this-count (count-lines beg end)))
         (unless dont-move-point
-          (goto-char beg))
+          (goto-char beg)
+          (when (and viper-auto-indent (bolp))
+            (back-to-indentation)))
         (viper-change-state-to-vi)))))
     ;; Set up repeat
     (unless no-repeat
       (setq vimpulse-last-operator vimpulse-this-operator
             vimpulse-last-motion vimpulse-this-motion
-            vimpulse-last-range-type vimpulse-this-range-type)
+            vimpulse-last-range-type vimpulse-this-motion-type)
       (viper-set-destructive-command
        (list 'vimpulse-operator-repeat
              vimpulse-this-count nil viper-use-register nil nil)))
@@ -314,9 +316,8 @@ In Visual Mode, returns selection boundaries."
        ;; Otherwise, range is defined by `viper-com-point'
        ;; and point (Viper type motion)
        (t
-        (prog1
-            (list (min (point) (or viper-com-point (point)))
-                  (max (point) (or viper-com-point (point))))
+        (prog1 (list (min (point) (or viper-com-point (point)))
+                     (max (point) (or viper-com-point (point))))
           (vimpulse-transient-restore)))))))
 
 (defun vimpulse-range-p (object)
@@ -431,7 +432,7 @@ TYPE is the motion type."
   (let ((range (vimpulse-motion-range count motion))
         (vimpulse-this-operator operator)
         (vimpulse-this-motion motion)
-        (vimpulse-this-range-type type))
+        (vimpulse-this-motion-type type))
     (funcall operator (car range) (cadr range))))
 
 (defun vimpulse-region-cmd-p (cmd)
@@ -452,7 +453,7 @@ TYPE is the motion type."
   (interactive (vimpulse-range t t))
   (let ((length (abs (- beg end))))
     (cond
-     ((eq 'block vimpulse-this-range-type)
+     ((eq 'block vimpulse-this-motion-type)
       (setq killed-rectangle (extract-rectangle beg end))
       ;; Associate the rectangle with the last entry in the kill-ring
       (unless kill-ring
@@ -462,13 +463,13 @@ TYPE is the motion type."
      (t
       (vimpulse-store-in-current-register beg end)
       (copy-region-as-kill beg end)
-      (unless (eq 'self vimpulse-this-range-type)
+      (unless (eq 'line vimpulse-this-motion-type)
         (goto-char beg))
       (when (and (eolp) (not (bolp)))
         (backward-char))
       (when (< viper-change-notification-threshold length)
         (unless (or (viper-is-in-minibuffer)
-                    (eq 'self vimpulse-this-range-type))
+                    (eq 'line vimpulse-this-motion-type))
           (message "Saved %d characters" length)))))))
 
 (defun vimpulse-delete (beg end &optional dont-save)
@@ -479,11 +480,11 @@ If DONT-SAVE is t, just delete it."
     (cond
      (dont-save
       (cond
-       ((eq 'block vimpulse-this-range-type)
+       ((eq 'block vimpulse-this-motion-type)
         (delete-rectangle beg end))
        (t
         (delete-region beg end))))
-     ((eq 'block vimpulse-this-range-type)
+     ((eq 'block vimpulse-this-motion-type)
       (let ((orig (make-marker)))
         ;; Associate the rectangle with the last entry in the kill-ring
         (viper-move-marker-locally
@@ -501,7 +502,7 @@ If DONT-SAVE is t, just delete it."
         (backward-char))
       (when (< viper-change-notification-threshold length)
         (unless (or (viper-is-in-minibuffer)
-                    (eq 'self vimpulse-this-range-type))
+                    (eq 'line vimpulse-this-motion-type))
           (message "Deleted %d characters" length)))))))
 
 (defun vimpulse-change (beg end &optional dont-save)
@@ -509,7 +510,7 @@ If DONT-SAVE is t, just delete it."
 If DONT-SAVE is non-nil, just delete it."
   (interactive (vimpulse-range))
   (cond
-   ((eq 'block vimpulse-this-range-type)
+   ((eq 'block vimpulse-this-motion-type)
     (vimpulse-delete beg end dont-save)
     (goto-char
      (vimpulse-visual-create-coords
@@ -521,12 +522,12 @@ If DONT-SAVE is non-nil, just delete it."
     (if dont-save
         (delete-region beg end)
       (kill-region beg end))
-    (when (memq vimpulse-this-range-type '(self line))
+    (when (eq 'line vimpulse-this-motion-type)
       (save-excursion (newline))
       (when viper-auto-indent
         (indent-according-to-mode)))
     (viper-yank-last-insertion))
-   ((memq vimpulse-this-range-type '(self line))
+   ((eq 'line vimpulse-this-motion-type)
     (setq viper-began-as-replace t)
     (if dont-save
         (delete-region beg end)
