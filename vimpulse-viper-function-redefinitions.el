@@ -603,6 +603,8 @@ keybindings in %s.\n\n%s" state-name doc) t))
        (when (eq ',state-name new-state)
          (run-hooks ',hook)))))
 
+(font-lock-add-keywords 'emacs-lisp-mode '("vimpulse-define-state"))
+
 ;; These are for making `vimpulse-define-state' more forgiving
 (defun vimpulse-unquote (exp)
   "Return EXP unquoted."
@@ -798,6 +800,9 @@ create a buffer-local variable. Returns the result."
      "Define VAR as a buffer-local variable.
 DEFAULT-VALUE is the default value and DOCUMENTATION is the
 docstring. The variable becomes buffer-local whenever set.")
+
+(font-lock-add-keywords 'emacs-lisp-mode
+                        '("viper-deflocalvar" "viper-loop"))
 
 ;; e/E bug: on a single-letter word, ce may change two words
 (defun vimpulse-end-of-word-kernel ()
