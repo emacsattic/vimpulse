@@ -269,8 +269,10 @@ specifies whether to include the quote marks in the range."
 
 (defun vimpulse-line-range (count)
   "Return a line range (BEG END)."
-  (list (line-beginning-position)
-        (line-beginning-position (1+ count))))
+  (if (and (eobp) (bolp))
+      (list (line-beginning-position 0) (point))
+    (list (line-beginning-position)
+          (line-beginning-position (1+ count)))))
 
 (defun vimpulse-line (arg)
   "Select ARG lines."
