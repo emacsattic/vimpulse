@@ -18,6 +18,7 @@
 (define-key viper-vi-basic-map "=" 'vimpulse-indent)
 (define-key viper-vi-basic-map "<" 'vimpulse-shift-left)
 (define-key viper-vi-basic-map ">" 'vimpulse-shift-right)
+(define-key viper-vi-basic-map "~" 'vimpulse-invert-case)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding
 (define-key viper-vi-basic-map "gb" 'vimpulse-end-of-previous-word)
 (define-key viper-vi-basic-map "gd" 'vimpulse-goto-definition)
@@ -92,7 +93,7 @@
   (interactive (vimpulse-range nil nil nil nil 'viper-forward-char))
   (let ((length (abs (- end beg))))
     (cond
-     ((eq 'block vimpulse-visual-mode)
+     ((eq 'block vimpulse-this-range-type)
       (viper-replace-char 1)
       (let ((char (char-after (point)))
             (length (abs (- (save-excursion
@@ -101,14 +102,10 @@
                             (save-excursion
                               (goto-char end)
                               (current-column))))))
-        (apply-on-rectangle
-         (lambda (start-col end-col)
-           (delete-region (progn
-                            (vimpulse-move-to-column end-col)
-                            (point))
-                          (progn
-                            (vimpulse-move-to-column start-col)
-                            (point)))
+        (vimpulse-apply-on-block
+         (lambda (beg end)
+           (goto-char beg)
+           (delete-region beg end)
            (insert (make-string length char)))
          beg end)))
      (t
@@ -154,25 +151,35 @@
 (defun vimpulse-downcase (beg end)
   "Convert text to lower case."
   (interactive (vimpulse-range))
-  (downcase-region beg end))
+  (if (eq 'block vimpulse-this-range-type)
+      (vimpulse-apply-on-block 'downcase-region beg end)
+    (downcase-region beg end)))
 
 (defun vimpulse-upcase (beg end)
   "Convert text to upper case."
   (interactive (vimpulse-range))
-  (upcase-region beg end))
+  (if (eq 'block vimpulse-this-range-type)
+      (vimpulse-apply-on-block 'upcase-region beg end)
+    (upcase-region beg end)))
 
 (defun vimpulse-invert-case (beg end)
   "Convert text to inverted case."
   (interactive (vimpulse-range))
-  (save-excursion
-    (goto-char beg)
-    (while (< beg end)
-      (setq c (following-char))
-      (delete-char 1 nil)
-      (if (eq c (upcase c))
-          (insert-char (downcase c) 1)
-        (insert-char (upcase c) 1))
-      (setq beg (1+ beg)))))
+  (let (char)
+    (save-excursion
+      (cond
+       ((eq 'block vimpulse-this-range-type)
+        (let (vimpulse-this-range-type)
+          (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
+       (t
+        (goto-char beg)
+        (while (< beg end)
+          (setq char (following-char))
+          (delete-char 1 nil)
+          (if (eq char (upcase char))
+              (insert-char (downcase char) 1)
+            (insert-char (upcase char) 1))
+          (setq beg (1+ beg))))))))
 
 ;;; +, _
 
