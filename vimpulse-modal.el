@@ -1,15 +1,15 @@
 ;;;; Modal keybinding functions
 
-;; This provides the functions `vimpulse-map', `vimpulse-imap'
-;; and `vimpulse-vmap', which mimic :map, :imap and :vmap in Vim, as
-;; well as `vimpulse-define-key', a general-purpose function for
-;; binding keys in a "careful" way.
+;; This provides the functions `vimpulse-map', `vimpulse-imap',
+;; `vimpulse-vmap' and `vimpulse-omap', which mimic :map, :imap,
+;; :vmap and :omap in Vim, as well as `vimpulse-define-key', a
+;; general-purpose function for binding keys in a "careful" way.
 ;;
 ;; BACKGROUND
 ;;
-;; The :map, :imap and :vmap commands of Vim let one make two key
-;; mappings starting with the same sequence of characters without one
-;; overwriting the other. For example:
+;; The :map, :imap, :vmap and :omap commands of Vim let one make two
+;; key mappings starting with the same sequence of characters without
+;; one overwriting the other. For example:
 ;;
 ;;     :imap aa foo
 ;;     :imap aaa bar
@@ -30,9 +30,10 @@
 ;;
 ;; The solution is a set of Vim-like or "modal" functions for making
 ;; new key bindings "on top of" previous bindings. They are
-;; `vimpulse-map', `vimpulse-imap' and `vimpulse-vmap', which mimic
-;; Vim's commands, and `vimpulse-define-key', a general function for
-;; specifying the keymap. Returning to the example:
+;; `vimpulse-map', `vimpulse-imap', `vimpulse-vmap' and
+;; `vimpulse-omap', which mimic Vim's commands, and
+;; `vimpulse-define-key', a general function for specifying the
+;; keymap. Returning to the example:
 ;;
 ;;     (vimpulse-imap "aa" 'foo)
 ;;     (vimpulse-imap "aaa" 'bar)
@@ -43,9 +44,10 @@
 ;; (like [?a ?b ?c]), or as a call to `kbd' (like (kbd "a b c")).
 ;;
 ;; To make a binding in vi (command) mode, use `vimpulse-map';
-;; in Insert mode, `vimpulse-imap'; in Visual mode, `vimpulse-vmap'.
-;; The more general `vimpulse-define-key' function lets one specify
-;; the keymap to store the binding in, as when using `define-key':
+;; in Insert mode, `vimpulse-imap'; in Visual mode, `vimpulse-vmap';
+;; in Operator-Pending mode, `vimpulse-omap'. The more general
+;; `vimpulse-define-key' function lets one specify the keymap to store
+;; the binding in, as when using `define-key':
 ;;
 ;;     (vimpulse-define-key keymap "abc" 'command)
 ;;
