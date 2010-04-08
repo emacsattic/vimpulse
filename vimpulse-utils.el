@@ -131,12 +131,26 @@ read-only buffers anyway, it does the job."
                  viper-kill-line
                  viper-substitute
                  viper-substitute-line
+                 vimpulse-change
+                 vimpulse-delete
                  vimpulse-visual-append
-                 vimpulse-visual-change
                  vimpulse-visual-insert))
     (eval `(vimpulse-augment-keymap
             map '(([remap ,cmd] . viper-nil))
             replace))))
+
+(defmacro vimpulse-remap (keymap from to)
+  "Remap FROM to TO in KEYMAP.
+For XEmacs compatibility, KEYMAP should have a `remap-alist'
+property referring to a variable used for storing a \"remap
+association list\"."
+  (if (featurep 'xemacs)
+      `(let ((remap-alist (get ',keymap 'remap-alist))
+             (from ,from) (to ,to))
+         (when remap-alist
+           (add-to-list remap-alist (cons from to))))
+    `(let ((keymap ,keymap) (from ,from) (to ,to))
+       (define-key keymap `[remap ,from] to))))
 
 ;;; Vector tools
 
@@ -173,35 +187,50 @@ LIST may be nested."
 
 ;;; Movement
 
-(defmacro vimpulse-limit (lower upper &rest body)
-  "Eval BODY, but limit point to buffer-positions LOWER and UPPER.
+(defun vimpulse-move-to-column (column &optional dir force)
+  "Move point to column COLUMN in the current line.
+Places point at left of the tab character (at the right
+if DIR is non-nil) and returns point.
+If `vimpulse-visual-block-untabify' is non-nil, then
+tabs are changed to spaces. (FORCE untabifies regardless.)"
+  (interactive "p")
+  (if (or vimpulse-visual-block-untabify force)
+      (move-to-column column t)
+    (move-to-column column)
+    (when (or (not dir) (and (numberp dir) (> 1 dir)))
+      (when (< column (current-column))
+        (unless (bolp)
+          (backward-char)))))
+  (point))
+
+(defmacro vimpulse-limit (start end &rest body)
+  "Eval BODY, but limit point to buffer-positions START and END.
 Both may be nil. Returns position."
   (declare (indent 2))
-  `(let ((lower ,lower) (upper ,upper))
-     (when (and (numberp lower) (numberp upper))
-       (setq lower (prog1 (min lower upper)
-                     (setq upper (max lower upper)))))
-     ,@body
-     (when (numberp lower)
-       (goto-char (max (point) lower)))
-     (when (numberp upper)
-       (goto-char (min (point) upper)))
-     (point)))
+  `(let ((start (or ,start (point-min)))
+         (end   (or ,end   (point-max))))
+     (when (< end start)
+       (setq start (prog1 end
+                     (setq end start))))
+     (save-restriction
+       (narrow-to-region start end)
+       ,@body
+       (point))))
 
 (defmacro vimpulse-skip (dir bounds &rest body)
   "Eval BODY, but limit point to BOUNDS in DIR direction.
 Returns position."
   (declare (indent 2))
-  `(let ((dir ,dir) (bounds ,bounds) lower upper)
+  `(let ((dir ,dir) (bounds ,bounds) start end)
      (setq dir (if (and (numberp dir) (> 0 dir)) -1 1))
      (dolist (bound bounds)
        (unless (numberp bound)
          (setq bounds (delq bound bounds))))
      (when bounds
        (if (> 0 dir)
-           (setq lower (apply 'min bounds))
-         (setq upper (apply 'max bounds))))
-     (vimpulse-limit lower upper ,@body)))
+           (setq start (apply 'min bounds))
+         (setq end (apply 'max bounds))))
+     (vimpulse-limit start end ,@body)))
 
 (defun vimpulse-skip-regexp (regexp dir &rest bounds)
   "Move point in DIR direction based on REGEXP and BOUNDS.
@@ -286,6 +315,7 @@ If POS if specified, set mark at POS instead."
           cua-toggle-set-mark)
       (goto-char (or pos (mark t) (point)))
       (cua-set-mark)
+      (message "")
       (goto-char opoint)))
    (t
     (let (this-command)
