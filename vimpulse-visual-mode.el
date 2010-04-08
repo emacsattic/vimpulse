@@ -5,12 +5,13 @@
 ;; vi state (movement), but defines some bindings of its own
 ;; on top of that.
 ;;
-;; Text selection in Emacs and Vim differs subtly by that in Vim,
-;; the character under the cursor is included in the selection, while
-;; Emacs' region excludes it. Vimpulse solves the problem by
-;; "translating" a Visual selection to the equivalent Emacs region
-;; when a command is about to be executed. Likewise, a Line selection
-;; is translated to an Emacs region of whole lines.
+;; Text selection in Emacs and Vim differs subtly by that in Vim, the
+;; character under the cursor is always included in the selection,
+;; while Emacs' region excludes it when point follows mark. Vimpulse
+;; solves the problem by "translating" a Visual selection to the
+;; equivalent Emacs region when a command is about to be executed.
+;; Likewise, a Line selection is translated to an Emacs region of
+;; whole lines.
 ;;
 ;; This is pretty transparent, except that we don't wish to do any
 ;; translating when the user is just moving around in the buffer.
@@ -118,7 +119,7 @@ Off by default."
 
 (viper-deflocalvar vimpulse-visual-last nil
   "Last active Visual mode.
-May be nil, `normal', `line', `block' or `insert'.")
+May be `normal', `line', `block' or nil.")
 
 (viper-deflocalvar vimpulse-visual-previous-state 'viper-state
   "Previous state before enabling Visual mode.
