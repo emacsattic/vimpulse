@@ -18,7 +18,7 @@
 (define-key viper-vi-basic-map "=" 'vimpulse-indent)
 (define-key viper-vi-basic-map "<" 'vimpulse-shift-left)
 (define-key viper-vi-basic-map ">" 'vimpulse-shift-right)
-(define-key viper-vi-basic-map "~" 'vimpulse-invert-case)
+(define-key viper-vi-basic-map "~" 'vimpulse-invert-char)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding
 (define-key viper-vi-basic-map "gb" 'vimpulse-end-of-previous-word)
 (define-key viper-vi-basic-map "gd" 'vimpulse-goto-definition)
@@ -32,6 +32,8 @@
 (define-key viper-vi-basic-map "gw" 'vimpulse-fill)
 (define-key viper-vi-basic-map "gu" 'vimpulse-downcase)
 (define-key viper-vi-basic-map "gU" 'vimpulse-upcase)
+(define-key viper-vi-basic-map "g?" 'vimpulse-rot13)
+(define-key viper-vi-basic-map "g~" 'vimpulse-invert-case)
 (define-key viper-vi-basic-map "zb" 'viper-line-to-bottom)
 (define-key viper-vi-basic-map "zh" 'scroll-right)
 (define-key viper-vi-basic-map "zl" 'scroll-left)
@@ -93,7 +95,7 @@
   (interactive (vimpulse-range nil nil nil nil 'viper-forward-char))
   (let ((length (abs (- end beg))))
     (cond
-     ((eq 'block vimpulse-this-range-type)
+     ((eq 'block vimpulse-this-motion-type)
       (viper-replace-char 1)
       (let ((char (char-after (point)))
             (length (abs (- (save-excursion
@@ -122,7 +124,9 @@
 (defun vimpulse-indent (beg end)
   "Indent text according to mode."
   (interactive (vimpulse-range t nil t))
-  (indent-region beg end nil))
+  (indent-region beg end nil)
+  (when viper-auto-indent
+    (back-to-indentation)))
 
 (defun vimpulse-shift-left (beg end)
   "Shift all selected lines to the left."
@@ -151,16 +155,20 @@
 (defun vimpulse-downcase (beg end)
   "Convert text to lower case."
   (interactive (vimpulse-range))
-  (if (eq 'block vimpulse-this-range-type)
+  (if (eq 'block vimpulse-this-motion-type)
       (vimpulse-apply-on-block 'downcase-region beg end)
-    (downcase-region beg end)))
+    (downcase-region beg end)
+    (when viper-auto-indent
+      (back-to-indentation))))
 
 (defun vimpulse-upcase (beg end)
   "Convert text to upper case."
   (interactive (vimpulse-range))
-  (if (eq 'block vimpulse-this-range-type)
+  (if (eq 'block vimpulse-this-motion-type)
       (vimpulse-apply-on-block 'upcase-region beg end)
-    (upcase-region beg end)))
+    (upcase-region beg end)
+    (when viper-auto-indent
+      (back-to-indentation))))
 
 (defun vimpulse-invert-case (beg end)
   "Convert text to inverted case."
@@ -168,8 +176,8 @@
   (let (char)
     (save-excursion
       (cond
-       ((eq 'block vimpulse-this-range-type)
-        (let (vimpulse-this-range-type)
+       ((eq 'block vimpulse-this-motion-type)
+        (let (vimpulse-this-motion-type)
           (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
        (t
         (goto-char beg)
@@ -179,7 +187,19 @@
           (if (eq char (upcase char))
               (insert-char (downcase char) 1)
             (insert-char (upcase char) 1))
-          (setq beg (1+ beg))))))))
+          (setq beg (1+ beg))))))
+    (when (and (bolp) viper-auto-indent)
+      (back-to-indentation))))
+
+(defun vimpulse-invert-char (beg end)
+  "Invert case of character."
+  (interactive (vimpulse-range nil nil nil nil 'viper-forward-char))
+  (vimpulse-invert-case beg end))
+
+(defun vimpulse-rot13 (beg end)
+  "ROT13 encrypt text."
+  (interactive (vimpulse-range))
+  (rot13-region beg end))
 
 ;;; +, _
 
