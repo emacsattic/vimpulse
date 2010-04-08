@@ -12,7 +12,12 @@
 
 ;;; vi (command) mode keys
 
+(define-key viper-vi-basic-map "r" 'vimpulse-replace)
+(define-key viper-vi-basic-map "J" 'vimpulse-join)
 (define-key viper-vi-basic-map "K" 'woman)
+(define-key viper-vi-basic-map "=" 'vimpulse-indent)
+(define-key viper-vi-basic-map "<" 'vimpulse-shift-left)
+(define-key viper-vi-basic-map ">" 'vimpulse-shift-right)
 (define-key viper-vi-basic-map "g" nil) ; delete `viper-nil' binding
 (define-key viper-vi-basic-map "gb" 'vimpulse-end-of-previous-word)
 (define-key viper-vi-basic-map "gd" 'vimpulse-goto-definition)
@@ -22,6 +27,10 @@
 (define-key viper-vi-basic-map "gj" 'next-line)
 (define-key viper-vi-basic-map "gk" 'previous-line)
 (define-key viper-vi-basic-map "gl" 'forward-char)
+(define-key viper-vi-basic-map "gq" 'vimpulse-fill)
+(define-key viper-vi-basic-map "gw" 'vimpulse-fill)
+(define-key viper-vi-basic-map "gu" 'vimpulse-downcase)
+(define-key viper-vi-basic-map "gU" 'vimpulse-upcase)
 (define-key viper-vi-basic-map "zb" 'viper-line-to-bottom)
 (define-key viper-vi-basic-map "zh" 'scroll-right)
 (define-key viper-vi-basic-map "zl" 'scroll-left)
@@ -75,6 +84,95 @@
   "Cycle point to another window."
   (interactive)
   (select-window (next-window)))
+
+;;; r, J, =, >, <
+
+(defun vimpulse-replace (beg end)
+  "Replace all selected characters with ARG."
+  (interactive (vimpulse-range nil nil nil nil 'viper-forward-char))
+  (let ((length (abs (- end beg))))
+    (cond
+     ((eq 'block vimpulse-visual-mode)
+      (viper-replace-char 1)
+      (let ((char (char-after (point)))
+            (length (abs (- (save-excursion
+                              (goto-char beg)
+                              (current-column))
+                            (save-excursion
+                              (goto-char end)
+                              (current-column))))))
+        (apply-on-rectangle
+         (lambda (start-col end-col)
+           (delete-region (progn
+                            (vimpulse-move-to-column end-col)
+                            (point))
+                          (progn
+                            (vimpulse-move-to-column start-col)
+                            (point)))
+           (insert (make-string length char)))
+         beg end)))
+     (t
+      (viper-replace-char length)))))
+
+(defun vimpulse-join (beg end)
+  "Join the selected lines."
+  (interactive (vimpulse-range nil nil t nil 'vimpulse-line))
+  (let ((num (count-lines beg end)))
+    (unless (< 2 num)
+      (setq num 2))
+    (viper-join-lines num)))
+
+(defun vimpulse-indent (beg end)
+  "Indent text according to mode."
+  (interactive (vimpulse-range t nil t))
+  (indent-region beg end nil))
+
+(defun vimpulse-shift-left (beg end)
+  "Shift all selected lines to the left."
+  (interactive (vimpulse-range))
+  (let ((nlines (count-lines beg end)))
+    (viper-next-line (cons (1- nlines) ?<))))
+
+(defun vimpulse-shift-right (beg end)
+  "Shift all selected lines to the right."
+  (interactive (vimpulse-range))
+  (let ((nlines (count-lines beg end)))
+    (viper-next-line (cons (1- nlines) ?>))))
+
+;;; gq, gu, gU
+
+(defun vimpulse-fill (beg end)
+  "Fill text."
+  (interactive (vimpulse-range t t))
+  (setq end (save-excursion
+              (goto-char end)
+              (skip-chars-backward " ")
+              (point)))
+  (save-excursion
+    (fill-region beg end)))
+
+(defun vimpulse-downcase (beg end)
+  "Convert text to lower case."
+  (interactive (vimpulse-range))
+  (downcase-region beg end))
+
+(defun vimpulse-upcase (beg end)
+  "Convert text to upper case."
+  (interactive (vimpulse-range))
+  (upcase-region beg end))
+
+(defun vimpulse-invert-case (beg end)
+  "Convert text to inverted case."
+  (interactive (vimpulse-range))
+  (save-excursion
+    (goto-char beg)
+    (while (< beg end)
+      (setq c (following-char))
+      (delete-char 1 nil)
+      (if (eq c (upcase c))
+          (insert-char (downcase c) 1)
+        (insert-char (upcase c) 1))
+      (setq beg (1+ beg)))))
 
 ;;; +, _
 
