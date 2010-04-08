@@ -267,6 +267,16 @@ specifies whether to include the quote marks in the range."
           (list beg end)
         (list (min (1+ beg) end) (max (1- end) beg))))))
 
+(defun vimpulse-line-range (count)
+  "Return a line range (BEG END)."
+  (list (line-beginning-position)
+        (line-beginning-position (1+ count))))
+
+(defun vimpulse-line (arg)
+  "Select ARG lines."
+  (interactive "p")
+  (vimpulse-mark-object 'vimpulse-line-range arg))
+
 (defun vimpulse-a-word (arg)
   "Select a word."
   (interactive "p")
@@ -426,12 +436,6 @@ specifies whether to include the quote marks in the range."
   "Select inner double quoted expression."
   (interactive "p")
   (vimpulse-mark-object 'vimpulse-quote-range arg ?\"))
-
-(defun vimpulse-line (&optional arg)
-  "Select ARG lines."
-  (setq arg (or arg 1))
-  (vimpulse-set-region (line-beginning-position)
-                       (line-beginning-position (1+ arg))))
 
 (define-key vimpulse-operator-basic-map "aw" 'vimpulse-a-word)
 (define-key vimpulse-operator-basic-map "iw" 'vimpulse-inner-word)
