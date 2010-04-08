@@ -34,7 +34,7 @@
 ;; The benefit of a dedicated state when an "operator" is "pending" is
 ;; code separation. In the original scheme, every Viper motion does
 ;; the work itself of deleting/changing/yanking the text it moves
-;; over, making that action repeatable, etc. This framework handles
+;; over, making that action repeatable, etc. The new framework handles
 ;; everything automatically and orthogonally, enabling the use of
 ;; plain Emacs movement commands (like S-exp navigation) as motions.
 ;;
@@ -44,7 +44,7 @@
 ;; is bound in the Operator-Pending state, and associated with the
 ;; regular motion with a remap binding.
 ;;
-;; What about those old Viper motions doing everything at once?
+;; What about all those Viper motions doing everything at once?
 ;; A couple of compatibility macros tries to separate the
 ;; operator-pending part from the rest. In the long run, Viper's
 ;; motions should be rewritten in a more modular way; I'll have to
@@ -77,6 +77,9 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 (add-hook 'pre-command-hook 'vimpulse-operator-exit-hook)
 (add-hook 'post-command-hook 'vimpulse-operator-exit-hook)
 
+;; We place all remap bindings in a keymap of their own.
+;; This enables Visual mode only to inherit text object
+;; bindings from Operator-Pending mode, not any remapping.
 (defvar vimpulse-operator-remap-map (make-sparse-keymap))
 
 (defvar vimpulse-operator-remap-alist nil
@@ -211,7 +214,9 @@ will use these instad of reading a motion."
                             (line-beginning-position 2)))
               vimpulse-visual-last 'line
               vimpulse-visual-height (count-lines beg end)))
-      (goto-char beg))
+      (if (eq 'block vimpulse-this-range-type)
+          (vimpulse-visual-block-rotate 'upper-left beg end)
+        (goto-char beg)))
      ;; Not in Visual mode: use MOTION if specified,
      ;; or read motion and return motion range
      (t
@@ -516,12 +521,12 @@ If DONT-SAVE is non-nil, just delete it."
     (if dont-save
         (delete-region beg end)
       (kill-region beg end))
-    (when (eq 'self vimpulse-this-range-type)
+    (when (memq vimpulse-this-range-type '(self line))
       (save-excursion (newline))
       (when viper-auto-indent
         (indent-according-to-mode)))
     (viper-yank-last-insertion))
-   ((eq 'self vimpulse-this-range-type)
+   ((memq vimpulse-this-range-type '(self line))
     (setq viper-began-as-replace t)
     (if dont-save
         (delete-region beg end)
@@ -535,9 +540,7 @@ If DONT-SAVE is non-nil, just delete it."
     (if dont-save
         (delete-region beg end)
       (vimpulse-store-in-current-register beg end)
-      (viper-change beg end))))
-  (when vimpulse-this-range-type
-    (setq vimpulse-visual-last 'insert)))
+      (viper-change beg end)))))
 
 (defun vimpulse-store-in-register (register start end)
   "Store text from START to END in REGISTER."
@@ -742,7 +745,19 @@ Works like Vim's \"G\"."
     (when com
       (viper-execute-com 'vimpulse-goto-line val com))))
 
-;; Create Operator-Pending wrappers for Viper motions
+;; `viper-goto-eol' excludes last character on line unless
+;; called in Insert state
+(defun vimpulse-operator-goto-eol (arg)
+  "Operator-Pending part of `viper-goto-eol'.
+
+Goto end of line."
+  (interactive "P")
+  (let ((viper-current-state 'insert-state))
+    (viper-goto-eol arg)))
+
+(vimpulse-operator-remap 'viper-goto-eol 'vimpulse-operator-goto-eol)
+
+;; Create Operator-Pending wrappers for remaining Viper motions
 (vimpulse-operator-map-define vimpulse-goto-first-line)
 (vimpulse-operator-map-define vimpulse-goto-line)
 (vimpulse-operator-map-define viper-backward-Word)
@@ -762,7 +777,6 @@ Works like Vim's \"G\"."
 (vimpulse-operator-map-define viper-forward-word)
 (vimpulse-operator-map-define viper-goto-char-backward)
 (vimpulse-operator-map-define viper-goto-char-forward)
-(vimpulse-operator-map-define viper-goto-eol)
 (vimpulse-operator-map-define viper-goto-line)
 (vimpulse-operator-map-define viper-goto-mark)
 (vimpulse-operator-map-define viper-goto-mark-and-skip-white)
