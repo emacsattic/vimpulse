@@ -31,18 +31,22 @@
 ;; starting point as well as an ending point. They are implemented
 ;; simply as selection commands.
 ;;
+;; As in Vim, a motion may specify a motion type, such as `line'.
+;; The following motion types are defined:
+;;
+;;   * `line': the motion range is extended to whole lines.
+;;   * `inclusive': the ending character is included.
+;;   * `exclusive' (default): the ending character is excluded.
+;;
+;; For example, (put 'foo 'motion-type 'line) gives `foo' a motion
+;; type of `line'. If not specified, the motion is `exclusive'.
+;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
 ;; code separation. In the original scheme, every Viper motion must
 ;; manually do the work of deleting/changing/yanking the text moved
 ;; over, making that action repeatable, etc. The new framework handles
 ;; everything automatically and orthogonally, enabling the use of
 ;; plain Emacs movement commands (like S-exp navigation) as motions.
-;;
-;; In most cases, the motion range is determined by calling the motion
-;; just as it would be in vi state. Occasionally, the operator-pending
-;; behavior is slightly different. In those cases, a separate command
-;; is bound in the Operator-Pending state, and associated with the
-;; regular motion with a remap binding.
 ;;
 ;; What about all those Viper motions doing everything at once?
 ;; A couple of compatibility macros tries to separate the
@@ -110,10 +114,10 @@ motion produced the current range. See also `vimpulse-this-operator'.")
   "Current count.")
 
 (defvar vimpulse-this-motion-type nil
-  "Current range type.
+  "Current motion type.
 May be `block', `line', `normal' or nil.")
 
-(defvar vimpulse-last-range-type nil
+(defvar vimpulse-last-motion-type nil
   "Last repeated range type.
 May be `block', `line', `normal' or nil.")
 
@@ -158,7 +162,7 @@ Used by `vimpulse-operator-repeat'.")
 
 (defun vimpulse-range
   (&optional no-repeat dont-move-point whole-lines keep-visual
-             motion count)
+             custom-motion)
   "Read a motion and return a range (BEG END).
 In Visual mode, returns the beginning and end of the selection.
 This can be used in the `interactive' form of a command:
@@ -178,11 +182,10 @@ DONT-MOVE-POINT: don't move to beginning of range in vi state.
 WHOLE-LINES: extend range to whole lines.
 KEEP-VISUAL: don't disable Visual selection.
 
-After these arguments may follow a custom MOTION and COUNT
-to use in vi (command) state. If specified, the command
-will not read a motion in vi state."
+After these arguments may follow a CUSTOM-MOTION to use in
+vi (command) state. If specified, the command will not read a
+motion in vi state."
   (let ((range (list (point) (point)))
-        (beg (point)) (end (point))
         viper-ESC-moves-cursor-back)
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
@@ -191,46 +194,35 @@ will not read a motion in vi state."
     (cond
      ;; If text is selected, use selection boundaries as range
      ((or vimpulse-visual-mode (vimpulse-mark-active))
-      (setq range (vimpulse-visual-range)
-            beg (apply 'min range)
-            end (apply 'max range)
-            vimpulse-this-motion-type vimpulse-visual-mode
-            motion nil)
-      ;; Set up repeat
-      (setq vimpulse-this-motion 'vimpulse-visual-reselect)
+      ;; Extend range to whole lines
+      (when (and whole-lines
+                 (not (eq 'line vimpulse-visual-mode)))
+        (vimpulse-visual-activate 'line)
+        (vimpulse-visual-dimensions))
+      ;; Determine range and go to beginning
+      (setq range (vimpulse-visual-range))
+      (if (eq 'block vimpulse-this-motion-type)
+          (vimpulse-visual-block-rotate
+           'upper-left (apply 'min range) (apply 'max range))
+        (goto-char (apply 'min range)))
       ;; Disable selection
+      (setq vimpulse-this-motion 'vimpulse-visual-reselect)
       (unless keep-visual
         (if vimpulse-visual-mode
             (vimpulse-visual-mode -1)
-          (vimpulse-deactivate-region)))
-      ;; Extend range to whole lines
-      (when (and whole-lines
-                 (not (eq 'line vimpulse-this-motion-type)))
-        (setq range (list (save-excursion
-                            (goto-char beg)
-                            (line-beginning-position))
-                          (save-excursion
-                            (goto-char end)
-                            (line-beginning-position 2)))
-              vimpulse-visual-last 'line
-              vimpulse-visual-height (count-lines beg end)))
-      (if (eq 'block vimpulse-this-motion-type)
-          (vimpulse-visual-block-rotate 'upper-left beg end)
-        (goto-char beg)))
-     ;; Not in Visual mode: use MOTION if specified,
+          (vimpulse-deactivate-region))))
+     ;; Not in Visual mode: use CUSTOM-MOTION if specified,
      ;; or read motion and return motion range
      (t
-      (if motion
-          (setq vimpulse-this-motion motion
-                vimpulse-this-count  count)
+      (if custom-motion
+          (setq vimpulse-this-motion custom-motion)
         (vimpulse-change-state-to-operator)
         (setq vimpulse-this-motion (vimpulse-keypress-parser t))
         (setq vimpulse-this-count (cadr vimpulse-this-motion)
               vimpulse-this-motion (car vimpulse-this-motion))
         ;; Return current line motion if operator calls itself
         (if (eq vimpulse-this-operator vimpulse-this-motion)
-            (setq vimpulse-this-motion 'vimpulse-line
-                  vimpulse-this-motion-type 'line)
+            (setq vimpulse-this-motion 'vimpulse-line)
           (setq vimpulse-this-motion
                 (vimpulse-operator-remapping vimpulse-this-motion))))
       (cond
@@ -247,48 +239,41 @@ will not read a motion in vi state."
                    (prefix-numeric-value vimpulse-this-count))))
         ;; Calculate motion range
         (setq range (vimpulse-motion-range
-                     vimpulse-this-count vimpulse-this-motion)
-              beg (apply 'min range)
-              end (apply 'max range))
+                     vimpulse-this-count vimpulse-this-motion))
         ;; Extend range to whole lines
         (when (and whole-lines
                    (not (eq 'line vimpulse-this-motion-type)))
-          (setq range (list (save-excursion
-                              (goto-char beg)
-                              (line-beginning-position))
-                            (save-excursion
-                              (goto-char end)
-                              (line-beginning-position 2)))
-                vimpulse-this-count (count-lines beg end)))
+          (setq range (vimpulse-normalize-motion-range range 'line)))
+        ;; Go to beginning of range
         (unless dont-move-point
-          (goto-char beg)
-          (when (and viper-auto-indent (bolp))
+          (goto-char (apply 'min range))
+          (when (and (bolp) viper-auto-indent)
             (back-to-indentation)))
         (viper-change-state-to-vi)))))
     ;; Set up repeat
     (unless no-repeat
       (setq vimpulse-last-operator vimpulse-this-operator
             vimpulse-last-motion vimpulse-this-motion
-            vimpulse-last-range-type vimpulse-this-motion-type)
+            vimpulse-last-motion-type vimpulse-this-motion-type)
       (viper-set-destructive-command
        (list 'vimpulse-operator-repeat
              vimpulse-this-count nil viper-use-register nil nil)))
     ;; Return range
     range))
 
-(defun vimpulse-motion-range (count motion &optional pos)
-  "Returns a range (BEG END) defined by point, MOTION and COUNT.
+(defun vimpulse-motion-range (count motion &optional type)
+  "Return a motion range defined by point, MOTION and COUNT.
 MOTION can move point or select some text (a text object).
 It can be a command, a function or a list of Lisp expressions.
 In Visual Mode, returns selection boundaries."
   (let ((current-prefix-arg count)
         (viper-intermediate-command 'viper-command-argument)
-        (vimpulse-operator-basic-minor-mode t)
         (viper-current-state 'operator-state)
-        retval)
+        (vimpulse-operator-basic-minor-mode t)
+        (motion-type (vimpulse-motion-type motion))
+        range)
     (save-excursion
-      (when pos
-        (goto-char pos))
+      (setq vimpulse-this-motion-type motion-type)
       (viper-move-marker-locally 'viper-com-point (point))
       ;; Enable Transient Mark mode so we can reliably
       ;; detect mark setting
@@ -296,29 +281,31 @@ In Visual Mode, returns selection boundaries."
       ;; Execute MOTION
       (cond
        ((listp motion)                  ; Lisp expression
-        (setq retval (eval `(progn ,@motion))))
+        (eval `(progn ,@motion)))
        ((commandp motion)
-        (setq retval (call-interactively motion)))
+        (call-interactively motion))
        (t
-        (setq retval (funcall motion count))))
+        (funcall motion count)))
+      (unless type
+        (setq type (or vimpulse-this-motion-type 'exclusive)))
       (cond
        ;; If text has been selected (i.e., it's a text object),
        ;; return the selection
        ((or vimpulse-visual-mode (vimpulse-mark-active))
-        (prog1 (vimpulse-visual-range)
-          (if vimpulse-visual-mode
-              (vimpulse-visual-mode -1)
-            (vimpulse-deactivate-region))
-          (vimpulse-transient-restore)))
-       ;; If a valid range was returned, use that
-       ((vimpulse-range-p retval)
-        retval)
+        (setq range (vimpulse-visual-range))
+        (when (eq 'exclusive vimpulse-this-motion-type)
+          (setq vimpulse-this-motion-type motion-type))
+        (if vimpulse-visual-mode
+            (vimpulse-visual-mode -1)
+          (vimpulse-deactivate-region))
+        (vimpulse-transient-restore))
        ;; Otherwise, range is defined by `viper-com-point'
        ;; and point (Viper type motion)
        (t
-        (prog1 (list (min (point) (or viper-com-point (point)))
-                     (max (point) (or viper-com-point (point))))
-          (vimpulse-transient-restore)))))))
+        (setq range (list (marker-position viper-com-point) (point)))
+        (setq range (vimpulse-normalize-motion-range range type))
+        (vimpulse-transient-restore)))
+      range)))
 
 (defun vimpulse-range-p (object)
   "Return t if OBJECT is a range."
@@ -415,7 +402,7 @@ of CMD. Both COUNT and CMD may be nil."
 ;; This is used in `viper-d-com' (read by `viper-repeat').
 (defun vimpulse-operator-repeat (arg)
   "Repeat an operator-motion combination.
-ARG is a list of the form ((OPERATOR MOTION COUNT) . COM).
+ARG is a list of the form (COUNT . COM).
 COM is discarded."
   (let ((val (viper-P-val arg)))
     (cond
@@ -424,16 +411,17 @@ COM is discarded."
      (t
       (vimpulse-operator-apply
        vimpulse-last-operator vimpulse-last-motion val
-       vimpulse-last-range-type)))))
+       vimpulse-last-motion-type)))))
 
 (defun vimpulse-operator-apply (operator motion count &optional type)
   "Apply OPERATOR on MOTION. COUNT is the motion count.
 TYPE is the motion type."
-  (let ((range (vimpulse-motion-range count motion))
-        (vimpulse-this-operator operator)
-        (vimpulse-this-motion motion)
-        (vimpulse-this-motion-type type))
-    (funcall operator (car range) (cadr range))))
+  (let* ((vimpulse-this-operator operator)
+         (vimpulse-this-motion motion)
+         (range (vimpulse-motion-range count motion type))
+         (beg (car range))
+         (end (cadr range)))
+    (funcall operator beg end)))
 
 (defun vimpulse-region-cmd-p (cmd)
   "Return t if CMD is a region command."
@@ -445,6 +433,95 @@ TYPE is the motion type."
   "Return t if CMD is an operator command."
   (vimpulse-memq-recursive 'vimpulse-range
                            (interactive-form cmd)))
+
+;;; Motion type system
+
+(defun vimpulse-motion-type (object)
+  "Return motion type of OBJECT.
+The type is one of `exclusive', `inclusive', `line' and `block'.
+The default is `exclusive'."
+  (or (cond
+       ((symbolp object)
+        (get object 'motion-type))
+       (t
+        vimpulse-this-motion-type))
+      'exclusive))
+
+;; This implements section 1 of motion.txt (Vim Reference Manual)
+(defun vimpulse-normalize-motion-range (range &optional type)
+  "Normalize the beginning and end of a motion range (FROM TO).
+This function updates `vimpulse-this-motion-type', which
+also specifies the current type if TYPE is nil.
+
+If TYPE is `line', the range is extended to whole lines.
+If `inclusive', the end of range is increased by one character.
+If `exclusive' (the default), the range is left as-is, unless the
+end of the motion is at the beginning of a line:
+
+  * If the start of the motion is at or before the first
+    non-blank in the line, the motion becomes `line' (normalized).
+
+  * Otherwise, the end of the motion is moved to the end of the
+    previous line and the motion becomes `inclusive' (normalized).
+
+Usually, a motion range should be normalized only once, as
+information is lost in the process: an unnormalized motion range
+has the form (FROM TO), while a normalized motion range has the
+form (BEG END).
+
+Returns the normalized range."
+  (let* ((from (car range))
+         (to   (cadr range))
+         (beg  (min from to))
+         (end  (max from to)))
+    (setq type (or type vimpulse-this-motion-type))
+    (cond
+     ((memq type '(blockwise block))
+      (setq range (vimpulse-normalize-motion-range range 'inclusive)
+            beg (apply 'min range)
+            end (apply 'max range)
+            type 'block))
+     ((memq type '(linewise line))
+      (setq beg (save-excursion
+                  (goto-char beg)
+                  (line-beginning-position))
+            end (save-excursion
+                  (goto-char end)
+                  (if (and (bolp) (eolp) (not (eq beg end)))
+                      end
+                    (line-beginning-position 2)))
+            type 'line))
+     ((eq 'inclusive type)
+      (setq end (save-excursion
+                  (goto-char end)
+                  (viper-forward-char-carefully)
+                  (point))))
+     (t
+      (setq type 'exclusive)
+      (when (save-excursion
+              (goto-char to)
+              (bolp))
+        (cond
+         ((save-excursion
+            (goto-char from)
+            (looking-back "^[ \f\t\n\r\v]*"))
+          (setq type 'line
+                range (vimpulse-normalize-motion-range range type)
+                beg (apply 'min range)
+                end (apply 'max range)))
+         (t
+          (if (< to from)
+              (setq beg (save-excursion
+                          (goto-char to)
+                          (viper-forward-char-carefully)
+                          (point)))
+            (setq end (save-excursion
+                        (goto-char to)
+                        (viper-backward-char-carefully)
+                        (point))))
+          (setq type 'inclusive))))))
+    (setq vimpulse-this-motion-type type)
+    (list beg end)))
 
 ;;; Operators (yank, delete, change)
 
@@ -605,13 +682,13 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 
 ;;; Compatibility code allowing old-style Viper motions to work
 
+;; Some motions, like f and /, call `viper-execute-com' to update
+;; `viper-d-com' with a negative count, command-keys etc.
 (defadvice viper-execute-com (around vimpulse-operator activate)
   "Disable in Operator-Pending mode."
   (cond
    ((eq 'operator-state viper-current-state)
-    (if (and com (eq com (upcase com)))
-        (setq com ?R)
-      (setq com ?r))
+    (setq com ?r)
     ad-do-it
     (unless (eq 'viper-repeat viper-intermediate-command)
       (unless viper-d-com
@@ -629,105 +706,51 @@ If called interactively, read REGISTER and COMMAND from keyboard."
    (t
     ad-do-it)))
 
-;; The com code ?r runs a Viper motion in "range mode" without doing
-;; anything else (it's associated with `viper-exec-dummy'). The
-;; following sets ?R up similarly, but enables linewise ranges.
-(aset viper-exec-array ?R 'vimpulse-exec-Dummy)
-
-(defun vimpulse-exec-Dummy (mcom com)
-  "Extend `viper-com-point'/point selection to whole lines."
-  (cond
-   ((< viper-com-point (point))
-    (save-excursion
-      (goto-char viper-com-point)
-      (viper-move-marker-locally 'viper-com-point
-                                 (line-beginning-position)))
-    (goto-char (line-beginning-position 2)))
-   (t
-    (save-excursion
-      (goto-char viper-com-point)
-      (viper-move-marker-locally 'viper-com-point
-                                 (line-beginning-position 2)))
-    (goto-char (line-beginning-position)))))
-
-(defadvice viper-getCom (around vimpulse-operator activate)
-  "Translate ?r to ?R."
-  (let ((com (viper-getcom arg)))
-    (cond
-     ((viper= com ?r)
-      (setq ad-return-value ?R))
-     (t
-      ad-do-it))))
-
 ;; This separates the operator-pending part of a Viper motion from the
-;; rest, defining a new command called vimpulse-operator-MOTION.
-(defmacro vimpulse-operator-map-define (motion)
-  "Define and map a new command for the operator-pending part of MOTION."
-  (let ((motion-name (symbol-name motion))
-        (docstring (documentation motion t)))
-    (setq motion-name (replace-regexp-in-string
-                       "^viper-\\\|^vimpulse-" "" motion-name))
-    (setq motion-name
-          (concat "vimpulse-operator-" motion-name))
-    (setq motion-name (intern motion-name))
-    (eval-after-load 'vimpulse-visual-mode
-      `(add-to-list 'vimpulse-movement-cmds ',motion-name))
-    (vimpulse-operator-remap motion motion-name)
-    (eval `(defun ,motion-name (arg)
-             ,(format "Operator-pending part of `%s'.\n\n%s"
-                      motion (or docstring ""))
-             (interactive "P")
-             (let (com com-alist)
-               (setq com-alist
-                     '((vimpulse-change . ?c)
-                       (vimpulse-delete . ?d)
-                       (vimpulse-yank . ?y)))
-               (setq com
-                     (or (cdr (assq vimpulse-this-operator com-alist))
-                         ?r))
-               (,motion (if (vimpulse-mark-active)
-                            arg
-                          (cons arg com))))))
-    `(quote ,motion-name)))
-
-;; d%: when point is before the parenthetical expression,
-;; include it in the resulting range
-(defun vimpulse-operator-paren-match (arg)
-  "Operator-pending part of `viper-paren-match'.
-
-Go to the matching parenthesis."
-  (interactive "p")
-  (vimpulse-activate-mark (point))
-  (viper-paren-match (cons arg ?r))
-  (when (< (point) (mark t))
-    (vimpulse-set-region (point) (1+ (mark t)))))
-
-(vimpulse-operator-remap 'viper-paren-match 'vimpulse-operator-paren-match)
-
-(defvar vimpulse-goto-line t
-  "*Goto line with \"G\" like in Vim.")
-
-(defun vimpulse-goto-line (arg)
-  "Go to ARG's line; without ARG go to end of buffer.
-Works like Vim's \"G\"."
-  (interactive "P")
-  (let ((val (viper-P-val arg))
-        (com (viper-getCom arg)))
-    (when (eq ?c com) (setq com ?C))
-    (viper-move-marker-locally 'viper-com-point (point))
-    (viper-deactivate-mark)
-    (push-mark nil t)
-    (cond
-     ((null val)
-      (goto-char (point-max)))
-     (t
-      (goto-line val)))
-    (when com
-      (viper-execute-com 'vimpulse-goto-line val com))))
-
-(when vimpulse-goto-line
-  (fset 'viper-goto-line 'vimpulse-goto-line)
-  (define-key viper-vi-basic-map "G" 'vimpulse-goto-line))
+;; rest, defining a new command called vimpulse-operator-MOTION
+(defmacro vimpulse-operator-map-define
+  (viper-motion &optional type &rest body)
+  "Define a new command for the Operator-Pending part of VIPER-MOTION.
+The new command is named VIMPULSE-OPERATOR-MOTION and has motion
+type TYPE. A custom function body may be specified via BODY."
+  (declare (indent 2))
+  `(let* ((viper-motion ',viper-motion)
+          (type ,type)
+          (body ',body)
+          (motion-name (symbol-name viper-motion))
+          (docstring (documentation viper-motion t)))
+     (setq type (or type (vimpulse-motion-type viper-motion)))
+     (unless (memq type '(inclusive line block))
+       (setq type 'exclusive))
+     (setq motion-name (replace-regexp-in-string
+                        "^viper-\\\|^vimpulse-" "" motion-name))
+     (setq motion-name
+           (concat "vimpulse-operator-" motion-name))
+     (setq motion-name (intern motion-name))
+     (eval-after-load 'vimpulse-visual-mode
+       `(add-to-list 'vimpulse-movement-cmds ',motion-name))
+     (vimpulse-operator-remap viper-motion motion-name)
+     (eval `(defun ,motion-name (arg)
+              ,(format "Operator-pending %s part of `%s'.\n\n%s"
+                       type viper-motion (or docstring ""))
+              ,@(if body body
+                  `((interactive "P")
+                    (let (com com-alist)
+                      (setq com-alist
+                            '((vimpulse-change . ?c)
+                              (vimpulse-delete . ?d)
+                              (vimpulse-yank . ?y)))
+                      (setq com
+                            (or (cdr (assq vimpulse-this-operator
+                                           com-alist))
+                                ?r))
+                      (,viper-motion (if (vimpulse-mark-active)
+                                         arg
+                                       (cons arg com)))
+                      ,@(unless (eq 'exclusive type)
+                          '((viper-backward-char-carefully))))))))
+     (put motion-name 'motion-type type)
+     `(quote ,motion-name)))
 
 (defun vimpulse-goto-first-line (arg)
   "Go to first line."
@@ -746,50 +769,51 @@ Works like Vim's \"G\"."
     (when com
       (viper-execute-com 'vimpulse-goto-line val com))))
 
-;; `viper-goto-eol' excludes last character on line unless
-;; called in Insert state
-(defun vimpulse-operator-goto-eol (arg)
-  "Operator-Pending part of `viper-goto-eol'.
-
-Goto end of line."
+;; d%: when point is before the parenthetical expression,
+;; include it in the resulting range
+(vimpulse-operator-map-define viper-paren-match 'inclusive
   (interactive "P")
-  (let ((viper-current-state 'insert-state))
-    (viper-goto-eol arg)))
+  (let ((orig (point)))
+    (viper-paren-match arg)
+    (viper-move-marker-locally 'viper-com-point orig)
+    (when (integerp arg)
+      (setq vimpulse-this-motion-type 'line))))
 
-(vimpulse-operator-remap 'viper-goto-eol 'vimpulse-operator-goto-eol)
+;; Set up motion types for Viper motions
+(put 'vimpulse-goto-first-line 'motion-type 'line)
+(put 'viper-backward-Word 'motion-type 'exclusive)
+(put 'viper-backward-char 'motion-type 'exclusive)
+(put 'viper-backward-paragraph 'motion-type 'exclusive)
+(put 'viper-backward-sentence 'motion-type 'exclusive)
+(put 'viper-backward-word 'motion-type 'exclusive)
+(put 'viper-beginning-of-line 'motion-type 'exclusive)
+(put 'viper-forward-paragraph 'motion-type 'exclusive)
+(put 'viper-forward-sentence 'motion-type 'exclusive)
+(put 'viper-goto-eol 'motion-type 'inclusive)
+(put 'viper-goto-line 'motion-type 'line)
+(put 'viper-goto-mark 'motion-type 'exclusive)
+(put 'viper-goto-mark-and-skip-white 'motion-type 'line)
+(put 'viper-next-line 'motion-type 'line)
+(put 'viper-previous-line 'motion-type 'line)
+(put 'viper-search-Next 'motion-type 'exclusive)
+(put 'viper-search-next 'motion-type 'exclusive)
+(put 'viper-window-bottom 'motion-type 'line)
+(put 'viper-window-middle 'motion-type 'line)
+(put 'viper-window-top 'motion-type 'line)
 
-;; Create Operator-Pending wrappers for remaining Viper motions
-(vimpulse-operator-map-define vimpulse-goto-first-line)
-(vimpulse-operator-map-define vimpulse-goto-line)
-(vimpulse-operator-map-define viper-backward-Word)
-(vimpulse-operator-map-define viper-backward-char)
-(vimpulse-operator-map-define viper-backward-paragraph)
-(vimpulse-operator-map-define viper-backward-sentence)
-(vimpulse-operator-map-define viper-backward-word)
-(vimpulse-operator-map-define viper-beginning-of-line)
-(vimpulse-operator-map-define viper-end-of-Word)
-(vimpulse-operator-map-define viper-end-of-word)
-(vimpulse-operator-map-define viper-find-char-backward)
-(vimpulse-operator-map-define viper-find-char-forward)
-(vimpulse-operator-map-define viper-forward-Word)
-(vimpulse-operator-map-define viper-forward-char)
-(vimpulse-operator-map-define viper-forward-paragraph)
-(vimpulse-operator-map-define viper-forward-sentence)
-(vimpulse-operator-map-define viper-forward-word)
-(vimpulse-operator-map-define viper-goto-char-backward)
-(vimpulse-operator-map-define viper-goto-char-forward)
-(vimpulse-operator-map-define viper-goto-line)
-(vimpulse-operator-map-define viper-goto-mark)
-(vimpulse-operator-map-define viper-goto-mark-and-skip-white)
-(vimpulse-operator-map-define viper-next-line)
-(vimpulse-operator-map-define viper-previous-line)
-(vimpulse-operator-map-define viper-search-Next)
-(vimpulse-operator-map-define viper-search-backward)
-(vimpulse-operator-map-define viper-search-forward)
-(vimpulse-operator-map-define viper-search-next)
-(vimpulse-operator-map-define viper-window-bottom)
-(vimpulse-operator-map-define viper-window-middle)
-(vimpulse-operator-map-define viper-window-top)
+;; The following commands need wrapper functions
+;; to behave correctly with regard to repeat etc.
+(vimpulse-operator-map-define viper-end-of-Word 'inclusive)
+(vimpulse-operator-map-define viper-end-of-word 'inclusive)
+(vimpulse-operator-map-define viper-find-char-backward 'inclusive)
+(vimpulse-operator-map-define viper-find-char-forward 'inclusive)
+(vimpulse-operator-map-define viper-forward-Word 'exclusive)
+(vimpulse-operator-map-define viper-forward-char 'inclusive)
+(vimpulse-operator-map-define viper-forward-word 'exclusive)
+(vimpulse-operator-map-define viper-goto-char-backward 'inclusive)
+(vimpulse-operator-map-define viper-goto-char-forward 'inclusive)
+(vimpulse-operator-map-define viper-search-backward 'exclusive)
+(vimpulse-operator-map-define viper-search-forward 'exclusive)
 
 (provide 'vimpulse-operator)
 
