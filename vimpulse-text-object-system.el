@@ -239,9 +239,9 @@ whether to include the parentheses in the range."
 QUOTE is a quote character (default ?\\\"). INCLUDE-QUOTES
 specifies whether to include the quote marks in the range."
   (let ((beg (point)) (end (point)))
-    (setq count (if (eq 0 count) 1 (abs count)))
-    (setq quote (or quote ?\"))
     (save-excursion
+      (setq count (if (eq 0 count) 1 (abs count)))
+      (setq quote (or quote ?\"))
       (setq quote (if (characterp quote)
                       (regexp-quote (string quote)) ""))
       (when (and (not (string= "" quote))
@@ -278,6 +278,7 @@ specifies whether to include the quote marks in the range."
   "Select ARG lines."
   (interactive "p")
   (vimpulse-mark-object 'vimpulse-line-range arg))
+(put 'vimpulse-line 'motion-type 'line)
 
 (defun vimpulse-a-word (arg)
   "Select a word."

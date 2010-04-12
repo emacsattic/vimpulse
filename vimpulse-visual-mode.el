@@ -21,7 +21,8 @@
 ;;
 ;; Block selections are rectangle compatible. This means Emacs'
 ;; rectangular commands are applicable on the selection, and you can
-;; write your own utilities using the rect.el library.
+;; write your own utilities using the rect.el library. Alternatively,
+;; use the `vimpulse-apply-on-block' function.
 
 (vimpulse-define-state visual
   "Visual mode is a flexible and easy way to select text.
@@ -510,12 +511,19 @@ See also `vimpulse-visual-beginning'."
         (1+ (max (point) (or (mark t) 1))))))))
 
 (defun vimpulse-visual-range ()
-  "Return Visual selection range (BEG END)."
-  (if vimpulse-visual-mode
-      (list (vimpulse-visual-beginning)
-            (vimpulse-visual-end))
+  "Return Visual motion range (BEG END).
+This function updates `vimpulse-this-motion-type'."
+  (cond
+   (vimpulse-visual-mode
+    (if (memq vimpulse-visual-mode '(line block))
+        (setq vimpulse-this-motion-type vimpulse-visual-mode)
+      (setq vimpulse-this-motion-type 'inclusive))
+    (list (vimpulse-visual-beginning)
+          (vimpulse-visual-end)))
+   (t
+    (setq vimpulse-this-motion-type 'exclusive)
     (list (or (region-beginning) (point))
-          (or (region-end) (point)))))
+          (or (region-end) (point))))))
 
 (defun vimpulse-visual-select (beg end &optional widen)
   "Visually select text from BEG to END.
@@ -635,6 +643,7 @@ See also `vimpulse-visual-restore'."
 
 (defun vimpulse-visual-dimensions (&optional beg end mode)
   "Refresh `vimpulse-visual-height' and `vimpulse-visual-width'."
+  (vimpulse-visual-markers beg end)
   (setq mode (or mode vimpulse-visual-mode)
         beg (or beg (vimpulse-visual-beginning mode))
         end (or end (vimpulse-visual-end mode)))
@@ -811,7 +820,6 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   "Run before each command in Visual mode."
   (when vimpulse-visual-mode
     ;; Refresh Visual restore markers and marks
-    (vimpulse-visual-markers)
     (vimpulse-visual-dimensions)
     (set-register (viper-int-to-char (1+ (- ?y ?a)))
                   (vimpulse-visual-beginning))
@@ -1025,9 +1033,10 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     viper-goto-char-backward viper-goto-char-forward viper-goto-eol
     viper-goto-line viper-insert viper-intercept-ESC-key
     viper-line-to-bottom viper-line-to-middle viper-line-to-top
-    viper-next-line viper-previous-line viper-search-Next
-    viper-search-backward viper-search-forward viper-search-next
-    viper-window-bottom viper-window-middle viper-window-top)
+    viper-next-line viper-paren-match viper-previous-line
+    viper-search-Next viper-search-backward viper-search-forward
+    viper-search-next viper-window-bottom viper-window-middle
+    viper-window-top)
   "List of commands that move point.
 If listed here, the region is not expanded to the
 Visual selection before the command is executed.")
@@ -1256,7 +1265,6 @@ restores the selection with the same rotation."
             newmark  newmark-marker))
     (set-mark newmark)
     (goto-char newpoint)
-    (vimpulse-visual-markers newpoint-marker newmark-marker)
     (vimpulse-visual-dimensions)))
 
 (defun vimpulse-visual-exchange-corners ()
