@@ -12,6 +12,10 @@
 
 ;;; vi (command) mode keys
 
+(define-key viper-vi-basic-map "y" 'vimpulse-yank)
+(define-key viper-vi-basic-map "d" 'vimpulse-delete)
+(define-key viper-vi-basic-map "c" 'vimpulse-change)
+(define-key viper-vi-basic-map "\"" 'vimpulse-read-register)
 (define-key viper-vi-basic-map "r" 'vimpulse-replace)
 (define-key viper-vi-basic-map "J" 'vimpulse-join)
 (define-key viper-vi-basic-map "K" 'woman)
@@ -158,7 +162,7 @@
   (if (eq 'block vimpulse-this-motion-type)
       (vimpulse-apply-on-block 'downcase-region beg end)
     (downcase-region beg end)
-    (when viper-auto-indent
+    (when (and (bolp) viper-auto-indent)
       (back-to-indentation))))
 
 (defun vimpulse-upcase (beg end)
@@ -167,7 +171,7 @@
   (if (eq 'block vimpulse-this-motion-type)
       (vimpulse-apply-on-block 'upcase-region beg end)
     (upcase-region beg end)
-    (when viper-auto-indent
+    (when (and (bolp) viper-auto-indent)
       (back-to-indentation))))
 
 (defun vimpulse-invert-case (beg end)
@@ -200,6 +204,25 @@
   "ROT13 encrypt text."
   (interactive (vimpulse-range))
   (rot13-region beg end))
+
+;;; gg
+
+(defun vimpulse-goto-first-line (arg)
+  "Go to first line."
+  (interactive "P")
+  (let ((val (viper-P-val arg))
+        (com (viper-getCom arg)))
+    (when (eq ?c com) (setq com ?C))
+    (viper-move-marker-locally 'viper-com-point (point))
+    (viper-deactivate-mark)
+    (push-mark nil t)
+    (cond
+     ((null val)
+      (goto-char (point-min)))
+     (t
+      (goto-line val)))
+    (when com
+      (viper-execute-com 'vimpulse-goto-line val com))))
 
 ;;; +, _
 
