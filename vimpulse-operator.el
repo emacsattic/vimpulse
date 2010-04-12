@@ -648,11 +648,6 @@ If called interactively, read REGISTER and COMMAND from keyboard."
             (viper-use-register register))
         (call-interactively command)))))
 
-(define-key viper-vi-basic-map "y" 'vimpulse-yank)
-(define-key viper-vi-basic-map "d" 'vimpulse-delete)
-(define-key viper-vi-basic-map "c" 'vimpulse-change)
-(define-key viper-vi-basic-map "\"" 'vimpulse-read-register)
-
 ;;; Remap non-motion commands to `viper-nil'
 
 (defun vimpulse-operator-remap (from to)
@@ -752,23 +747,6 @@ type TYPE. A custom function body may be specified via BODY."
      (put motion-name 'motion-type type)
      `(quote ,motion-name)))
 
-(defun vimpulse-goto-first-line (arg)
-  "Go to first line."
-  (interactive "P")
-  (let ((val (viper-P-val arg))
-        (com (viper-getCom arg)))
-    (when (eq ?c com) (setq com ?C))
-    (viper-move-marker-locally 'viper-com-point (point))
-    (viper-deactivate-mark)
-    (push-mark nil t)
-    (cond
-     ((null val)
-      (goto-char (point-min)))
-     (t
-      (goto-line val)))
-    (when com
-      (viper-execute-com 'vimpulse-goto-line val com))))
-
 ;; d%: when point is before the parenthetical expression,
 ;; include it in the resulting range
 (vimpulse-operator-map-define viper-paren-match 'inclusive
@@ -801,8 +779,7 @@ type TYPE. A custom function body may be specified via BODY."
 (put 'viper-window-middle 'motion-type 'line)
 (put 'viper-window-top 'motion-type 'line)
 
-;; The following commands need wrapper functions
-;; to behave correctly with regard to repeat etc.
+;; These motions need wrapper functions to repeat correctly
 (vimpulse-operator-map-define viper-end-of-Word 'inclusive)
 (vimpulse-operator-map-define viper-end-of-word 'inclusive)
 (vimpulse-operator-map-define viper-find-char-backward 'inclusive)
