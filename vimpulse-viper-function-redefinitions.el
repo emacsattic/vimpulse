@@ -198,8 +198,9 @@ expression for determining the keymap of MODE.")
 
 (defadvice viper-change-state (before vimpulse-states activate)
   "Update `viper-insert-point'."
-  (unless (mark t)
-    (push-mark nil t nil))
+  (let (mark-active)
+    (unless (mark t)
+      (push-mark nil t nil)))
   (when (and (eq 'insert-state new-state)
              (not (memq viper-current-state '(vi-state emacs-state))))
     (viper-move-marker-locally 'viper-insert-point (point))))
