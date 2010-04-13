@@ -228,9 +228,6 @@ May also be used to change the Visual mode."
         (add-hook 'zmacs-deactivate-region-hook
                   'vimpulse-visual-deactivate-hook)
       (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
-    ;; Remove nonsensical t value
-    (and (boundp 'mark-active)
-         (setq mark-active (vimpulse-mark-active)))
     ;; Activate mark at point
     (cond
      ((eq 'block mode)
@@ -346,6 +343,8 @@ and there is a Transient Mark mode (or similar) to handle it."
   "Enable Transient Mark mode (and Cua mode) if not already enabled.
  Enable forcefully with positive ARG. Disable with negative ARG."
   (setq deactivate-mark nil)
+  (and (boundp 'mark-active)
+       (setq mark-active (vimpulse-mark-active)))
   (let (deactivate-mark)
     (cond
      ;; Disable Transient Mark/Cua
@@ -505,8 +504,7 @@ See also `vimpulse-visual-beginning'."
      (t
       (if (save-excursion
             (goto-char (max (point) (or (mark t) 1)))
-            (and (eolp)
-                 (not (bolp))))
+            (or (eobp) (and (eolp) (not (bolp)))))
           (max (point) (or (mark t) 1))
         (1+ (max (point) (or (mark t) 1))))))))
 
