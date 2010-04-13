@@ -115,11 +115,11 @@ motion produced the current range. See also `vimpulse-this-operator'.")
 
 (defvar vimpulse-this-motion-type nil
   "Current motion type.
-May be `block', `line', `normal' or nil.")
+May be `block', `line', `inclusive', `exclusive' or nil.")
 
 (defvar vimpulse-last-motion-type nil
   "Last repeated range type.
-May be `block', `line', `normal' or nil.")
+May be `block', `line', `inclusive', `exclusive' or nil.")
 
 (defvar vimpulse-last-operator nil
   "Last repeated operator.
@@ -509,16 +509,11 @@ Returns the normalized range."
                 range (vimpulse-normalize-motion-range range type)
                 beg (apply 'min range)
                 end (apply 'max range)))
-         (t
-          (if (< to from)
-              (setq beg (save-excursion
-                          (goto-char to)
-                          (viper-forward-char-carefully)
-                          (point)))
-            (setq end (save-excursion
-                        (goto-char to)
-                        (viper-backward-char-carefully)
-                        (point))))
+         ((<= from to)
+          (setq end (save-excursion
+                      (goto-char to)
+                      (viper-backward-char-carefully)
+                      (point)))
           (setq type 'inclusive))))))
     (setq vimpulse-this-motion-type type)
     (list beg end)))
