@@ -515,10 +515,35 @@ call `viper-del-backward-char-in-replace' instead."
   "Map <backspace> to `vimpulse-replace-backspace' in Replace mode."
   (define-key viper-replace-map [backspace] 'vimpulse-replace-backspace))
 
-;; cppjavaperl's code
+;; Getting dabbrev to search forwards first and then backwards
+;; is tricky, because (dabbrev-expand -1) just fails when it
+;; doesn't find a following match
 (defun vimpulse-abbrev-expand-after ()
+  "Expand to the nearest following word.
+Search backwards if a match isn't found."
   (interactive)
-  (dabbrev-expand -1))
+  ;; Back up global variables
+  (let ((abbrev (and (boundp 'dabbrev--last-abbreviation)
+                     dabbrev--last-abbreviation))
+        (expansion (and (boundp 'dabbrev--last-expansion)
+                        dabbrev--last-expansion))
+        (location (and (boundp 'dabbrev--last-abbrev-location)
+                       dabbrev--last-abbrev-location)))
+    ;; Expand in same direction as previously,
+    ;; initially forward
+    (condition-case nil
+        (if (eq this-command last-command)
+            (dabbrev-expand nil)
+          (setq dabbrev--last-direction -1)
+          (dabbrev-expand -1))
+      ;; Failure wipes out global variables; restore them
+      ;; and search in opposite direction
+      (error (progn
+               (setq dabbrev--last-abbreviation abbrev
+                     dabbrev--last-expansion expansion
+                     dabbrev--last-abbred-location location)
+               (setq dabbrev--last-direction 1)
+               (dabbrev-expand nil) nil)))))
 
 (provide 'vimpulse-misc-keybindings)
 
