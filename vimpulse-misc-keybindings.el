@@ -161,9 +161,10 @@
   (interactive (vimpulse-range))
   (if (eq 'block vimpulse-this-motion-type)
       (vimpulse-apply-on-block 'downcase-region beg end)
-    (downcase-region beg end)
-    (when (and (bolp) viper-auto-indent)
-      (back-to-indentation))))
+    (downcase-region beg end))
+  (when (and viper-auto-indent
+             (looking-back "^[ \f\t\n\r\v]*"))
+    (back-to-indentation)))
 
 (defun vimpulse-upcase (beg end)
   "Convert text to upper case."
@@ -171,7 +172,8 @@
   (if (eq 'block vimpulse-this-motion-type)
       (vimpulse-apply-on-block 'upcase-region beg end)
     (upcase-region beg end)
-    (when (and (bolp) viper-auto-indent)
+    (when (and viper-auto-indent
+               (looking-back "^[ \f\t\n\r\v]*"))
       (back-to-indentation))))
 
 (defun vimpulse-invert-case (beg end)
@@ -192,7 +194,8 @@
               (insert-char (downcase char) 1)
             (insert-char (upcase char) 1))
           (setq beg (1+ beg))))))
-    (when (and (bolp) viper-auto-indent)
+    (when (and viper-auto-indent
+               (looking-back "^[ \f\t\n\r\v]*"))
       (back-to-indentation))))
 
 (defun vimpulse-invert-char (beg end)
