@@ -632,10 +632,12 @@ This function respects `viper-change-notification-threshold'."
     (setq template
           (replace-regexp-in-string
            (regexp-quote "<N>")
-           (format "%s×%s character%s"
+           (format "%s row%s and %s column%s"
                    (or vimpulse-visual-height 1)
+                   (if (/= 1 (abs (or vimpulse-visual-height 1)))
+                       "s" "")
                    (or vimpulse-visual-width 1)
-                   (if (/= 1 (abs length))
+                   (if (/= 1 (abs (or vimpulse-visual-width 1)))
                        "s" ""))
            template)))
    ((eq 'line type)
