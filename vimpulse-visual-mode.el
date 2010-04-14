@@ -1263,7 +1263,7 @@ restores the selection with the same rotation."
             newmark  newmark-marker))
     (set-mark newmark)
     (goto-char newpoint)
-    (vimpulse-visual-dimensions)))
+    (vimpulse-visual-dimensions beg end 'block)))
 
 (defun vimpulse-visual-exchange-corners ()
   "Rearrange corners in Visual Block mode.

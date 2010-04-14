@@ -531,6 +531,7 @@ Returns the normalized range."
       (unless kill-ring
         (copy-region-as-kill beg end))
       (put 'killed-rectangle 'previous-kill (current-kill 0))
+      (vimpulse-operator-message "Saved <N>")
       (vimpulse-visual-block-rotate 'upper-left beg end))
      (t
       (vimpulse-store-in-current-register beg end)
@@ -539,16 +540,15 @@ Returns the normalized range."
         (goto-char beg))
       (when (and (eolp) (not (bolp)))
         (backward-char))
-      (when (< viper-change-notification-threshold length)
-        (unless (or (viper-is-in-minibuffer)
-                    (eq 'line vimpulse-this-motion-type))
-          (message "Saved %d characters" length)))))))
+      (vimpulse-operator-message "Saved <N>" beg end)))))
 
 (defun vimpulse-delete (beg end &optional dont-save)
   "Delete text from BEG to END.
 If DONT-SAVE is t, just delete it."
   (interactive (vimpulse-range))
-  (let ((length (abs (- end beg))))
+  (let ((length (if (eq 'line vimpulse-this-motion-type)
+                    (count-lines beg end)
+                  (abs (- end beg)))))
     (cond
      (dont-save
       (cond
@@ -566,16 +566,14 @@ If DONT-SAVE is t, just delete it."
         (kill-rectangle beg end)
         (put 'killed-rectangle 'previous-kill (current-kill 0))
         (goto-char orig)
-        (set-marker orig nil)))
+        (set-marker orig nil)
+        (vimpulse-operator-message "Deleted <N>")))
      (t
       (vimpulse-store-in-current-register beg end)
       (kill-region beg end)
       (when (and (eolp) (not (bolp)))
         (backward-char))
-      (when (< viper-change-notification-threshold length)
-        (unless (or (viper-is-in-minibuffer)
-                    (eq 'line vimpulse-this-motion-type))
-          (message "Deleted %d characters" length)))))))
+      (vimpulse-operator-message "Deleted <N>" beg end length)))))
 
 (defun vimpulse-change (beg end &optional dont-save)
   "Change text from BEG to END.
@@ -614,6 +612,55 @@ If DONT-SAVE is non-nil, just delete it."
         (delete-region beg end)
       (vimpulse-store-in-current-register beg end)
       (viper-change beg end)))))
+
+(defun vimpulse-operator-message
+  (template &optional beg end length type)
+  "Echo a message like \"Deleted 2 characters\".
+TEMPLATE is a string like \"Deleted <N>\", where <N>
+is substituted with the amount of characters or lines.
+BEG and END are the range of text. If you specify LENGTH,
+they are ignored.
+
+This function respects `viper-change-notification-threshold'."
+  (setq beg (or beg (vimpulse-visual-beginning) 1)
+        end (or end (vimpulse-visual-end) 1)
+        type (or type vimpulse-this-motion-type))
+  (cond
+   ((eq 'block type)
+    (setq length (* (or vimpulse-visual-width 1)
+                    (or vimpulse-visual-height 1)))
+    (setq template
+          (replace-regexp-in-string
+           (regexp-quote "<N>")
+           (format "%s×%s character%s"
+                   (or vimpulse-visual-height 1)
+                   (or vimpulse-visual-width 1)
+                   (if (/= 1 (abs length))
+                       "s" ""))
+           template)))
+   ((eq 'line type)
+    (setq length (or length (count-lines beg end)))
+    (setq template
+          (replace-regexp-in-string
+           (regexp-quote "<N>")
+           (format "%s line%s"
+                   length
+                   (if (/= 1 (abs length))
+                       "s" ""))
+           template)))
+   (t
+    (setq length (or length (abs (- end beg))))
+    (setq template
+          (replace-regexp-in-string
+           (regexp-quote "<N>")
+           (format "%s character%s"
+                   length
+                   (if (/= 1 (abs length))
+                       "s" ""))
+           template))))
+  (when (and (< viper-change-notification-threshold length)
+             (not (viper-is-in-minibuffer)))
+    (message template)))
 
 (defun vimpulse-store-in-register (register start end)
   "Store text from START to END in REGISTER."
