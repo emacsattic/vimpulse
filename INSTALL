@@ -1,6 +1,6 @@
 ;;; Installation:
 
-;; If you checked out from SVN, do `make all' to produce
+;; If you checked out from Git, do `make all' to produce
 ;; vimpulse-big.el.  If on Windows, you can run compile.bat.  Then:
 ;;
 ;; 1. Copy vimpulse.el (or vimpulse-big.el) to somewhere in your

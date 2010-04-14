@@ -13,12 +13,12 @@
 ;;      I am looking for a co-maintainer or new maintainer
 ;;      to take over.  Contact the mailing list.
 ;; Created: 23 Aug 2007
-;; Version: 0.3.1+svn
+;; Version: 0.3.1+git
 ;; Keywords: emulations, viper
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el
-;; SVN and bug tracker: http://www.assembla.com/spaces/vimpulse/
-;;      Send patches to http://my-trac.assembla.com/vimpulse/report/1
+;; Git and bug tracker: http://www.assembla.com/spaces/vimpulse/
+;;      Send patches to http://trac-git.assembla.com/vimpulse/report/1
 ;; Mailing list: <implementations-list at lists.ourproject.org>
 ;;      You don't have to subscribe.  We usually reply within a few
 ;;      days and CC our replies back to you.  If we don't, check the
