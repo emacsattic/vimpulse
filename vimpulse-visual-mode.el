@@ -819,10 +819,12 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   (when vimpulse-visual-mode
     ;; Refresh Visual restore markers and marks
     (vimpulse-visual-dimensions)
-    (set-register (viper-int-to-char (1+ (- ?y ?a)))
-                  (vimpulse-visual-beginning))
-    (set-register (viper-int-to-char (1+ (- ?z ?a)))
-                  (vimpulse-visual-end))
+    ;; Text markers 'y and 'z are used by Ex
+    (let (y z)
+      (viper-move-marker-locally 'y (vimpulse-visual-beginning))
+      (viper-move-marker-locally 'z (vimpulse-visual-end))
+      (set-register (viper-int-to-char (1+ (- ?y ?a))) y)
+      (set-register (viper-int-to-char (1+ (- ?z ?a))) z))
     (cond
      ;; Movement command: don't expand region
      ((vimpulse-movement-cmd-p this-command)
