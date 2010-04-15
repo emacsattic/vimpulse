@@ -811,7 +811,7 @@ docstring. The variable becomes buffer-local whenever set.")
  '(("(\\(viper-deflocalvar\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
     (1 font-lock-keyword-face)
     (2 font-lock-variable-name-face nil t))
-   "viper-loop"))
+   ("(\\(viper-loop\\)\\>" 1 font-lock-keyword-face)))
 
 ;; e/E bug: on a single-letter word, ce may change two words
 (defun vimpulse-end-of-word-kernel ()
