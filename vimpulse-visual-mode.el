@@ -421,7 +421,9 @@ See also `vimpulse-visual-end'."
     (setq mode (or mode vimpulse-visual-mode))
     (cond
      ;; Region is already expanded
-     ((and vimpulse-visual-region-expanded (not force))
+     ((and (not force)
+           (or (not vimpulse-visual-mode)
+               vimpulse-visual-region-expanded))
       (min (point) (or (mark t) 1)))
      ;; Upper opposite corner of block selection
      ((eq 'block mode)
@@ -472,7 +474,9 @@ See also `vimpulse-visual-beginning'."
     (setq mode (or mode vimpulse-visual-mode))
     (cond
      ;; Region is already expanded
-     ((and vimpulse-visual-region-expanded (not force))
+     ((and (not force)
+           (or (not vimpulse-visual-mode)
+               vimpulse-visual-region-expanded))
       (max (point) (or (mark t) 1)))
      ((eq 'block mode)
       ;; Lower opposite corner of block selection
