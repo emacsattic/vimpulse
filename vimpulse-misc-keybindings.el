@@ -163,7 +163,7 @@
       (vimpulse-apply-on-block 'downcase-region beg end)
     (downcase-region beg end))
   (when (and viper-auto-indent
-             (looking-back "^[ \f\t\n\r\v]*"))
+             (looking-back "^[ \f\t\v]*"))
     (back-to-indentation)))
 
 (defun vimpulse-upcase (beg end)
@@ -173,7 +173,7 @@
       (vimpulse-apply-on-block 'upcase-region beg end)
     (upcase-region beg end)
     (when (and viper-auto-indent
-               (looking-back "^[ \f\t\n\r\v]*"))
+               (looking-back "^[ \f\t\v]*"))
       (back-to-indentation))))
 
 (defun vimpulse-invert-case (beg end)
@@ -195,7 +195,7 @@
             (insert-char (upcase char) 1))
           (setq beg (1+ beg))))))
     (when (and viper-auto-indent
-               (looking-back "^[ \f\t\n\r\v]*"))
+               (looking-back "^[ \f\t\v]*"))
       (back-to-indentation))))
 
 (defun vimpulse-invert-char (beg end)
