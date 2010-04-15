@@ -926,7 +926,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
              kill-ring
              (eq (current-kill 0)
                  (get 'killed-rectangle 'previous-kill)))
-        (yank-rectangle)
+        (save-excursion
+          (yank-rectangle))
       ad-do-it)))
 
 (defadvice viper-put-back (around vimpulse-visual activate)
@@ -937,13 +938,16 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     (viper-Put-back arg))
    ((vimpulse-mark-active)
     (viper-Put-back arg))
+   ((and killed-rectangle
+         kill-ring
+         (eq (current-kill 0)
+             (get 'killed-rectangle 'previous-kill)))
+    (unless (eolp)
+      (viper-forward-char-carefully))
+    (save-excursion
+      (yank-rectangle)))
    (t
-    (if (and killed-rectangle
-             kill-ring
-             (eq (current-kill 0)
-                 (get 'killed-rectangle 'previous-kill)))
-        (yank-rectangle)
-      ad-do-it))))
+    ad-do-it)))
 
 ;; Viper's larger movement commands use the mark to store the previous
 ;; position, which is fine and useful when the mark isn't active. When
