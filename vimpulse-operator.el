@@ -531,7 +531,7 @@ Returns the normalized range."
       (unless kill-ring
         (copy-region-as-kill beg end))
       (put 'killed-rectangle 'previous-kill (current-kill 0))
-      (vimpulse-operator-message "Saved <N>")
+      (vimpulse-operator-message "Saved <N>" beg end)
       (vimpulse-visual-block-rotate 'upper-left beg end))
      (t
       (vimpulse-store-in-current-register beg end)
@@ -567,7 +567,7 @@ If DONT-SAVE is t, just delete it."
         (put 'killed-rectangle 'previous-kill (current-kill 0))
         (goto-char orig)
         (set-marker orig nil)
-        (vimpulse-operator-message "Deleted <N>")))
+        (vimpulse-operator-message "Deleted <N>" beg end)))
      (t
       (vimpulse-store-in-current-register beg end)
       (kill-region beg end)
@@ -622,47 +622,31 @@ BEG and END are the range of text. If you specify LENGTH,
 they are ignored.
 
 This function respects `viper-change-notification-threshold'."
-  (setq beg (or beg (vimpulse-visual-beginning) 1)
-        end (or end (vimpulse-visual-end) 1)
-        type (or type vimpulse-this-motion-type))
-  (cond
-   ((eq 'block type)
-    (setq length (* (or vimpulse-visual-width 1)
-                    (or vimpulse-visual-height 1)))
-    (setq template
-          (replace-regexp-in-string
-           (regexp-quote "<N>")
-           (format "%s row%s and %s column%s"
-                   (or vimpulse-visual-height 1)
-                   (if (/= 1 (abs (or vimpulse-visual-height 1)))
-                       "s" "")
-                   (or vimpulse-visual-width 1)
-                   (if (/= 1 (abs (or vimpulse-visual-width 1)))
-                       "s" ""))
-           template)))
-   ((eq 'line type)
-    (setq length (or length (count-lines beg end)))
-    (setq template
-          (replace-regexp-in-string
-           (regexp-quote "<N>")
-           (format "%s line%s"
-                   length
-                   (if (/= 1 (abs length))
-                       "s" ""))
-           template)))
-   (t
-    (setq length (or length (abs (- end beg))))
-    (setq template
-          (replace-regexp-in-string
-           (regexp-quote "<N>")
-           (format "%s character%s"
-                   length
-                   (if (/= 1 (abs length))
-                       "s" ""))
-           template))))
-  (when (and (< viper-change-notification-threshold length)
-             (not (viper-is-in-minibuffer)))
-    (message template)))
+  (let* ((beg (or beg (vimpulse-visual-beginning) 1))
+         (end (or end (vimpulse-visual-end) 1))
+         (height (or vimpulse-visual-height 1))
+         (width (or vimpulse-visual-width 1))
+         (type (or type vimpulse-this-motion-type))
+         (length (if (eq 'line type)
+                     (or length (count-lines beg end))
+                   (or length (abs (- end beg)))))
+         (template (replace-regexp-in-string
+                    "<N>"
+                    (apply 'format
+                           (if (eq 'block type)
+                               `("%s row%s and %s column%s"
+                                 ,height
+                                 ,(if (/= 1 (abs height)) "s" "")
+                                 ,width
+                                 ,(if (/= 1 (abs width)) "s" ""))
+                             `(,(if (eq 'line type)
+                                    "%s line%s" "%s character%s")
+                               ,length
+                               ,(if (/= 1 (abs length)) "s" ""))))
+                    template)))
+    (when (and (< viper-change-notification-threshold length)
+               (not (viper-is-in-minibuffer)))
+      (message template))))
 
 (defun vimpulse-store-in-register (register start end)
   "Store text from START to END in REGISTER."
