@@ -9,9 +9,7 @@
 ;; Copyright (C) 2010 Vegard Øye
 ;;
 ;; Author: Brad Beveridge et al.
-;; Maintainer: Alessandro Piras <laynor at gmail.com>
-;;      I am looking for a co-maintainer or new maintainer
-;;      to take over.  Contact the mailing list.
+;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 ;; Created: 23 Aug 2007
 ;; Version: 0.3.1+git
 ;; Keywords: emulations, viper
@@ -20,17 +18,16 @@
 ;; Git and bug tracker: http://www.assembla.com/spaces/vimpulse/
 ;;      Send patches to http://trac-git.assembla.com/vimpulse/report/1
 ;; Mailing list: <implementations-list at lists.ourproject.org>
+;;      http://tinyurl.com/implementations-list
 ;;      You don't have to subscribe.  We usually reply within a few
-;;      days and CC our replies back to you.  If we don't, check the
-;;      archives: http://tinyurl.com/implementations-list
-;; Current developers: Alessandro Piras (maintainer)
-;;      Vegard Øye <vegard_oye at hotmail.com>
+;;      days and CC our replies back to you.
 ;; License: GPLv2 or later, as described below under "License"
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
-;; Thanks to our
-;;      Old maintainer: Jason Spiro
-;; We'll miss you as a maintainer :)
+;; Thanks to our old maintainers:
+;;      Alessandro Piras
+;;      Jason Spiro
+;; We'll miss you as maintainer :)
 ;;
 ;; This file is not part of GNU Emacs.
 

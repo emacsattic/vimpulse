@@ -29,9 +29,8 @@
 ;;
 ;; - Add Customize option to let users stop C-r from being Redo?
 ;;
-;; - E-mail and try to get redo.el included with GNU Emacs (since I
-;;   won't include redo.el here since nobody else includes it in their
-;;   Lisp files either).
+;; - Replace redo.el with Toby Cubitt's awesome undo-tree.el.
+;;   http://www.emacswiki.org/emacs/UndoTree
 ;;
 ;; - Copy more features from Brad's work in darcs and from vimpact
 ;;   into Vimpulse.
