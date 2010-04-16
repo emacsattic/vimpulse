@@ -487,9 +487,7 @@ Returns the normalized range."
                   (line-beginning-position))
             end (save-excursion
                   (goto-char end)
-                  (if (and (bolp) (eolp) (not (eq beg end)))
-                      end
-                    (line-beginning-position 2)))
+                  (line-beginning-position 2))
             type 'line))
      ((eq 'inclusive type)
       (setq end (save-excursion
