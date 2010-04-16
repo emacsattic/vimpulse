@@ -96,7 +96,7 @@
 
 (defun vimpulse-replace (beg end)
   "Replace all selected characters with ARG."
-  (interactive (vimpulse-range nil nil nil nil 'viper-forward-char))
+  (interactive (vimpulse-range nil nil nil nil 'forward-char))
   (let ((length (abs (- end beg))))
     (cond
      ((eq 'block vimpulse-this-motion-type)
@@ -200,7 +200,7 @@
 
 (defun vimpulse-invert-char (beg end)
   "Invert case of character."
-  (interactive (vimpulse-range nil nil nil nil 'viper-forward-char))
+  (interactive (vimpulse-range nil nil nil nil 'forward-char))
   (vimpulse-invert-case beg end))
 
 (defun vimpulse-rot13 (beg end)
