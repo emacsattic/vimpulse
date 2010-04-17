@@ -267,17 +267,17 @@ specifies whether to include the quote marks in the range."
           (list beg end)
         (list (min (1+ beg) end) (max (1- end) beg))))))
 
-(defun vimpulse-line-range (count)
-  "Return a line range (BEG END)."
-  (if (and (eobp) (bolp))
-      (list (line-beginning-position 0) (point))
-    (list (line-beginning-position)
-          (line-beginning-position (1+ count)))))
-
 (defun vimpulse-line (arg)
   "Select ARG lines."
   (interactive "p")
-  (vimpulse-mark-object 'vimpulse-line-range arg))
+  (setq arg (1- arg))
+  (vimpulse-mark-object
+   'vimpulse-line-range
+   (point)
+   (save-excursion
+     (when (< 0 arg)
+       (viper-next-line-carefully arg))
+     (point))))
 (put 'vimpulse-line 'motion-type 'line)
 
 (defun vimpulse-a-word (arg)

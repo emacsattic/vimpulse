@@ -52,6 +52,10 @@ selection on each line."
   :prefix "vimpulse-visual-"
   :group  'vimpulse)
 
+;; Visual mode consists of three "submodes": characterwise, linewise
+;; and blockwise selection. We implement this by setting the mode
+;; variable `vimpulse-visual-mode' to either `normal', `line' or
+;; `block'.
 (define-minor-mode vimpulse-visual-mode
   "Toggles Visual mode in Viper."
   :initial-value nil
@@ -404,128 +408,53 @@ This is based on `vimpulse-visual-vars-alist'."
      ,@body))
 
 (defun vimpulse-visual-beginning (&optional mode force)
-  "Return beginning of Visual selection,
-based on `point', `mark' and `vimpulse-visual-mode'.
-The Visual mode may be specified explicitly with MODE,
-which must be one of `normal', `line' and `block'.
-
-In Normal mode, return beginning of region.
-In Line mode, return beginning of first line.
-In Block mode, return upper opposite corner of rectangle.
-
-If Emacs' region is already expanded to the Visual selection,
-return beginning of region. This can be overridden with FORCE.
-
-See also `vimpulse-visual-end'."
-  (save-excursion
-    (setq mode (or mode vimpulse-visual-mode))
-    (cond
-     ;; Region is already expanded
-     ((and (not force)
-           (or (not vimpulse-visual-mode)
-               vimpulse-visual-region-expanded))
-      (min (point) (or (mark t) 1)))
-     ;; Upper opposite corner of block selection
-     ((eq 'block mode)
-      (let* ((start (min (point) (or (mark t) 1)))
-             (end   (max (point) (or (mark t) 1)))
-             (start-col (progn
-                          (goto-char start)
-                          (current-column)))
-             (end-col   (save-excursion
-                          (goto-char end)
-                          (current-column))))
-        (if (or (< start-col end-col)
-                (and (= start-col end-col)
-                     (save-excursion
-                       (goto-char end)
-                       (not (eolp)))))
-            start
-          (if (eolp) start (1+ start)))))
-     ;; Beginning of first line
-     ((eq 'line mode)
-      (when (mark t)
-        (goto-char (min (point) (mark t))))
-      (cond
-       ((and (boundp 'visual-line-mode) visual-line-mode)
-        (beginning-of-visual-line)
-        (point))
-       (t
-        (line-beginning-position))))
-     ;; Beginning of region
-     (t
-      (min (point) (or (mark t) 1))))))
+  "Return beginning of Visual selection.
+See `vimpulse-visual-range'."
+  (let (vimpulse-this-motion-type)
+    (apply 'min (vimpulse-visual-range mode force))))
 
 (defun vimpulse-visual-end (&optional mode force)
-  "Return end of Visual selection,
-based on `point', `mark' and `vimpulse-visual-mode'.
+  "Return end of Visual selection.
+See `vimpulse-visual-range'."
+  (let (vimpulse-this-motion-type)
+    (apply 'max (vimpulse-visual-range mode force))))
+
+(defun vimpulse-visual-range (&optional mode force)
+  "Return Visual range (BEG END).
+This depends on `point', `mark' and `vimpulse-visual-mode'.
 The Visual mode may be specified explicitly with MODE,
 which must be one of `normal', `line' and `block'.
 
-In Normal mode, return end of region plus one character.
-In Line mode, return end of last line, including newline.
-In Block mode, return lower opposite corner of rectangle.
+In Normal mode, returns region plus one character.
+In Line mode, returns region as whole lines.
+In Block mode, return rectangle plus one column.
 
 If Emacs' region is already expanded to the Visual selection,
-return end of region. This can be overridden with FORCE.
+returns the region as-is. This can be overridden with FORCE.
 
-See also `vimpulse-visual-beginning'."
-  (save-excursion
-    (setq mode (or mode vimpulse-visual-mode))
+This function updates `vimpulse-this-motion-type'.
+
+See also `vimpulse-visual-beginning' and `vimpulse-visual-end'."
+  (let ((mark  (or (mark t) 1))
+        (point (point))
+        (mode (or mode vimpulse-visual-mode)))
     (cond
-     ;; Region is already expanded
      ((and (not force)
            (or (not vimpulse-visual-mode)
                vimpulse-visual-region-expanded))
-      (max (point) (or (mark t) 1)))
+      (unless (memq mode '(line block))
+        (setq mode 'exclusive))
+      (setq vimpulse-this-motion-type mode)
+      (list (min mark point) (max mark point)))
      ((eq 'block mode)
-      ;; Lower opposite corner of block selection
-      (let* ((start (min (point) (or (mark t) 1)))
-             (end   (max (point) (or (mark t) 1)))
-             (start-col (save-excursion
-                          (goto-char start)
-                          (current-column)))
-             (end-col   (progn
-                          (goto-char end)
-                          (current-column))))
-        (if (<= start-col end-col)
-            (if (eolp) end (1+ end))
-          end)))
-     ;; End of last line (including newline)
+      (setq vimpulse-this-motion-type 'block)
+      (vimpulse-block-range mark point))
      ((eq 'line mode)
-      (when (mark t)
-        (goto-char (max (point) (mark t))))
-      (cond
-       ((and (boundp 'visual-line-mode) visual-line-mode)
-        (end-of-visual-line)
-        (condition-case nil
-            (forward-char)
-          (error nil))
-        (point))
-       (t
-        (line-beginning-position 2))))
-     ;; End of region plus one character (but not at end of line)
+      (setq vimpulse-this-motion-type 'line)
+      (vimpulse-line-range mark point))
      (t
-      (if (save-excursion
-            (goto-char (max (point) (or (mark t) 1)))
-            (or (eobp) (and (eolp) (not (bolp)))))
-          (max (point) (or (mark t) 1))
-        (1+ (max (point) (or (mark t) 1))))))))
-
-(defun vimpulse-visual-range ()
-  "Return Visual motion range (BEG END).
-This function updates `vimpulse-this-motion-type'."
-  (cond
-   (vimpulse-visual-mode
-    (if (memq vimpulse-visual-mode '(line block))
-        (setq vimpulse-this-motion-type vimpulse-visual-mode)
-      (setq vimpulse-this-motion-type 'inclusive))
-    (list (vimpulse-visual-beginning)
-          (vimpulse-visual-end)))
-   (t
-    (setq vimpulse-this-motion-type 'exclusive)
-    (list (or (region-beginning) (point))
-          (or (region-end) (point))))))
+      (setq vimpulse-this-motion-type 'inclusive)
+      (vimpulse-inclusive-range mark point)))))
 
 (defun vimpulse-visual-select (beg end &optional widen)
   "Visually select text from BEG to END.
@@ -549,16 +478,18 @@ the current Visual mode via `vimpulse-visual-beginning' and
   "Expand Emacs region to Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
 exclude that newline from the region."
-  (let (beg end mark-active)
-    (setq beg (vimpulse-visual-beginning mode)
-          end (vimpulse-visual-end mode))
+  (let ((range (vimpulse-visual-range mode))
+        mark-active)
     (when no-trailing-newline
       (save-excursion
-        (goto-char end)
+        (goto-char (apply 'max range))
         (and (bolp) (not (bobp))
-             (setq end (max beg (1- end))))))
+             (setq range
+                   (list (apply 'min range)
+                         (max (apply 'min range)
+                              (1- (point))))))))
     (setq vimpulse-visual-region-expanded t)
-    (vimpulse-set-region beg end)))
+    (vimpulse-mark-range range)))
 
 (defun vimpulse-visual-contract-region (&optional keep-point)
   "Opposite of `vimpulse-visual-expand-region'.
