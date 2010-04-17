@@ -240,13 +240,11 @@ May also be used to change the Visual mode."
       (vimpulse-transient-mark -1))
      (t
       (vimpulse-transient-mark 1)
-      ;; Convert active Emacs region to Visual selection, if any.
-      ;; To avoid confusion, do not move point, even if this means the
-      ;; selection increases by one character when mark is before
-      ;; point.
+      ;; Convert active Emacs region to Visual selection, if any
       (cond
        ((region-active-p)
-        (vimpulse-visual-contract-region t))
+        (vimpulse-visual-contract-region
+         (not viper-ESC-moves-cursor-back)))
        (t
         (vimpulse-activate-mark (point))))
       (vimpulse-visual-highlight))))
