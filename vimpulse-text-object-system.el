@@ -27,7 +27,7 @@ may be called again at a different position in the buffer."
         vimpulse-last-motion
         range dir)
     (cond
-     ((vimpulse-mark-active)
+     ((region-active-p)
       (setq dir (if (< (point) (mark t)) -1 1))
       (when (eq 'line vimpulse-visual-mode)
         (vimpulse-visual-activate 'normal))
