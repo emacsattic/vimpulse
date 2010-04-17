@@ -245,7 +245,7 @@ May also be used to change the Visual mode."
       ;; selection increases by one character when mark is before
       ;; point.
       (cond
-       ((vimpulse-mark-active)
+       ((region-active-p)
         (vimpulse-visual-contract-region t))
        (t
         (vimpulse-activate-mark (point))))
@@ -313,24 +313,6 @@ Otherwise disable Visual mode."
 
 ;;; Visualization
 
-(defun vimpulse-mark-active (&optional force)
-  "Return t if mark is meaningfully active.
-That is, `mark-active' is t, it's not about to be deactivated,
-and there is a Transient Mark mode (or similar) to handle it."
-  (cond
-   ((featurep 'xemacs)
-    (region-exists-p))
-   (force
-    (and (boundp 'mark-active)
-         mark-active))
-   (t
-    (and (boundp 'transient-mark-mode)
-         transient-mark-mode
-         (or (not (boundp 'deactivate-mark))
-             (not deactivate-mark))
-         (boundp 'mark-active)
-         mark-active))))
-
 (defun vimpulse-deactivate-mark (&optional now)
   "Don't deactivate mark in Visual mode."
   (cond
@@ -348,7 +330,7 @@ and there is a Transient Mark mode (or similar) to handle it."
  Enable forcefully with positive ARG. Disable with negative ARG."
   (setq deactivate-mark nil)
   (and (boundp 'mark-active)
-       (setq mark-active (vimpulse-mark-active)))
+       (setq mark-active (region-active-p)))
   (let (deactivate-mark)
     (cond
      ;; Disable Transient Mark/Cua
@@ -784,7 +766,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
       (vimpulse-visual-mode -1))
      ((eq 'keyboard-quit this-command)
       (vimpulse-visual-mode -1))
-     ((and (not (vimpulse-mark-active))
+     ((and (not (region-active-p))
            (not (eq 'block vimpulse-visual-mode)))
       (vimpulse-visual-mode -1))
      ;; Region was expanded, so contract it
@@ -799,7 +781,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
       (vimpulse-visual-highlight))))
    ;; Not in the Visual state, but maybe the mark
    ;; was activated in vi (command) state?
-   ((and (vimpulse-mark-active)
+   ((and (region-active-p)
          (eq 'vi-state viper-current-state)
          (if (boundp 'deactivate-mark) (not deactivate-mark) t))
     (vimpulse-visual-mode 1))))
@@ -807,7 +789,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
 (defun vimpulse-visual-deactivate-hook ()
   "Hook run when mark is deactivated in Visual mode."
   (when vimpulse-visual-mode
-    (and (not (vimpulse-mark-active))
+    (and (not (region-active-p))
          (not (vimpulse-movement-cmd-p this-command))
          (vimpulse-visual-mode -1))))
 
@@ -822,7 +804,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
 (defadvice viper-intercept-ESC-key
   (around vimpulse-ESC-exit-visual-mode activate)
   "Exit Visual mode with ESC."
-  (let ((viper-ESC-moves-cursor-back (not (vimpulse-mark-active)))
+  (let ((viper-ESC-moves-cursor-back (not (region-active-p)))
         deactivate-mark)
     (if (and vimpulse-visual-mode
              (not (input-pending-p)))
@@ -851,7 +833,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
       (when (and (eq 'line mode)
                  (not (viper-end-with-a-newline-p inserted-text)))
         (save-excursion (newline))))
-     ((vimpulse-mark-active)
+     ((region-active-p)
       (delete-region (region-beginning) (region-end))))
     (if (and killed-rectangle
              kill-ring
@@ -867,7 +849,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   (cond
    (vimpulse-visual-mode
     (viper-Put-back arg))
-   ((vimpulse-mark-active)
+   ((region-active-p)
     (viper-Put-back arg))
    ((and killed-rectangle
          kill-ring
@@ -930,7 +912,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
            (cond
             (vimpulse-visual-mode
              (vimpulse-visual-contract-region t))
-            ((vimpulse-mark-active)
+            ((region-active-p)
              (vimpulse-visual-mode 1)
              (setq vimpulse-visual-region-expanded nil)
              (vimpulse-visual-contract-region t)))))

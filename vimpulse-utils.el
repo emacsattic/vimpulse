@@ -335,7 +335,7 @@ BEG and END. Returns nil if region is unchanged."
      (max beg end (or (region-end) (point)))
      nil dir))
    (t
-    (unless (vimpulse-mark-active)
+    (unless (region-active-p)
       (vimpulse-activate-region))
     (let* ((oldpoint (point))
            (oldmark  (or (mark t) oldpoint))

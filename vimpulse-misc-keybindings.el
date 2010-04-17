@@ -297,7 +297,7 @@ is highlighted rather than skipped past."
           viper-s-forward (not backward))
     (cond
      (pos
-      (unless (vimpulse-mark-active)
+      (unless (region-active-p)
         (push-mark nil t))
       (goto-char pos)
       (cond
@@ -307,7 +307,7 @@ is highlighted rather than skipped past."
         (viper-flash-search-pattern))
        (t
         (viper-search viper-s-string (not backward) 1)
-        (unless (vimpulse-mark-active)
+        (unless (region-active-p)
           (pop-mark)))))
      (t
       (viper-search viper-s-string (not backward) 1))))))

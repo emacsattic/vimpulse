@@ -193,7 +193,7 @@ motion in vi state."
           vimpulse-this-operator this-command)
     (cond
      ;; If text is selected, use selection boundaries as range
-     ((or vimpulse-visual-mode (vimpulse-mark-active))
+     ((or vimpulse-visual-mode (region-active-p))
       ;; Extend range to whole lines
       (when (and whole-lines
                  (not (eq 'line vimpulse-visual-mode)))
@@ -291,7 +291,7 @@ In Visual Mode, returns selection boundaries."
       (cond
        ;; If text has been selected (i.e., it's a text object),
        ;; return the selection
-       ((or vimpulse-visual-mode (vimpulse-mark-active))
+       ((or vimpulse-visual-mode (region-active-p))
         (setq range (vimpulse-visual-range))
         (when (eq 'exclusive vimpulse-this-motion-type)
           (setq vimpulse-this-motion-type motion-type))
@@ -406,7 +406,7 @@ ARG is a list of the form (COUNT . COM).
 COM is discarded."
   (let ((val (viper-P-val arg)))
     (cond
-     ((vimpulse-mark-active)
+     ((region-active-p)
       (funcall operator (region-beginning) (region-end)))
      (t
       (vimpulse-operator-apply
@@ -816,7 +816,7 @@ type TYPE. A custom function body may be specified via BODY."
                             (or (cdr (assq vimpulse-this-operator
                                            com-alist))
                                 ?r))
-                      (,viper-motion (if (vimpulse-mark-active)
+                      (,viper-motion (if (region-active-p)
                                          arg
                                        (cons arg com)))
                       ,@(unless (eq 'exclusive type)
