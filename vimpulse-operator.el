@@ -474,47 +474,98 @@ Returns the normalized range."
          (to   (cadr range))
          (beg  (min from to))
          (end  (max from to)))
-    (setq type (or type vimpulse-this-motion-type))
-    (cond
-     ((memq type '(blockwise block))
-      (setq range (vimpulse-normalize-motion-range range 'inclusive)
-            beg (apply 'min range)
-            end (apply 'max range)
-            type 'block))
-     ((memq type '(linewise line))
-      (setq beg (save-excursion
-                  (goto-char beg)
-                  (line-beginning-position))
-            end (save-excursion
-                  (goto-char end)
-                  (line-beginning-position 2))
-            type 'line))
-     ((eq 'inclusive type)
-      (setq end (save-excursion
-                  (goto-char end)
-                  (viper-forward-char-carefully)
-                  (point))))
-     (t
-      (setq type 'exclusive)
-      (when (save-excursion
-              (goto-char to)
+    (save-excursion
+      (setq type (or type vimpulse-this-motion-type))
+      (cond
+       ((memq type '(blockwise block))
+        (setq vimpulse-this-motion-type 'block
+              range (vimpulse-block-range from to)))
+       ((memq type '(linewise line))
+        (setq vimpulse-this-motion-type 'line
+              range (vimpulse-line-range from to)))
+       ((eq 'inclusive type)
+        (setq vimpulse-this-motion-type 'inclusive
+              range (vimpulse-inclusive-range from to)))
+       (t
+        (setq vimpulse-this-motion-type 'exclusive
+              range (vimpulse-exclusive-range from to))))
+      range)))
+
+(defun vimpulse-block-range (mark point)
+  "Return a blockwise range."
+  (setq point (or point (point))
+        mark  (or mark point))
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min point mark))
+         (end (max point mark))
+         (beg-col (save-excursion
+                    (goto-char beg)
+                    (current-column)))
+         (end-col (save-excursion
+                    (goto-char end)
+                    (current-column))))
+    (save-excursion
+      (cond
+       ((<= beg-col end-col)
+        (goto-char end)
+        (if (eolp)
+            (list beg end)
+          (list beg (1+ end))))
+       (t
+        (goto-char beg)
+        (if (eolp)
+            (list beg end)
+          (list (1+ beg) end)))))))
+
+(defun vimpulse-line-range (mark point)
+  "Return a linewise range."
+  (setq point (or point (point))
+        mark  (or mark point))
+  (let ((beg (min mark point))
+        (end (max mark point)))
+    (list (save-excursion
+            (goto-char beg)
+            (line-beginning-position))
+          (save-excursion
+            (goto-char end)
+            (line-beginning-position 2)))))
+
+(defun vimpulse-inclusive-range (mark point)
+  "Return an inclusive range."
+  (setq point (or point (point))
+        mark  (or mark point))
+  (let ((beg (min mark point))
+        (end (max mark point)))
+    (save-excursion
+      (goto-char end)
+      (unless (or (eobp) (and (eolp) (not (bolp))))
+        (setq end (1+ end)))
+      (list beg end))))
+
+(defun vimpulse-exclusive-range (mark point)
+  "Return an exclusive range.
+This function may change `vimpulse-this-motion-type'."
+  (setq point (or point (point))
+        mark  (or mark point))
+  (let* ((beg (min mark point))
+         (end (max mark point))
+         (range (list beg end)))
+    (save-excursion
+      (when (progn
+              (goto-char end)
               (bolp))
+        (viper-backward-char-carefully)
+        (setq end (max beg (point)))
         (cond
          ((save-excursion
-            (goto-char from)
-            (looking-back "^[ \f\t\n\r\v]*"))
-          (setq type 'line
-                range (vimpulse-normalize-motion-range range type)
-                beg (apply 'min range)
-                end (apply 'max range)))
-         ((<= from to)
-          (setq end (save-excursion
-                      (goto-char to)
-                      (viper-backward-char-carefully)
-                      (point)))
-          (setq type 'inclusive))))))
-    (setq vimpulse-this-motion-type type)
-    (list beg end)))
+            (goto-char beg)
+            (looking-back "^[ \f\t\v]*"))
+          (setq range (vimpulse-normalize-motion-range
+                       (list beg end) 'line)))
+         (t
+          (setq vimpulse-this-motion-type 'inclusive))))
+      range)))
 
 ;;; Operators (yank, delete, change)
 
@@ -620,8 +671,8 @@ BEG and END are the range of text. If you specify LENGTH,
 they are ignored.
 
 This function respects `viper-change-notification-threshold'."
-  (let* ((beg (or beg (vimpulse-visual-beginning) 1))
-         (end (or end (vimpulse-visual-end) 1))
+  (let* ((beg (or beg ((apply 'min (vimpulse-visual-range))) 1))
+         (end (or end ((apply 'max (vimpulse-visual-range)) 1)))
          (height (or vimpulse-visual-height 1))
          (width (or vimpulse-visual-width 1))
          (type (or type vimpulse-this-motion-type))
