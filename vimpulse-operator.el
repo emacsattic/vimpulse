@@ -19,6 +19,9 @@
 ;;       ;; Do stuff from BEG to END
 ;;       )
 ;;
+;; If you like, you can convert a region command to an operator
+;; with `vimpulse-convert-to-operator'.
+;;
 ;; When the latter command is run, `vimpulse-range' will query the
 ;; user for a motion and determine the resulting range to pass on to
 ;; the command. (In Visual mode, however, it skips the querying and
@@ -753,6 +756,20 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 (vimpulse-operator-remap 'viper-put-back 'viper-nil)
 (vimpulse-operator-remap 'viper-repeat 'viper-nil)
 (vimpulse-operator-remap 'viper-substitute 'viper-nil)
+
+;;; Utility macro for converting region commands to operators
+
+(defmacro vimpulse-convert-to-operator (region-cmd &rest args)
+  "Convert a region command to an operator command.
+Defines a new command with the name REGION-CMD-operator.
+ARGS is passed to `vimpulse-range'."
+  (let ((region-cmd (eval region-cmd)))
+    `(defun ,(intern (concat (symbol-name region-cmd) "-operator"))
+       (beg end)
+       ,(format "Operator-wrapper for `%s'.\n\n%s"
+                region-cmd (documentation region-cmd t))
+       (interactive (vimpulse-range ,@args))
+       (,region-cmd beg end))))
 
 ;;; Compatibility code allowing old-style Viper motions to work
 
