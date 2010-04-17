@@ -48,13 +48,11 @@
 ;; everything automatically and orthogonally, enabling the use of
 ;; plain Emacs movement commands (like S-exp navigation) as motions.
 ;;
-;; What about all those Viper motions doing everything at once?
-;; A couple of compatibility macros tries to separate the
-;; operator-pending part from the rest. In the long run, Viper's
-;; motions should be rewritten in a more modular way; I'll have to
-;; contact Michael Kifer and hear what he thinks about this.
-;; For what it's worth, the following code addresses "TODO item #1"
-;; in viper.el.
+;; A smattering of compatibility macros ensure that certain Viper
+;; motions are repeated correctly. In the long run, Viper's motions
+;; should be rewritten in a more modular way; I'll have to contact
+;; Michael Kifer and hear what he thinks about this. For what it's
+;; worth, the following code addresses "TODO item #1" in viper.el.
 
 (vimpulse-define-state operator
   "Operator-pending mode is when an operator is pending,
@@ -172,19 +170,20 @@ This can be used in the `interactive' form of a command:
       ;; Do foo from BEG to END
       )
 
-When called interactively, the command will read a motion, store
-the resulting range in BEG and END, and do whatever it does on
-the text between those buffer positions. The optional arguments
-allow for some customization:
+When this command is called interactively, a motion is read from
+the keyboard and the resulting range is stored in BEG and END.
+The command then proceeds to do whatever it wants to do on the
+text between those buffer positions. The optional arguments allow
+for some customization:
 
 NO-REPEAT: don't let \\[viper-repeat] repeat the command.
 DONT-MOVE-POINT: don't move to beginning of range in vi state.
 WHOLE-LINES: extend range to whole lines.
 KEEP-VISUAL: don't disable Visual selection.
+CUSTOM-MOTION: predefined motion to use in vi state.
 
-After these arguments may follow a CUSTOM-MOTION to use in
-vi (command) state. If specified, the command will not read a
-motion in vi state."
+If CUSTOM-MOTION is specified, the command will not read a motion
+from the keyboard. This has no effect on Visual behavior."
   (let ((range (list (point) (point)))
         viper-ESC-moves-cursor-back)
     (setq vimpulse-this-motion-type nil
@@ -450,26 +449,17 @@ The default is `exclusive'."
 ;; This implements section 1 of motion.txt (Vim Reference Manual)
 (defun vimpulse-normalize-motion-range (range &optional type)
   "Normalize the beginning and end of a motion range (FROM TO).
-This function updates `vimpulse-this-motion-type', which
-also specifies the current type if TYPE is nil.
-
-If TYPE is `line', the range is extended to whole lines.
-If `inclusive', the end of range is increased by one character.
-If `exclusive' (the default), the range is left as-is, unless the
-end of the motion is at the beginning of a line:
-
-  * If the start of the motion is at or before the first
-    non-blank in the line, the motion becomes `line' (normalized).
-
-  * Otherwise, the end of the motion is moved to the end of the
-    previous line and the motion becomes `inclusive' (normalized).
+Returns the normalized range. This function also updates
+`vimpulse-this-motion-type', which specifies the current type
+if TYPE is nil.
 
 Usually, a motion range should be normalized only once, as
 information is lost in the process: an unnormalized motion range
 has the form (FROM TO), while a normalized motion range has the
 form (BEG END).
 
-Returns the normalized range."
+See also `vimpulse-block-range', `vimpulse-line-range',
+`vimpulse-inclusive-range' and `vimpulse-exclusive-range'."
   (let* ((from (car range))
          (to   (cadr range))
          (beg  (min from to))
@@ -492,7 +482,9 @@ Returns the normalized range."
       range)))
 
 (defun vimpulse-block-range (mark point)
-  "Return a blockwise range."
+  "Return a blockwise range.
+Like `vimpulse-inclusive-range', but for rectangles:
+the last column is included."
   (setq point (or point (point))
         mark  (or mark point))
   (let* ((point (or point (point)))
@@ -532,7 +524,8 @@ Returns the normalized range."
             (line-beginning-position 2)))))
 
 (defun vimpulse-inclusive-range (mark point)
-  "Return an inclusive range."
+  "Return an inclusive range.
+That is, the last character is included."
   (setq point (or point (point))
         mark  (or mark point))
   (let ((beg (min mark point))
@@ -545,7 +538,16 @@ Returns the normalized range."
 
 (defun vimpulse-exclusive-range (mark point)
   "Return an exclusive range.
-This function may change `vimpulse-this-motion-type'."
+However, if the end of the range is at the beginning of a line,
+a different type of range is returned:
+
+  * If the start of the motion is at or before the first
+    non-blank in the line, the motion becomes `line' (normalized).
+
+  * Otherwise, the end of the motion is moved to the end of the
+    previous line and the motion becomes `inclusive' (normalized).
+
+Therefore, this function may change `vimpulse-this-motion-type'."
   (setq point (or point (point))
         mark  (or mark point))
   (let* ((beg (min mark point))
@@ -754,8 +756,9 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 
 ;;; Compatibility code allowing old-style Viper motions to work
 
-;; Some motions, like f and /, call `viper-execute-com' to update
-;; `viper-d-com' with a negative count, command-keys etc.
+;; Postphone operator execution by disabling `viper-execute-com'.
+;; However, some motions, like f and /, need to update `viper-d-com'
+;; with negative count, command-keys, etc., to repeat properly.
 (defadvice viper-execute-com (around vimpulse-operator activate)
   "Disable in Operator-Pending mode."
   (cond
@@ -834,7 +837,20 @@ type TYPE. A custom function body may be specified via BODY."
     (when (integerp arg)
       (setq vimpulse-this-motion-type 'line))))
 
-;; Set up motion types for Viper motions
+;; These motions need wrapper functions to repeat correctly
+(vimpulse-operator-map-define viper-end-of-Word 'inclusive)
+(vimpulse-operator-map-define viper-end-of-word 'inclusive)
+(vimpulse-operator-map-define viper-find-char-backward 'inclusive)
+(vimpulse-operator-map-define viper-find-char-forward 'inclusive)
+(vimpulse-operator-map-define viper-forward-Word 'exclusive)
+(vimpulse-operator-map-define viper-forward-char 'inclusive)
+(vimpulse-operator-map-define viper-forward-word 'exclusive)
+(vimpulse-operator-map-define viper-goto-char-backward 'inclusive)
+(vimpulse-operator-map-define viper-goto-char-forward 'inclusive)
+(vimpulse-operator-map-define viper-search-backward 'exclusive)
+(vimpulse-operator-map-define viper-search-forward 'exclusive)
+
+;; Set up motion types for remaining Viper motions
 (put 'vimpulse-goto-first-line 'motion-type 'line)
 (put 'viper-backward-Word 'motion-type 'exclusive)
 (put 'viper-backward-char 'motion-type 'exclusive)
@@ -855,19 +871,6 @@ type TYPE. A custom function body may be specified via BODY."
 (put 'viper-window-bottom 'motion-type 'line)
 (put 'viper-window-middle 'motion-type 'line)
 (put 'viper-window-top 'motion-type 'line)
-
-;; These motions need wrapper functions to repeat correctly
-(vimpulse-operator-map-define viper-end-of-Word 'inclusive)
-(vimpulse-operator-map-define viper-end-of-word 'inclusive)
-(vimpulse-operator-map-define viper-find-char-backward 'inclusive)
-(vimpulse-operator-map-define viper-find-char-forward 'inclusive)
-(vimpulse-operator-map-define viper-forward-Word 'exclusive)
-(vimpulse-operator-map-define viper-forward-char 'inclusive)
-(vimpulse-operator-map-define viper-forward-word 'exclusive)
-(vimpulse-operator-map-define viper-goto-char-backward 'inclusive)
-(vimpulse-operator-map-define viper-goto-char-forward 'inclusive)
-(vimpulse-operator-map-define viper-search-backward 'exclusive)
-(vimpulse-operator-map-define viper-search-forward 'exclusive)
 
 (provide 'vimpulse-operator)
 

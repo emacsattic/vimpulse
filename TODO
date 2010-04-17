@@ -88,9 +88,10 @@
 ;; - Try to get Vimpulse included with upstream Viper; also, ideally,
 ;;   if you pressed "v" in Viper, Viper would offer to load Vimpulse.
 ;;   (Likely to happen?  Consider that Michael Kifer, the Viper
-;;   maintainer, told me he doesn't need Vim keys.  Then again, maybe
-;;   I could convince him that it's worth it to ship Vim keys, for
-;;   other people's benefit.)
+;;   maintainer, told me he doesn't need Vim keys.  Then again, maybe I
+;;   could convince him that it's worth it to ship Vim keys, for other
+;;   people's benefit.)  Also, consider that some of the code (like
+;;   Operator-Pending mode) addresses problems mentioned in viper.el.
 ;;
 ;; - E-mail ridip <rdp at inthefaith.net> and ask him for his Vimpulse
 ;;   contribs and his DVORAK stuff.
