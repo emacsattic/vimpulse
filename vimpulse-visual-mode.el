@@ -734,12 +734,6 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   (when vimpulse-visual-mode
     ;; Refresh Visual restore markers and marks
     (vimpulse-visual-dimensions)
-    ;; Text markers 'y and 'z are used by Ex
-    (let (y z)
-      (viper-move-marker-locally 'y (vimpulse-visual-beginning))
-      (viper-move-marker-locally 'z (vimpulse-visual-end))
-      (set-register (viper-int-to-char (1+ (- ?y ?a))) y)
-      (set-register (viper-int-to-char (1+ (- ?z ?a))) z))
     (cond
      ;; Movement command: don't expand region
      ((vimpulse-movement-cmd-p this-command)
@@ -937,7 +931,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     forward-word keyboard-quit mouse-drag-region mouse-save-then-kill
     mouse-set-point mouse-set-region move-beginning-of-line
     move-end-of-line next-line previous-line scroll-down scroll-up
-    undo up-list vimpulse-end-of-previous-word
+    undo universal-argument up-list vimpulse-end-of-previous-word
     vimpulse-goto-definition vimpulse-goto-first-line
     vimpulse-goto-line vimpulse-visual-block-rotate
     vimpulse-visual-exchange-corners vimpulse-visual-reselect
@@ -981,6 +975,13 @@ In most cases (say, when wrapping the selection in a skeleton),
 it is more useful to exclude the last newline from the region."
   (or (member command vimpulse-newline-cmds)
       (vimpulse-operator-cmd-p command)))
+
+;;; Ex
+
+(defun vimpulse-visual-ex (arg)
+  "Call `viper-ex' on region."
+  (interactive "p")
+  (viper-ex arg))
 
 ;;; Insert/append
 
@@ -1347,6 +1348,7 @@ Returns the insertion point."
 (define-key vimpulse-visual-basic-map "A" 'vimpulse-visual-append)
 (define-key vimpulse-visual-basic-map "U" 'vimpulse-upcase)
 (define-key vimpulse-visual-basic-map "u" 'vimpulse-downcase)
+(define-key vimpulse-visual-basic-map ":" 'vimpulse-visual-ex)
 ;; Keys that have no effect in Visual mode
 (vimpulse-visual-remap 'viper-repeat 'viper-nil)
 
