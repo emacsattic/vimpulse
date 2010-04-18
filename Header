@@ -1,7 +1,5 @@
 ;;; vimpulse.el --- emulates Vim's most useful features -*- coding: utf-8 -*-
 
-;; ### For setup instructions, see "Installation" below ###
-
 ;; Copyright (C) 2007 Brad Beveridge
 ;; Copyright (C) 2007, 2009 Alessandro Piras
 ;; Copyright (C) 2008 Frank Fischer
@@ -21,13 +19,12 @@
 ;;      http://tinyurl.com/implementations-list
 ;;      You don't have to subscribe.  We usually reply within a few
 ;;      days and CC our replies back to you.
-;; License: GPLv2 or later, as described below under "License"
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
 ;; Thanks to our old maintainers:
 ;;      Alessandro Piras
 ;;      Jason Spiro
-;; We'll miss you as maintainer :)
+;; We'll miss you as maintainers :)
 ;;
 ;; This file is not part of GNU Emacs.
 
