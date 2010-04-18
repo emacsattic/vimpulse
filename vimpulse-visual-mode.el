@@ -76,7 +76,6 @@ selection on each line."
         (set var (cdr (assq var vimpulse-visual-vars-alist))))
       (when (memq var vimpulse-visual-global-vars)
         (kill-local-variable var)))
-    (vimpulse-visual-block-cleanup-whitespace)
     ;; Deactivate mark
     (when vimpulse-visual-vars-alist
       (vimpulse-deactivate-mark t))
@@ -152,7 +151,7 @@ In XEmacs, this is an extent.")
 (viper-deflocalvar vimpulse-visual-block-overlays nil
   "Overlays for Visual Block selection.")
 
-(viper-deflocalvar vimpulse-visual-norm-overlay nil
+(viper-deflocalvar vimpulse-visual-whitespace-overlay nil
   "Overlay encompassing text inserted into the buffer
 to make Block selection at least one column wide.")
 
@@ -217,6 +216,7 @@ May also be used to change the Visual mode."
     (setq vimpulse-visual-previous-state viper-current-state)
     ;; Make global variables buffer-local
     (setq vimpulse-visual-vars-alist nil)
+    (vimpulse-visual-block-cleanup-whitespace)
     (dolist (var vimpulse-visual-local-vars)
       (when (boundp var)
         ;; Remember old value
@@ -1020,7 +1020,7 @@ it is more useful to exclude the last newline from the region."
       (vimpulse-visual-block-rotate 'upper-left beg end)
       (setq beg (vimpulse-visual-beginning)
             end (vimpulse-visual-end))
-      (setq vimpulse-visual-norm-overlay nil)
+      (setq vimpulse-visual-whitespace-overlay nil)
       (vimpulse-visual-mode -1)
       (goto-char
        (vimpulse-visual-create-coords 'block ?a beg end))
@@ -1229,9 +1229,9 @@ the upper right corner and point in the lower left."
   "Ensure rectangle is at least one column wide.
 If the Block selection starts and ends on blank lines, the
 resulting rectangle has width zero even if intermediate lines
-contain characters. This function inserts a space after `mark'
+contain characters. This function inserts a space after mark
 so that a one-column rectangle can be made. The position of the
-space is stored in `vimpulse-visual-norm-overlay' so it can be
+space is stored in `vimpulse-visual-whitespace-overlay' so it can be
 removed afterwards with `vimpulse-visual-block-cleanup-whitespace'."
   (save-excursion
     (when (and (eq 'block vimpulse-visual-mode)
@@ -1245,20 +1245,22 @@ removed afterwards with `vimpulse-visual-block-cleanup-whitespace'."
                  (and (bolp) (eolp))))
       (goto-char (mark t))
       (insert " ")
-      (setq vimpulse-visual-norm-overlay
+      (setq vimpulse-visual-whitespace-overlay
             (vimpulse-make-overlay (mark t) (1+ (mark t))
                                    nil t nil)))))
 
 (defun vimpulse-visual-block-cleanup-whitespace ()
   "Clean up whitespace inserted by `vimpulse-visual-block-add-whitespace'."
-  (when (viper-overlay-live-p vimpulse-visual-norm-overlay)
-    (when (= 1 (- (viper-overlay-end   vimpulse-visual-norm-overlay)
-                  (viper-overlay-start vimpulse-visual-norm-overlay)))
+  (when (viper-overlay-live-p vimpulse-visual-whitespace-overlay)
+    (when (= 1 (- (viper-overlay-end
+                   vimpulse-visual-whitespace-overlay)
+                  (viper-overlay-start
+                   vimpulse-visual-whitespace-overlay)))
       (delete-region
-       (viper-overlay-start vimpulse-visual-norm-overlay)
-       (viper-overlay-end   vimpulse-visual-norm-overlay)))
-    (vimpulse-delete-overlay vimpulse-visual-norm-overlay)
-    (setq vimpulse-visual-norm-overlay nil)))
+       (viper-overlay-start vimpulse-visual-whitespace-overlay)
+       (viper-overlay-end   vimpulse-visual-whitespace-overlay)))
+    (vimpulse-delete-overlay vimpulse-visual-whitespace-overlay)
+    (setq vimpulse-visual-whitespace-overlay nil)))
 
 (defun vimpulse-visual-create-coords
   (mode i-com upper-left lower-right)

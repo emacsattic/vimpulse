@@ -19,7 +19,7 @@
 ;;       ;; Do stuff from BEG to END
 ;;       )
 ;;
-;; If you like, you can convert a region command to an operator
+;; If you like, you can convert any region command to an operator
 ;; with `vimpulse-convert-to-operator'.
 ;;
 ;; When the latter command is run, `vimpulse-range' will query the
@@ -502,7 +502,17 @@ the last column is included."
                     (current-column))))
     (save-excursion
       (cond
-       ((<= beg-col end-col)
+       ((= beg-col end-col)
+        (goto-char end)
+        (cond
+         ((eolp)
+          (goto-char beg)
+          (if (eolp)
+              (list beg end)
+            (list (1+ beg) end)))
+         (t
+          (list beg (1+ end)))))
+       ((< beg-col end-col)
         (goto-char end)
         (if (eolp)
             (list beg end)
