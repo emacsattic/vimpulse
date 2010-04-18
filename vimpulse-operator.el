@@ -22,10 +22,10 @@
 ;; If you like, you can convert any region command to an operator
 ;; with `vimpulse-convert-to-operator'.
 ;;
-;; When the latter command is run, `vimpulse-range' will query the
-;; user for a motion and determine the resulting range to pass on to
-;; the command. (In Visual mode, however, it skips the querying and
-;; returns the selection boundaries instead.)
+;; When the latter command above is run, `vimpulse-range' will query
+;; the user for a motion and determine the resulting range to pass on
+;; to the command's arguments. (In Visual mode, however, it skips the
+;; querying and returns the selection boundaries instead.)
 ;;
 ;; While a motion is read from the keyboard, a temporary Viper state,
 ;; Operator-Pending mode, is entered. This state inherits bindings
@@ -188,7 +188,10 @@ CUSTOM-MOTION: predefined motion to use in vi state.
 If CUSTOM-MOTION is specified, the command will not read a motion
 from the keyboard. This has no effect on Visual behavior."
   (let ((range (list (point) (point)))
-        viper-ESC-moves-cursor-back)
+        (type-alist '((vimpulse-visual-toggle-normal . inclusive)
+                      (vimpulse-visual-toggle-line . line)
+                      (vimpulse-visual-toggle-block . block)))
+        type viper-ESC-moves-cursor-back)
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
           vimpulse-this-motion nil
@@ -219,9 +222,16 @@ from the keyboard. This has no effect on Visual behavior."
       (if custom-motion
           (setq vimpulse-this-motion custom-motion)
         (vimpulse-change-state-to-operator)
-        (setq vimpulse-this-motion (vimpulse-keypress-parser t))
-        (setq vimpulse-this-count (cadr vimpulse-this-motion)
-              vimpulse-this-motion (car vimpulse-this-motion))
+        (while (progn
+                 (setq vimpulse-this-motion
+                       (vimpulse-keypress-parser t))
+                 (setq vimpulse-this-count
+                       (cadr vimpulse-this-motion)
+                       vimpulse-this-motion
+                       (car vimpulse-this-motion))
+                 (when (assq vimpulse-this-motion type-alist)
+                   (setq type (cdr (assq vimpulse-this-motion
+                                         type-alist))))))
         ;; Return current line motion if operator calls itself
         (if (eq vimpulse-this-operator vimpulse-this-motion)
             (setq vimpulse-this-motion 'vimpulse-line)
@@ -239,9 +249,14 @@ from the keyboard. This has no effect on Visual behavior."
           (setq vimpulse-this-count
                 (* (prefix-numeric-value current-prefix-arg)
                    (prefix-numeric-value vimpulse-this-count))))
+        ;; Determine type to use for type conversion
+        (when (and (eq 'inclusive type)
+                   (memq (vimpulse-motion-type vimpulse-this-motion)
+                         '(line inclusive)))
+          (setq type 'exclusive))
         ;; Calculate motion range
         (setq range (vimpulse-motion-range
-                     vimpulse-this-count vimpulse-this-motion))
+                     vimpulse-this-count vimpulse-this-motion type))
         ;; Extend range to whole lines
         (when (and whole-lines
                    (not (eq 'line vimpulse-this-motion-type)))
