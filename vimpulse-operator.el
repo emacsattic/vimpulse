@@ -226,7 +226,15 @@ from the keyboard. This has no effect on Visual behavior."
                  (setq vimpulse-this-motion
                        (vimpulse-keypress-parser t))
                  (setq vimpulse-this-count
-                       (cadr vimpulse-this-motion)
+                       (if vimpulse-this-count
+                           (if (numberp (cadr vimpulse-this-motion))
+                               (string-to-number
+                                (concat (number-to-string
+                                         vimpulse-this-count)
+                                        (number-to-string
+                                         (cadr vimpulse-this-motion))))
+                             vimpulse-this-count)
+                         (cadr vimpulse-this-motion))
                        vimpulse-this-motion
                        (car vimpulse-this-motion))
                  (when (assq vimpulse-this-motion type-alist)
