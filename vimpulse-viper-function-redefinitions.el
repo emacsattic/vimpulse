@@ -604,11 +604,12 @@ keybindings in %s.\n\n%s" state-name doc) t))
        (when (eq ',state-name new-state)
          (run-hooks ',hook)))))
 
-(font-lock-add-keywords
- 'emacs-lisp-mode
- '(("(\\(vimpulse-define-state\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
-    (1 font-lock-keyword-face)
-    (2 font-lock-function-name-face nil t))))
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords
+   'emacs-lisp-mode
+   '(("(\\(vimpulse-define-state\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
+      (1 font-lock-keyword-face)
+      (2 font-lock-function-name-face nil t)))))
 
 ;; These are for making `vimpulse-define-state' more forgiving
 (defun vimpulse-unquote (exp)
@@ -687,12 +688,13 @@ create a buffer-local variable. Returns the result."
 DEFAULT-VALUE is the default value and DOCUMENTATION is the
 docstring. The variable becomes buffer-local whenever set.")
 
-(font-lock-add-keywords
- 'emacs-lisp-mode
- '(("(\\(viper-deflocalvar\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
-    (1 font-lock-keyword-face)
-    (2 font-lock-variable-name-face nil t))
-   ("(\\(viper-loop\\)\\>" 1 font-lock-keyword-face)))
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords
+   'emacs-lisp-mode
+   '(("(\\(viper-deflocalvar\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
+      (1 font-lock-keyword-face)
+      (2 font-lock-variable-name-face nil t))
+     ("(\\(viper-loop\\)\\>" 1 font-lock-keyword-face))))
 
 ;; e/E bug: on a single-letter word, ce may change two words
 (defun vimpulse-end-of-word-kernel ()
