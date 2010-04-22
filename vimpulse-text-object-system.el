@@ -40,7 +40,7 @@ may be called again at a different position in the buffer."
         ;; Are we stuck (unchanged region)?
         ;; Move forward and try again.
         (viper-forward-char-carefully dir)
-        (setq range (vimpulse-motion-ragen
+        (setq range (vimpulse-motion-range
                      (apply range-func (* dir count) range-args)))
         (vimpulse-mark-range range t)))
      (t
