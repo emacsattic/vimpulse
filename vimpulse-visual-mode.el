@@ -325,7 +325,7 @@ Otherwise disable Visual mode."
 
 (defun vimpulse-transient-mark (&optional arg)
   "Enable Transient Mark mode (and Cua mode) if not already enabled.
- Enable forcefully with positive ARG. Disable with negative ARG."
+Enable forcefully with positive ARG. Disable with negative ARG."
   (setq deactivate-mark nil)
   (and (boundp 'mark-active)
        (setq mark-active (region-active-p)))
@@ -390,54 +390,47 @@ This is based on `vimpulse-visual-vars-alist'."
 (defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection.
 See `vimpulse-visual-range'."
-  (apply 'min (vimpulse-visual-range mode force)))
+  (apply 'min (vimpulse-motion-range
+               (vimpulse-visual-range mode force))))
 
 (defun vimpulse-visual-end (&optional mode force)
   "Return end of Visual selection.
 See `vimpulse-visual-range'."
-  (apply 'max (vimpulse-visual-range mode force)))
+  (apply 'max (vimpulse-motion-range
+               (vimpulse-visual-range mode force))))
 
 (defun vimpulse-visual-range (&optional mode force)
-  "Return Visual range (BEG END).
-This depends on `point', `mark' and `vimpulse-visual-mode'.
-The Visual mode may be specified explicitly with MODE,
-which must be one of `normal', `line' and `block'.
+  "Return a Visual motion range (TYPE BEG END).
+TYPE is the Visual mode.
+
+The range depends on `point', `mark' and `vimpulse-visual-mode'.
+The Visual mode may be specified explicitly with MODE, which must
+be one of `normal', `line' and `block'.
 
 In Normal mode, returns region plus one character.
 In Line mode, returns region as whole lines.
 In Block mode, returns rectangle plus one column.
 
-If Emacs' region is already expanded to the Visual selection,
+If the Visual selection is already translated to Emacs' region,
 returns the region as-is. This can be overridden with FORCE.
-
-This function updates `vimpulse-this-motion-type' unless
-MODE is specified.
 
 See also `vimpulse-visual-beginning' and `vimpulse-visual-end'."
   (let ((mark  (or (mark t) 1))
         (point (point)))
-    (if mode
-        (let ((vimpulse-visual-mode mode)
-              vimpulse-this-motion-type)
-          (vimpulse-visual-range nil force))
-      (setq mode vimpulse-visual-mode)
-      (cond
-       ((and (not force)
-             (or (not vimpulse-visual-mode)
-                 vimpulse-visual-region-expanded))
-        (unless (memq mode '(line block))
-          (setq mode 'exclusive))
-        (setq vimpulse-this-motion-type mode)
-        (list (min mark point) (max mark point)))
-       ((eq 'block mode)
-        (setq vimpulse-this-motion-type 'block)
-        (vimpulse-block-range mark point))
-       ((eq 'line mode)
-        (setq vimpulse-this-motion-type 'line)
-        (vimpulse-line-range mark point))
-       (t
-        (setq vimpulse-this-motion-type 'inclusive)
-        (vimpulse-inclusive-range mark point))))))
+    (setq mode (or mode vimpulse-visual-mode))
+    (unless (memq mode '(line block))
+      (setq mode (if vimpulse-visual-mode 'inclusive 'exclusive)))
+    (cond
+     ((and (not force)
+           (or (not vimpulse-visual-mode)
+               vimpulse-visual-region-expanded))
+      (list mode (min mark point) (max mark point)))
+     ((eq 'block mode)
+      (vimpulse-block-range mark point))
+     ((eq 'line mode)
+      (vimpulse-line-range mark point))
+     (t
+      (vimpulse-inclusive-range mark point)))))
 
 (defun vimpulse-visual-select (beg end &optional widen)
   "Visually select text inclusively from BEG to END.
@@ -459,11 +452,12 @@ the current Visual mode via `vimpulse-visual-beginning' and
        (max (min beg end) (1- (max beg end))))
      widen)))
 
-(defun vimpulse-visual-expand-region (&optional mode no-trailing-newline)
+(defun vimpulse-visual-expand-region
+  (&optional mode no-trailing-newline)
   "Expand Emacs region to Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
 exclude that newline from the region."
-  (let ((range (vimpulse-visual-range mode))
+  (let ((range (vimpulse-motion-range (vimpulse-visual-range mode)))
         mark-active)
     (when no-trailing-newline
       (save-excursion
