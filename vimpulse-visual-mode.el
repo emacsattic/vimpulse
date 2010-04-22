@@ -561,7 +561,13 @@ See also `vimpulse-visual-restore'."
         end (or end (vimpulse-visual-end mode)))
   (cond
    ((eq 'block mode)
-    (setq vimpulse-visual-height (count-lines beg end)
+    (setq vimpulse-visual-height
+          (count-lines beg
+                       (save-excursion
+                         (goto-char end)
+                         (if (bolp)
+                             (1+ end)
+                           end)))
           vimpulse-visual-width (abs (- (save-excursion
                                           (goto-char end)
                                           (current-column))
