@@ -41,8 +41,8 @@
 ;;   * `inclusive': the ending character is included.
 ;;   * `exclusive' (default): the ending character is excluded.
 ;;
-;; For example, (put 'foo 'motion-type 'line) gives `foo' a motion
-;; type of `line'. If not specified, the motion is `exclusive'.
+;; For example, (put 'foo 'motion-type 'line) gives `foo' a type of
+;; `line'. If unspecified, the motion is considered `exclusive'.
 ;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
 ;; code separation. In the original scheme, every Viper motion must
@@ -191,7 +191,8 @@ from the keyboard. This has no effect on Visual behavior."
         (type-alist '((vimpulse-visual-toggle-normal . inclusive)
                       (vimpulse-visual-toggle-line . line)
                       (vimpulse-visual-toggle-block . block)))
-        type viper-ESC-moves-cursor-back)
+        (type (when whole-lines 'line))
+        viper-ESC-moves-cursor-back)
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
           vimpulse-this-motion nil
@@ -206,6 +207,8 @@ from the keyboard. This has no effect on Visual behavior."
         (vimpulse-visual-dimensions))
       ;; Determine range and go to beginning
       (setq range (vimpulse-visual-range))
+      (setq vimpulse-this-motion-type (vimpulse-motion-type range)
+            range (vimpulse-motion-range range))
       (if (eq 'block vimpulse-this-motion-type)
           (vimpulse-visual-block-rotate
            'upper-left (apply 'min range) (apply 'max range))
@@ -248,7 +251,9 @@ from the keyboard. This has no effect on Visual behavior."
       (cond
        ;; Quit if motion reading failed
        ((or (not vimpulse-this-motion)
-            (eq 'viper-nil vimpulse-this-motion))
+            (memq vimpulse-this-motion
+                  '(viper-nil
+                    keyboard-quit)))
         (viper-change-state-to-vi)
         (setq quit-flag t))
        (t
@@ -263,16 +268,15 @@ from the keyboard. This has no effect on Visual behavior."
                          '(line inclusive)))
           (setq type 'exclusive))
         ;; Calculate motion range
-        (setq range (vimpulse-motion-range
+        (setq range (vimpulse-make-motion-range
                      vimpulse-this-count vimpulse-this-motion type))
-        ;; Extend range to whole lines
-        (when (and whole-lines
-                   (not (eq 'line vimpulse-this-motion-type)))
-          (setq range (vimpulse-normalize-motion-range range 'line)))
+        (setq vimpulse-this-motion-type (vimpulse-motion-type range)
+              range (vimpulse-motion-range range))
         ;; Go to beginning of range
         (unless dont-move-point
           (goto-char (apply 'min range))
-          (when (and (bolp) viper-auto-indent)
+          (when (and viper-auto-indent
+                     (looking-back "^[ \f\t\v]*"))
             (back-to-indentation)))
         (viper-change-state-to-vi)))))
     ;; Set up repeat
@@ -286,58 +290,60 @@ from the keyboard. This has no effect on Visual behavior."
     ;; Return range
     range))
 
-(defun vimpulse-motion-range (count motion &optional type)
-  "Return a motion range defined by point, MOTION and COUNT.
+(defun vimpulse-make-motion-range (count motion &optional type refresh)
+  "Derive motion range (TYPE BEG END) from MOTION and COUNT.
 MOTION can move point or select some text (a text object).
-It can be a command, a function or a list of Lisp expressions.
-In Visual Mode, returns selection boundaries."
-  (let ((current-prefix-arg count)
-        (viper-intermediate-command 'viper-command-argument)
-        (viper-current-state 'operator-state)
-        (vimpulse-operator-basic-minor-mode t)
-        (motion-type (vimpulse-motion-type motion))
-        range)
-    (save-excursion
-      (setq vimpulse-this-motion-type motion-type)
-      (viper-move-marker-locally 'viper-com-point (point))
-      ;; Enable Transient Mark mode so we can reliably
-      ;; detect mark setting
-      (vimpulse-transient-mark)
-      ;; Execute MOTION
-      (cond
-       ((listp motion)                  ; Lisp expression
-        (eval `(progn ,@motion)))
-       ((commandp motion)
-        (call-interactively motion))
-       (t
-        (funcall motion count)))
-      (unless type
-        (setq type (or vimpulse-this-motion-type 'exclusive)))
-      (cond
-       ;; If text has been selected (i.e., it's a text object),
-       ;; return the selection
-       ((or vimpulse-visual-mode (region-active-p))
-        (setq range (vimpulse-visual-range))
-        (when (eq 'exclusive vimpulse-this-motion-type)
-          (setq vimpulse-this-motion-type motion-type))
-        (if vimpulse-visual-mode
-            (vimpulse-visual-mode -1)
-          (vimpulse-deactivate-region))
-        (vimpulse-transient-restore))
-       ;; Otherwise, range is defined by `viper-com-point'
-       ;; and point (Viper type motion)
-       (t
-        (setq range (list (marker-position viper-com-point) (point)))
-        (setq range (vimpulse-normalize-motion-range range type))
-        (vimpulse-transient-restore)))
-      range)))
-
-(defun vimpulse-range-p (object)
-  "Return t if OBJECT is a range."
-  (and (listp object)
-       (eq 2 (length object))
-       (numberp (car object))
-       (numberp (cadr object))))
+TYPE may specify the motion type for normalizing the resulting range.
+If REFRESH is t, this function changes `vimpulse-this-motion-type'."
+  (save-excursion
+    ;; Unless REFRESH is t, we create a local binding for
+    ;; `vimpulse-this-motion-type' so it's not affected
+    (cond
+     ((not refresh)
+      (let (vimpulse-this-motion-type)
+        (vimpulse-make-motion-range count motion type t)))
+     (t
+      (let ((current-prefix-arg count)
+            (viper-intermediate-command 'viper-command-argument)
+            (viper-current-state 'operator-state)
+            (vimpulse-operator-basic-minor-mode t)
+            (motion-type (vimpulse-motion-type motion t))
+            range)
+        (setq vimpulse-this-motion-type
+              (or type motion-type 'exclusive))
+        (viper-move-marker-locally 'viper-com-point (point))
+        ;; Enable Transient Mark mode so we can reliably
+        ;; detect selection commands
+        (vimpulse-transient-mark)
+        ;; Execute MOTION
+        (if (commandp motion)
+            (call-interactively motion)
+          (funcall motion count))
+        (cond
+         ;; If text has been selected (i.e., it's a text object),
+         ;; return the selection
+         ((or vimpulse-visual-mode (region-active-p))
+          (setq range (vimpulse-visual-range))
+          (cond
+           ((and motion-type (not (eq motion-type (car range))))
+            (setcar range motion-type))
+           ((and type (not (eq type (car range))))
+            (setcar range type)
+            (setq range (vimpulse-normalize-motion-range range))))
+          ;; Deactivate region (and Transient Mark mode)
+          (if vimpulse-visual-mode
+              (vimpulse-visual-mode -1)
+            (vimpulse-deactivate-region))
+          (vimpulse-transient-restore))
+         ;; Otherwise, range is defined by `viper-com-point'
+         ;; and point (Viper type motion)
+         (t
+          (setq range (vimpulse-normalize-motion-range
+                       (list (or type vimpulse-this-motion-type)
+                             (marker-position viper-com-point)
+                             (point))))
+          (vimpulse-transient-restore)))
+        range)))))
 
 ;; A keypress parser of some kind is unavoidable because we need to
 ;; know what we are executing beforehand (like when multiplying the
@@ -443,9 +449,11 @@ COM is discarded."
 TYPE is the motion type."
   (let* ((vimpulse-this-operator operator)
          (vimpulse-this-motion motion)
-         (range (vimpulse-motion-range count motion type))
-         (beg (car range))
-         (end (cadr range)))
+         (range (vimpulse-make-motion-range count motion type))
+         (vimpulse-this-motion-type (vimpulse-motion-type range))
+         (range (vimpulse-motion-range range))
+         (beg (apply 'min range))
+         (end (apply 'max range)))
     (funcall operator beg end)))
 
 (defun vimpulse-region-cmd-p (cmd)
@@ -461,58 +469,71 @@ TYPE is the motion type."
 
 ;;; Motion type system
 
-(defun vimpulse-motion-type (object)
+(defun vimpulse-range-p (object)
+  "Return t if OBJECT is a pure range (BEG END)."
+  (and (listp object)
+       (eq 2 (length object))
+       (numberp (car object))
+       (numberp (cadr object))))
+
+(defun vimpulse-motion-range-p (object)
+  "Return t if OBJECT is a motion range (TYPE BEG END)."
+  (and (symbolp (car object))
+       (vimpulse-range-p (cdr object))))
+
+(defun vimpulse-motion-range (object)
+  "Return the range part of OBJECT."
+  (cond
+   ((vimpulse-motion-range-p object)
+    (cdr object))
+   ((vimpulse-range-p object)
+    object)
+   (t
+    (list (point) (point)))))
+
+(defun vimpulse-motion-type (object &optional no-default)
   "Return motion type of OBJECT.
 The type is one of `exclusive', `inclusive', `line' and `block'.
-The default is `exclusive'."
-  (or (cond
-       ((symbolp object)
-        (get object 'motion-type))
-       (t
-        vimpulse-this-motion-type))
-      'exclusive))
+Defaults to `exclusive' unless NO-DEFAULT is specified."
+  (let ((type (cond
+               ((symbolp object)
+                (get object 'motion-type))
+               ((vimpulse-motion-range-p object)
+                (car object)))))
+    (if no-default
+        type
+      (or type 'exclusive))))
 
 ;; This implements section 1 of motion.txt (Vim Reference Manual)
 (defun vimpulse-normalize-motion-range (range &optional type)
-  "Normalize the beginning and end of a motion range (FROM TO).
-Returns the normalized range. This function also updates
-`vimpulse-this-motion-type', which specifies the current type
-if TYPE is nil.
+  "Normalize the beginning and end of a motion range (TYPE FROM TO).
+Returns the normalized range.
 
 Usually, a motion range should be normalized only once, as
 information is lost in the process: an unnormalized motion range
-has the form (FROM TO), while a normalized motion range has the
-form (BEG END).
+has the form (TYPE FROM TO), while a normalized motion range has
+the form (TYPE BEG END).
 
 See also `vimpulse-block-range', `vimpulse-line-range',
 `vimpulse-inclusive-range' and `vimpulse-exclusive-range'."
-  (let* ((from (car range))
-         (to   (cadr range))
-         (beg  (min from to))
-         (end  (max from to)))
-    (save-excursion
-      (setq type (or type vimpulse-this-motion-type))
-      (cond
-       ((memq type '(blockwise block))
-        (setq vimpulse-this-motion-type 'block
-              range (vimpulse-block-range from to)))
-       ((memq type '(linewise line))
-        (setq vimpulse-this-motion-type 'line
-              range (vimpulse-line-range from to)))
-       ((eq 'inclusive type)
-        (setq vimpulse-this-motion-type 'inclusive
-              range (vimpulse-inclusive-range from to)))
-       (t
-        (setq vimpulse-this-motion-type 'exclusive
-              range (vimpulse-exclusive-range from to))))
-      range)))
+  (let* ((type (or type (vimpulse-motion-type range)))
+         (range (vimpulse-motion-range range))
+         (from (car range))
+         (to   (cadr range)))
+    (cond
+     ((memq type '(blockwise block))
+      (vimpulse-block-range from to))
+     ((memq type '(linewise line))
+      (vimpulse-line-range from to))
+     ((eq 'inclusive type)
+      (vimpulse-inclusive-range from to))
+     (t
+      (vimpulse-exclusive-range from to t)))))
 
 (defun vimpulse-block-range (mark point)
-  "Return a blockwise range.
+  "Return a blockwise motion range (BLOCK BEG END).
 Like `vimpulse-inclusive-range', but for rectangles:
 the last column is included."
-  (setq point (or point (point))
-        mark  (or mark point))
   (let* ((point (or point (point)))
          (mark  (or mark point))
          (beg (min point mark))
@@ -531,28 +552,29 @@ the last column is included."
          ((eolp)
           (goto-char beg)
           (if (eolp)
-              (list beg end)
-            (list (1+ beg) end)))
+              (list 'block beg end)
+            (list 'block (1+ beg) end)))
          (t
-          (list beg (1+ end)))))
+          (list 'block beg (1+ end)))))
        ((< beg-col end-col)
         (goto-char end)
         (if (eolp)
-            (list beg end)
-          (list beg (1+ end))))
+            (list 'block beg end)
+          (list 'block beg (1+ end))))
        (t
         (goto-char beg)
         (if (eolp)
-            (list beg end)
-          (list (1+ beg) end)))))))
+            (list 'block beg end)
+          (list 'block (1+ beg) end)))))))
 
 (defun vimpulse-line-range (mark point)
-  "Return a linewise range."
-  (setq point (or point (point))
-        mark  (or mark point))
-  (let ((beg (min mark point))
-        (end (max mark point)))
-    (list (save-excursion
+  "Return a linewise motion range (LINE BEG END)."
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min mark point))
+         (end (max mark point)))
+    (list 'line
+          (save-excursion
             (goto-char beg)
             (line-beginning-position))
           (save-excursion
@@ -560,22 +582,22 @@ the last column is included."
             (line-beginning-position 2)))))
 
 (defun vimpulse-inclusive-range (mark point)
-  "Return an inclusive range.
+  "Return an inclusive motion range (INCLUSIVE BEG END).
 That is, the last character is included."
-  (setq point (or point (point))
-        mark  (or mark point))
-  (let ((beg (min mark point))
-        (end (max mark point)))
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min mark point))
+         (end (max mark point)))
     (save-excursion
       (goto-char end)
       (unless (or (eobp) (and (eolp) (not (bolp))))
         (setq end (1+ end)))
-      (list beg end))))
+      (list 'inclusive beg end))))
 
-(defun vimpulse-exclusive-range (mark point)
-  "Return an exclusive range.
-However, if the end of the range is at the beginning of a line,
-a different type of range is returned:
+(defun vimpulse-exclusive-range (mark point &optional normalize)
+  "Return an exclusive motion range (EXCLUSIVE BEG END).
+However, if NORMALIZE is t and the end of the range is at the
+beginning of a line, a different type of range is returned:
 
   * If the start of the motion is at or before the first
     non-blank in the line, the motion becomes `line' (normalized).
@@ -583,27 +605,28 @@ a different type of range is returned:
   * Otherwise, the end of the motion is moved to the end of the
     previous line and the motion becomes `inclusive' (normalized).
 
-Therefore, this function may change `vimpulse-this-motion-type'."
-  (setq point (or point (point))
-        mark  (or mark point))
-  (let* ((beg (min mark point))
-         (end (max mark point))
-         (range (list beg end)))
+Thus, this function may return, e.g., (LINE BEG END) instead."
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min mark point))
+         (end (max mark point)))
     (save-excursion
-      (when (progn
-              (goto-char end)
-              (bolp))
+      (cond
+       ((and normalize
+             (progn
+               (goto-char end)
+               (bolp)))
         (viper-backward-char-carefully)
         (setq end (max beg (point)))
         (cond
          ((save-excursion
             (goto-char beg)
             (looking-back "^[ \f\t\v]*"))
-          (setq range (vimpulse-normalize-motion-range
-                       (list beg end) 'line)))
+          (vimpulse-normalize-motion-range (list 'line beg end)))
          (t
-          (setq vimpulse-this-motion-type 'inclusive))))
-      range)))
+          (list 'inclusive beg end))))
+       (t
+        (list 'exclusive beg end))))))
 
 ;;; Operators (yank, delete, change)
 

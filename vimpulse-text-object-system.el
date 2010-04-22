@@ -34,15 +34,18 @@ may be called again at a different position in the buffer."
       (when (and vimpulse-visual-mode
                  (not vimpulse-visual-region-expanded))
         (vimpulse-visual-expand-region))
-      (setq range (apply range-func (* dir count) range-args))
+      (setq range (vimpulse-motion-range
+                   (apply range-func (* dir count) range-args)))
       (unless (vimpulse-mark-range range t)
         ;; Are we stuck (unchanged region)?
         ;; Move forward and try again.
         (viper-forward-char-carefully dir)
-        (setq range (apply range-func (* dir count) range-args))
+        (setq range (vimpulse-motion-ragen
+                     (apply range-func (* dir count) range-args)))
         (vimpulse-mark-range range t)))
      (t
-      (setq range (apply range-func count range-args))
+      (setq range (vimpulse-motion-range
+                   (apply range-func count range-args)))
       (vimpulse-mark-range range)))))
 
 (defun vimpulse-mark-range (range &optional widen)
