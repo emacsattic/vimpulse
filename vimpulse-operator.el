@@ -199,6 +199,7 @@ from the keyboard. This has no effect on Visual behavior."
                       (vimpulse-visual-toggle-line . line)
                       (vimpulse-visual-toggle-block . block)))
         (type (when whole-lines 'line))
+        (oldmsg (current-message))
         viper-ESC-moves-cursor-back)
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
@@ -250,6 +251,9 @@ from the keyboard. This has no effect on Visual behavior."
                  (when (assq vimpulse-this-motion type-alist)
                    (setq type (cdr (assq vimpulse-this-motion
                                          type-alist))))))
+        (message oldmsg)
+        ;; Motion reading done: clear echo area
+        ;; (message "")
         ;; Return current line motion if operator calls itself
         (if (eq vimpulse-this-operator vimpulse-this-motion)
             (setq vimpulse-this-motion 'vimpulse-line)
@@ -260,7 +264,8 @@ from the keyboard. This has no effect on Visual behavior."
        ((or (not vimpulse-this-motion)
             (memq vimpulse-this-motion
                   '(viper-nil
-                    keyboard-quit)))
+                    keyboard-quit))
+            (vimpulse-operator-cmd-p vimpulse-this-motion))
         (viper-change-state-to-vi)
         (setq quit-flag t))
        (t
