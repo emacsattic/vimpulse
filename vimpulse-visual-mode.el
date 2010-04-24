@@ -444,18 +444,16 @@ the current Visual mode via `vimpulse-visual-beginning' and
   (cond
    ;; In Visual mode, protect the value of `mark-active'
    (vimpulse-visual-mode
-    (let (mark-active vimpulse-visual-mode)
-      (vimpulse-visual-select beg end widen)))
+    (let (mark-active)
+      (vimpulse-set-region
+       (min beg end)
+       (if vimpulse-visual-region-expanded
+           (max beg end)
+         (max (min beg end) (1- (max beg end))))
+       widen)))
    (t
-    ;; Since `vimpulse-visual-end' is inclusive, it is always
-    ;; 1 larger than region's end. Therefore, subtract 1 from END
-    ;; (but avoid END < BEG).
     (vimpulse-set-region
-     (min beg end)
-     (if vimpulse-visual-region-expanded
-         (max beg end)
-       (max (min beg end) (1- (max beg end))))
-     widen))))
+     (min beg end) (max beg end) widen))))
 
 (defun vimpulse-visual-expand-region
   (&optional mode no-trailing-newline)
