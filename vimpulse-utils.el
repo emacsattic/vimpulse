@@ -179,9 +179,10 @@ LIST may be nested."
   (let ((this (car list))
         (rest (cdr list)))
     (cond
-     ((listp this)
+     ((eq this elt)
+      t)
+     ((and this (listp this)) ; nil is a list
       (vimpulse-memq-recursive elt this))
-     ((eq this elt) t)
      (rest
       (vimpulse-memq-recursive elt rest)))))
 
@@ -312,10 +313,13 @@ If POS if specified, set mark at POS instead."
   (cond
    ((and (boundp 'cua-mode) cua-mode)
     (let ((opoint (point))
+          (oldmsg (current-message))
+          message-log-max
           cua-toggle-set-mark)
       (goto-char (or pos (mark t) (point)))
-      (cua-set-mark)
-      (message "")
+      (unwind-protect
+          (cua-set-mark)
+        (message oldmsg))
       (goto-char opoint)))
    (t
     (let (this-command)
