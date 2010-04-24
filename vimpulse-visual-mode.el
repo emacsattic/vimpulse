@@ -441,7 +441,12 @@ Under the hood, this function changes Emacs' `point' and `mark'.
 The boundaries of the Visual selection are deduced from these and
 the current Visual mode via `vimpulse-visual-beginning' and
 `vimpulse-visual-end'."
-  (let (mark-active)
+  (cond
+   ;; In Visual mode, protect the value of `mark-active'
+   (vimpulse-visual-mode
+    (let (mark-active vimpulse-visual-mode)
+      (vimpulse-visual-select beg end widen)))
+   (t
     ;; Since `vimpulse-visual-end' is inclusive, it is always
     ;; 1 larger than region's end. Therefore, subtract 1 from END
     ;; (but avoid END < BEG).
@@ -450,22 +455,24 @@ the current Visual mode via `vimpulse-visual-beginning' and
      (if vimpulse-visual-region-expanded
          (max beg end)
        (max (min beg end) (1- (max beg end))))
-     widen)))
+     widen))))
 
 (defun vimpulse-visual-expand-region
   (&optional mode no-trailing-newline)
   "Expand Emacs region to Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
 exclude that newline from the region."
-  (let ((range (vimpulse-motion-range (vimpulse-visual-range mode)))
+  (let ((range (vimpulse-visual-range mode))
         mark-active)
     (when no-trailing-newline
       (save-excursion
-        (goto-char (apply 'max range))
+        (goto-char (apply 'max (vimpulse-motion-range range)))
         (and (bolp) (not (bobp))
              (setq range
-                   (list (apply 'min range)
-                         (max (apply 'min range)
+                   (list (vimpulse-motion-type range)
+                         (apply 'min (vimpulse-motion-range range))
+                         (max (apply 'min
+                                     (vimpulse-motion-range range))
                               (1- (point))))))))
     (setq vimpulse-visual-region-expanded t)
     (vimpulse-mark-range range)))

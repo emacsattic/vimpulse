@@ -34,58 +34,77 @@ may be called again at a different position in the buffer."
       (when (and vimpulse-visual-mode
                  (not vimpulse-visual-region-expanded))
         (vimpulse-visual-expand-region))
-      (setq range (vimpulse-motion-range
-                   (apply range-func (* dir count) range-args)))
+      (setq range (apply range-func (* dir count) range-args))
       (unless (vimpulse-mark-range range t)
         ;; Are we stuck (unchanged region)?
         ;; Move forward and try again.
         (viper-forward-char-carefully dir)
-        (setq range (vimpulse-motion-range
-                     (apply range-func (* dir count) range-args)))
+        (setq range (apply range-func (* dir count) range-args))
         (vimpulse-mark-range range t)))
      (t
-      (setq range (vimpulse-motion-range
-                   (apply range-func count range-args)))
+      (setq range (apply range-func count range-args))
       (vimpulse-mark-range range)))))
 
 (defun vimpulse-mark-range (range &optional widen)
-  "Mark RANGE, which has the form (BEG END).
+  "Mark RANGE, which has the form (TYPE BEG END).
 If WIDEN is non-nil, expand existing region."
-  (let ((beg (apply 'min range))
-        (end (apply 'max range)))
-    (vimpulse-set-region beg end widen)))
+  (let* ((type  (vimpulse-motion-type range))
+         (range (vimpulse-motion-range range))
+         (beg (apply 'min range))
+         (end (apply 'max range)))
+    (cond
+     ((eq 'exclusive type)
+      (if vimpulse-visual-mode
+          (vimpulse-visual-select beg end widen)
+        (vimpulse-set-region beg end widen)))
+     (t
+      (unless (memq type '(line block))
+        (setq type 'normal))
+      (unless (eq type vimpulse-visual-mode)
+        (vimpulse-visual-activate type))
+      (vimpulse-visual-select beg end widen)))))
 
 (defun vimpulse-object-range
-  (count backward-func forward-func &optional pos)
-  "Return a text object range (BEG END).
+  (count backward-func forward-func &optional type)
+  "Return a text object range (TYPE BEG END).
 BACKWARD-FUNC moves point to the object's beginning,
 FORWARD-FUNC moves to its end. Schematically,
 
 \(vimpulse-object-range <num> <beg-of-object> <end-of-object>)
 
-COUNT is the number of objects. If negative,
-swap BACKWARD-FUNC and FORWARD-FUNC.
+COUNT is the number of objects. If positive, go forwards and
+then backwards; if negative, go backwards and then forwards.
 
-Note: Some of Viper's movement commands, like
-`viper-end-of-word', may not move past the last character
-unless executed in \"range mode\", that is, with an argument
-like (COUNT . ?r). Use a `lambda' wrapper in those cases."
-  (let (beg end)
+The type of the object (`exclusive', `inclusive' or `line')
+may be specified with TYPE. Otherwise, the type is inferred
+from the motion types of BACKWARD-FUNC and FORWARD-FUNC."
+  (let ((types '(exclusive inclusive line block))
+        beg end forward-range backward-range
+        vimpulse-this-motion-type)
     (save-excursion
       (setq count (or (if (eq 0 count) 1 count) 1))
-      (when (> 0 count)
-        (setq forward-func
-              (prog1 backward-func
-                (setq backward-func forward-func))))
-      (condition-case nil
-          (funcall forward-func (abs count))
-        (error nil))
-      (setq beg (point))
-      (condition-case nil
-          (funcall backward-func (abs count))
-        (error nil))
-      (setq end (point))
-      (list (min beg end) (max beg end)))))
+      (if (> 0 count)
+          (setq backward-range
+                (vimpulse-make-motion-range
+                 (abs count) backward-func type t)
+                forward-range
+                (vimpulse-make-motion-range
+                 (abs count) forward-func type t))
+        (setq forward-range
+              (vimpulse-make-motion-range
+               (abs count) forward-func type t)
+              backward-range
+              (vimpulse-make-motion-range
+               (abs count) backward-func type t)))
+      (setq beg (apply 'min (vimpulse-motion-range backward-range))
+            end (apply 'max (vimpulse-motion-range forward-range)))
+      (unless type
+        (setq type 'exclusive)
+        (dolist (elt types)
+          (when (or (eq elt (vimpulse-motion-type backward-range))
+                    (eq elt (vimpulse-motion-type forward-range)))
+            (setq type elt))))
+      (list type beg end))))
 
 (defun vimpulse-an-object-range
   (count backward-func forward-func &optional include-newlines regexp)
@@ -98,8 +117,9 @@ See `vimpulse-object-range' for more details."
     (save-excursion
       (setq count (or (if (eq 0 count) 1 count) 1))
       (setq regexp (or regexp "[ \f\t\n\r\v]+"))
-      (setq range (vimpulse-object-range
-                   count backward-func forward-func))
+      (setq range (vimpulse-motion-range
+                   (vimpulse-object-range
+                    count backward-func forward-func)))
       ;; Let `end' be the boundary furthest from point,
       ;; based on the direction we are going
       (if (> 0 count)
@@ -115,8 +135,9 @@ See `vimpulse-object-range' for more details."
         (when (< (max (* count line-beg) (* count line-end))
                  (* count beg))
           (setq count (- count))
-          (setq range (vimpulse-object-range
-                       count backward-func forward-func))
+          (setq range (vimpulse-motion-range
+                       (vimpulse-object-range
+                        count backward-func forward-func)))
           (if (> 0 count)
               (setq beg (cadr range)
                     end (car range))
@@ -168,8 +189,9 @@ To include whitespace, use `vimpulse-an-object-range'.
 See `vimpulse-object-range' for more details."
   (let (range beg end line-beg line-end)
     (setq count (or (if (eq 0 count) 1 count) 1))
-    (setq range (vimpulse-object-range
-                 count backward-func forward-func))
+    (setq range (vimpulse-motion-range
+                 (vimpulse-object-range
+                  count backward-func forward-func)))
     (setq beg (car range)
           end (cadr range))
     (setq line-beg (line-beginning-position)
@@ -177,8 +199,9 @@ See `vimpulse-object-range' for more details."
     (when (< (max (* count line-beg) (* count line-end))
              (min (* count beg) (* count end)))
       (setq count (- count))
-      (setq range (vimpulse-object-range
-                   count backward-func forward-func)
+      (setq range (vimpulse-motion-range
+                   (vimpulse-object-range
+                    count backward-func forward-func))
             beg (car range)
             end (cadr range)))
     ;; Return the range, including point
@@ -241,30 +264,46 @@ whether to include the parentheses in the range."
   "Return a quoted expression range (BEG END).
 QUOTE is a quote character (default ?\\\"). INCLUDE-QUOTES
 specifies whether to include the quote marks in the range."
-  (let ((beg (point)) (end (point)))
+  (let ((beg (point)) (end (point))
+        regexp)
     (save-excursion
       (setq count (if (eq 0 count) 1 (abs count)))
       (setq quote (or quote ?\"))
       (setq quote (if (characterp quote)
-                      (regexp-quote (string quote)) ""))
+                      (regexp-quote (string quote)) "")
+            regexp (concat "\\([^\\\\]\\|^\\)" quote))
       (when (and (not (string= "" quote))
                  (looking-at quote))
         (forward-char))
       ;; Search forward for a closing quote
       (while (and (< 0 count)
-                  (re-search-forward (concat "[^\\\\]" quote) nil t))
+                  (re-search-forward regexp nil t))
         (setq count (1- count))
         (setq end (point))
         ;; Find the matching opening quote
         (condition-case nil
-            (setq beg (scan-sexps end -1))
+            (progn
+              (setq beg (scan-sexps end -1))
+              ;; Emacs' S-exp logic doesn't work in text mode
+              (save-excursion
+                (goto-char beg)
+                (unless (looking-at quote)
+                  (re-search-backward regexp)
+                  (unless (looking-at quote)
+                    (forward-char))
+                  (setq beg (point)))))
           ;; Finding the opening quote failed. Maybe we're already at
           ;; the opening quote and should look for the closing instead?
           (error (condition-case nil
                      (progn
                        (viper-backward-char-carefully)
                        (setq beg (point))
-                       (setq end (scan-sexps beg 1)))
+                       (setq end (scan-sexps beg 1))
+                       (unless (looking-back quote)
+                         (re-search-forward regexp)
+                         (unless (looking-back quote)
+                           (backward-char))
+                         (setq end (point))))
                    (error (setq end beg))))))
       (if include-quotes
           (list beg end)
