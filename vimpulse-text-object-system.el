@@ -58,10 +58,11 @@ If WIDEN is non-nil, expand existing region."
           (vimpulse-visual-select beg end widen)
         (vimpulse-set-region beg end widen)))
      (t
-      (unless (memq type '(line block))
-        (setq type 'normal))
-      (unless (eq type vimpulse-visual-mode)
-        (vimpulse-visual-activate type))
+      (when vimpulse-visual-mode
+        (unless (memq type '(line block))
+          (setq type 'normal))
+        (unless (eq type vimpulse-visual-mode)
+          (vimpulse-visual-activate type)))
       (vimpulse-visual-select beg end widen)))))
 
 (defun vimpulse-object-range
