@@ -43,6 +43,8 @@
 ;;
 ;; For example, (put 'foo 'motion-type 'line) gives `foo' a type of
 ;; `line'. If unspecified, the motion is considered `exclusive'.
+;; You can override the type with v, V and C-v: for example,
+;; dvj will delete an exclusive range rather than a linewise.
 ;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
 ;; code separation. In the original scheme, every Viper motion must
@@ -53,9 +55,9 @@
 ;;
 ;; A smattering of compatibility macros ensure that certain Viper
 ;; motions are repeated correctly. In the long run, Viper's motions
-;; should be rewritten in a more modular way; I'll have to contact
-;; Michael Kifer and hear what he thinks about this. For what it's
-;; worth, the following code addresses "TODO item #1" in viper.el.
+;; should be rewritten; I'll have to contact Michael Kifer and hear
+;; what he thinks about this. For what it's worth, the following code
+;; addresses "TODO item #1" in viper.el.
 
 (vimpulse-define-state operator
   "Operator-pending mode is when an operator is pending,
@@ -97,6 +99,7 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 (put 'vimpulse-operator-remap-map
      'remap-alist 'vimpulse-operator-remap-alist)
 
+;; Command loop variables
 (defvar vimpulse-this-operator nil
   "Current operator.
 In general, motions and operators are orthogonal, with some exceptions:
@@ -111,8 +114,9 @@ In general, motions and operators are orthogonal, with some exceptions:
 Operators may check this variable if they need to know what
 motion produced the current range. See also `vimpulse-this-operator'.")
 
+;; The last motion count is stored in `viper-d-com'
 (defvar vimpulse-this-count nil
-  "Current count.")
+  "Current count (operator count times motion count).")
 
 (defvar vimpulse-this-motion-type nil
   "Current motion type.
@@ -135,8 +139,11 @@ Used by `vimpulse-operator-repeat'.")
   :group 'vimpulse
   :type  'boolean)
 
-;; XEmacs lacks a horizontal bar cursor option
 (when (featurep 'xemacs)
+  ;; XEmacs shows the tag before the modes, so truncate it to a
+  ;; constant length to avoid excessive flickering
+  (setq vimpulse-operator-state-id "<OP>") ; 4 characters
+  ;; XEmacs lacks a horizontal bar cursor option
   (setq vimpulse-want-operator-pending-cursor nil))
 
 (defun vimpulse-set-operator-cursor-type ()
@@ -283,7 +290,8 @@ from the keyboard. This has no effect on Visual behavior."
     (unless no-repeat
       (setq vimpulse-last-operator vimpulse-this-operator
             vimpulse-last-motion vimpulse-this-motion
-            vimpulse-last-motion-type vimpulse-this-motion-type)
+            vimpulse-last-motion-type
+            (when type vimpulse-this-motion-type))
       (viper-set-destructive-command
        (list 'vimpulse-operator-repeat
              vimpulse-this-count nil viper-use-register nil nil)))
@@ -294,56 +302,64 @@ from the keyboard. This has no effect on Visual behavior."
   "Derive motion range (TYPE BEG END) from MOTION and COUNT.
 MOTION can move point or select some text (a text object).
 TYPE may specify the motion type for normalizing the resulting range.
-If REFRESH is t, this function changes `vimpulse-this-motion-type'."
-  (save-excursion
-    ;; Unless REFRESH is t, we create a local binding for
-    ;; `vimpulse-this-motion-type' so it's not affected
-    (cond
-     ((not refresh)
-      (let (vimpulse-this-motion-type)
-        (vimpulse-make-motion-range count motion type t)))
-     (t
-      (let ((current-prefix-arg count)
-            (viper-intermediate-command 'viper-command-argument)
-            (viper-current-state 'operator-state)
-            (vimpulse-operator-basic-minor-mode t)
-            (motion-type (vimpulse-motion-type motion t))
-            range)
-        (setq vimpulse-this-motion-type
-              (or type motion-type 'exclusive))
-        (viper-move-marker-locally 'viper-com-point (point))
-        ;; Enable Transient Mark mode so we can reliably
-        ;; detect selection commands
-        (vimpulse-transient-mark)
-        ;; Execute MOTION
-        (if (commandp motion)
-            (call-interactively motion)
-          (funcall motion count))
+If REFRESH is t, this function changes `vimpulse-this-motion-type'
+and point."
+  ;; Unless REFRESH is t, we create a local binding for
+  ;; `vimpulse-this-motion-type' so it's not affected
+  (cond
+   ((not refresh)
+    (let (vimpulse-this-motion-type)
+      (save-excursion
+        (vimpulse-make-motion-range count motion type t))))
+   (t
+    (let ((current-prefix-arg count)
+          (viper-intermediate-command 'viper-command-argument)
+          (viper-current-state 'operator-state)
+          (vimpulse-operator-basic-minor-mode t)
+          (motion-type (vimpulse-motion-type motion t))
+          (region-active-p (or vimpulse-visual-mode
+                               (region-active-p)))
+          range)
+      (setq vimpulse-this-motion-type
+            (or type motion-type 'exclusive))
+      (viper-move-marker-locally 'viper-com-point (point))
+      ;; Enable Transient Mark mode so we can reliably
+      ;; detect selection commands
+      (unless region-active-p
+        (vimpulse-transient-mark))
+      ;; Execute MOTION
+      (condition-case nil
+          (if (commandp motion)
+              (call-interactively motion)
+            (funcall motion count))
+        (error nil))
+      (cond
+       ;; If text has been selected (i.e., it's a text object),
+       ;; return the selection
+       ((or vimpulse-visual-mode (region-active-p))
+        (setq range (vimpulse-visual-range))
         (cond
-         ;; If text has been selected (i.e., it's a text object),
-         ;; return the selection
-         ((or vimpulse-visual-mode (region-active-p))
-          (setq range (vimpulse-visual-range))
-          (cond
-           ((and motion-type (not (eq motion-type (car range))))
-            (setcar range motion-type))
-           ((and type (not (eq type (car range))))
-            (setcar range type)
-            (setq range (vimpulse-normalize-motion-range range))))
-          ;; Deactivate region (and Transient Mark mode)
+         ((and motion-type (not (eq motion-type (car range))))
+          (setcar range motion-type))
+         ((and type (not (eq type (car range))))
+          (setcar range type)
+          (setq range (vimpulse-normalize-motion-range range))))
+        ;; Deactivate region (and Transient Mark mode)
+        ;; unless they were already activated
+        (unless region-active-p
           (if vimpulse-visual-mode
               (vimpulse-visual-mode -1)
             (vimpulse-deactivate-region))
-          (vimpulse-transient-restore))
-         ;; Otherwise, range is defined by `viper-com-point'
-         ;; and point (Viper type motion)
-         (t
-          (setq range (vimpulse-normalize-motion-range
-                       (list (or type vimpulse-this-motion-type)
-                             (marker-position viper-com-point)
-                             (point))))
           (vimpulse-transient-restore)))
-        range)))))
+       ;; Otherwise, range is defined by `viper-com-point'
+       ;; and point (Viper type motion)
+       (t
+        (setq range (vimpulse-normalize-motion-range
+                     (list (or type vimpulse-this-motion-type)
+                           (marker-position viper-com-point)
+                           (point))))
+        (vimpulse-transient-restore)))
+      range))))
 
 ;; A keypress parser of some kind is unavoidable because we need to
 ;; know what we are executing beforehand (like when multiplying the
