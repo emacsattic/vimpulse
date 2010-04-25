@@ -322,15 +322,15 @@ and point."
           (viper-current-state 'operator-state)
           (vimpulse-operator-basic-minor-mode t)
           (motion-type (vimpulse-motion-type motion t))
-          (region-active-p (or vimpulse-visual-mode
-                               (region-active-p)))
+          (already-selection (or vimpulse-visual-mode
+                                 (region-active-p)))
           range)
       (setq vimpulse-this-motion-type
             (or type motion-type 'exclusive))
       (viper-move-marker-locally 'viper-com-point (point))
       ;; Enable Transient Mark mode so we can reliably
       ;; detect selection commands
-      (unless region-active-p
+      (unless already-selection
         (vimpulse-transient-mark))
       ;; Execute MOTION
       (condition-case nil
@@ -341,7 +341,8 @@ and point."
       (cond
        ;; If text has been selected (i.e., it's a text object),
        ;; return the selection
-       ((or vimpulse-visual-mode (region-active-p))
+       ((and (or vimpulse-visual-mode (region-active-p))
+             (not already-selection))
         (setq range (vimpulse-visual-range))
         (cond
          ((and motion-type (not (eq motion-type (car range))))
@@ -351,11 +352,10 @@ and point."
           (setq range (vimpulse-normalize-motion-range range))))
         ;; Deactivate region (and Transient Mark mode)
         ;; unless they were already activated
-        (unless region-active-p
-          (if vimpulse-visual-mode
-              (vimpulse-visual-mode -1)
-            (vimpulse-deactivate-region))
-          (vimpulse-transient-restore)))
+        (if vimpulse-visual-mode
+            (vimpulse-visual-mode -1)
+          (vimpulse-deactivate-region))
+        (vimpulse-transient-restore))
        ;; Otherwise, range is defined by `viper-com-point'
        ;; and point (Viper type motion)
        (t
@@ -363,7 +363,8 @@ and point."
                      (list (or type vimpulse-this-motion-type)
                            (marker-position viper-com-point)
                            (point))))
-        (vimpulse-transient-restore)))
+        (unless already-selection
+          (vimpulse-transient-restore))))
       range))))
 
 ;; A keypress parser of some kind is unavoidable because we need to
