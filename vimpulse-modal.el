@@ -116,7 +116,7 @@
 ;; shadowing it with a `let' binding is possible, and a wrap-around
 ;; advice of the current command is employed to accomplish this. Also,
 ;; XEmacs does not have default key bindings in quite the same way as
-;; GNU Emacs; `vimpulse-def-binding' takes care of the differences.
+;; GNU Emacs; `vimpulse-default-binding' takes care of the differences.
 ;;
 ;; LIMITATIONS
 ;;
@@ -231,7 +231,7 @@ non-nil, advice DEF by means of `vimpulse-advice-command'."
     (set-keymap-default-binding submap def)
     (funcall define-func keymap temp-sequence submap)))
 
-(defun vimpulse-def-binding
+(defun vimpulse-default-binding
   (keymap key def &optional modal-binding define-func)
   "Make a default binding in GNU Emacs or XEmacs,
 whichever is appropriate. If MODAL-BINDING is non-nil,
@@ -350,7 +350,7 @@ only if called in the same state. The functions `vimpulse-map',
      ;; undefined also unbinds, but less forcefully
      ((eq 'undefined def)
       (if (keymapp (lookup-key keymap key-vector))
-          (vimpulse-def-binding keymap key-vector nil t define-func)
+          (vimpulse-default-binding keymap key-vector nil t define-func)
         (funcall define-func keymap key-vector def))
       (vimpulse-modal-remove key-vector))
      ;; Regular binding: convert previous bindings to default bindings
@@ -374,7 +374,7 @@ only if called in the same state. The functions `vimpulse-map',
                   (or (key-binding temp-sequence t) previous-binding))
             (define-key keymap
               (vimpulse-truncate temp-sequence -1) nil)
-            (vimpulse-def-binding
+            (vimpulse-default-binding
              keymap temp-sequence current-binding
              (not dont-list) define-func))
           (setq previous-binding current-binding)))
@@ -382,7 +382,7 @@ only if called in the same state. The functions `vimpulse-map',
       ;; If a longer binding starting with KEY-VECTOR exists,
       ;; make a default binding so it's not overwritten.
       (if (keymapp (lookup-key keymap key-vector))
-          (vimpulse-def-binding
+          (vimpulse-default-binding
            keymap key-vector def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
 
