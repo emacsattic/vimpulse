@@ -13,8 +13,6 @@
 ;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
 ;; in your .emacs before loading Vimpulse.
 
-;;; Begin Paren Matching Code {{{
-
 ;; Do we really need this option?
 (defcustom vimpulse-enhanced-paren-matching t
   "Enhanced matching of parentheses, on by default."
@@ -145,8 +143,6 @@ or mismatched paren."
       ad-do-it)))
    (t
     ad-do-it)))
-
-;;; }}} End Paren Matching code
 
 (provide 'vimpulse-paren-matching)
 
