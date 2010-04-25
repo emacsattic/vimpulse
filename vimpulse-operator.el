@@ -376,6 +376,7 @@ and point."
 Returns (CMD COUNT), where COUNT is the numeric prefix argument
 of CMD. Both COUNT and CMD may be nil."
   (let ((inhibit-quit t)
+        (echo-keystrokes 0.01)
         char digit keys cmd count)
     (while (progn
              ;; Read a keypress, respecting Emacs version,
