@@ -31,10 +31,4 @@
 ;;
 ;; - To change the color of Visual mode, add the following to .emacs:
 ;;   (set-face-background 'region "blue") ; `zmacs-region' in XEmacs
-;;
-;; NEWS 19/06/2009: The Visual mode is greatly improved.  We also
-;;      feature improved paren matching.  It can become slow if you
-;;      work with very big files (I didn't check, but it's likely),
-;;      so deactivate it if you notice sluggishness
-;;      (set `vimpulse-enhanced-paren-matching' to nil).
 
