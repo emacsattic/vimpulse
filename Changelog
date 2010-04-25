@@ -1,10 +1,10 @@
 ;;; Change Log:
-;;
+
 ;; Version 0.3.2
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] Operator-Pending mode: the cursor's appearance
-;;    is temporarily changed after y, d, c, etc.
-;;  - [NEW] Motion type system: you can change how a motion is
+;;    changes temporarily after y, d, c, etc.
+;;  - [NEW] Motion type system: one can change how a motion is
 ;;    "interpreted" with v, V and C-v. For example, dvj will
 ;;    delete a characterwise range (the default is linewise).
 ;;  - [NEW] Keys: gq, gu, gU, g~, g?.
@@ -12,15 +12,16 @@
 ;;    `vimpulse-omap-local'.
 ;;  - [FIX] Vimpulse's text objects handle whitespace
 ;;    more like Vim's.
-;;  - [FIX] Various bugs submitted to the mailing list.
-;;  - The code for applying an operator like d to a motion
+;;  - [FIX] Various bugs submitted to the mailing list --
+;;    thanks, everyone.
+;;  - The code for applying an "operator" like d to a "motion"
 ;;    like w is completely rewritten. Operators are simple
 ;;    to define (with `vimpulse-range'), and can be applied
 ;;    to regular Emacs movement commands as well.
 ;;  - The text objects have been redefined in terms of the new
 ;;    framework. They are implemented as selection commands;
-;;    see the `vimpulse-define-text-object' macro.
-;;  - The code for adding states is generalized.
+;;    see the `vimpulse-define-text-object' macro for details.
+;;  - The code for adding Viper states is generalized.
 ;;    Both Visual mode and Operator-Pending mode are
 ;;    defined with the `vimpulse-define-state' macro.
 ;;
