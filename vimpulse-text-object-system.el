@@ -11,39 +11,95 @@
 ;;   - words: w and W
 ;;
 ;; Vimpulse's text objects are fairly close to Vim's, and are based on
-;; Viper's movement commands. More objects are easily added.
+;; Viper's movement commands. More objects are easily added with
+;; `vimpulse-define-text-object'.
 
-;;; Begin Text Objects code {{{
+(defmacro vimpulse-define-text-object (object args &rest body)
+  "Define a text object OBJECT.
+ARGS is the argument list, which must have at least one argument:
+the count. It is followed by an optional docstring and optional
+keywords:
 
-(defun vimpulse-mark-object (range-func count &rest range-args)
-  "Select range determined by RANGE-FUNC.
-COUNT and RANGE-ARGS are the arguments to RANGE-FUNC.
-RANGE-FUNC must evaluate to a range (BEG END).
+:keys KEYS      A key or a list of keys to bind the command to.
+:map MAP        Keymap to bind :keys in, default
+                `vimpulse-operator-basic-map'.
+:type TYPE      The object's motion type.
 
-In Visual mode, the current selection is expanded to include the range.
-If RANGE-FUNC fails to produce a range not already selected, it
-may be called again at a different position in the buffer."
-  (let (vimpulse-this-motion
-        vimpulse-last-motion
-        range dir)
-    (cond
-     ((region-active-p)
-      (setq dir (if (< (point) (mark t)) -1 1))
-      (when (eq 'line vimpulse-visual-mode)
-        (vimpulse-visual-activate 'normal))
-      (when (and vimpulse-visual-mode
-                 (not vimpulse-visual-region-expanded))
-        (vimpulse-visual-expand-region))
-      (setq range (apply range-func (* dir count) range-args))
-      (unless (vimpulse-mark-range range t)
-        ;; Are we stuck (unchanged region)?
-        ;; Move forward and try again.
-        (viper-forward-char-carefully dir)
-        (setq range (apply range-func (* dir count) range-args))
-        (vimpulse-mark-range range t)))
-     (t
-      (setq range (apply range-func count range-args))
-      (vimpulse-mark-range range)))))
+The keywords are followed by the object definition,
+which must evaluate to a motion range (TYPE BEG END).
+Thus, a simple definition may look like:
+
+    (vimpulse-define-text-object test (arg)
+      \"Test object.\"
+      :keys \"t\"
+      (list 'exclusive (point) (+ arg (point))))
+
+The definition should be written to handle negative counts,
+which specify backwards direction."
+  (declare (indent defun))
+  (let ((map vimpulse-operator-basic-map)
+        count doc keys keyword type)
+    ;; Collect COUNT argument
+    (setq args (or args (list 'arg))
+          count (car args))
+    ;; Collect docstring, if any
+    (when (stringp (car body))
+      (setq doc  (list (car body))      ; for splicing
+            body (cdr body)))
+    ;; Collect keywords
+    (while (keywordp (setq keyword (car body)))
+      (setq body (cdr body))
+      (cond
+       ((eq :keys keyword)
+        (setq keys (vimpulse-unquote (pop body))))
+       ((eq :maps keyword)
+        (setq maps (vimpulse-unquote (pop body))))
+       ((eq :type keyword)
+        (setq type (vimpulse-unquote (pop body))))
+       (t
+        (pop body))))
+    ;; Define key bindings
+    (unless (keymapp map)
+      (setq map (eval map)))
+    (unless (listp keys)
+      (setq keys (list keys)))
+    (dolist (key keys)
+      (define-key map key object))
+    ;; Set motion type
+    (when type
+      (put object 'motion-type type))
+    ;; Define command
+    `(defun ,object ,args
+       ,@doc
+       (interactive "p")
+       (let ((,count (if (numberp ,count) ,count 1))
+             range dir)
+         (cond
+          ((region-active-p)
+           (when (< (point) (mark t))
+             (setq ,count (- ,count)))
+           (when (memq vimpulse-visual-mode '(line block))
+             (vimpulse-visual-activate 'normal))
+           (when (and vimpulse-visual-mode
+                      (not vimpulse-visual-region-expanded))
+             (vimpulse-visual-expand-region))
+           (setq range (progn ,@body))
+           (unless (vimpulse-mark-range range t)
+             ;; Are we stuck (unchanged region)?
+             ;; Move forward and try again.
+             (viper-forward-char-carefully (if (> 0 ,count) -1 1))
+             (setq range (progn ,@body))
+             (vimpulse-mark-range range t)))
+          (t
+           (setq range (progn ,@body))
+           (vimpulse-mark-range range)))))))
+
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords
+   'emacs-lisp-mode
+   '(("(\\(vimpulse-define-text-object\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
+      (1 font-lock-keyword-face)
+      (2 font-lock-function-name-face nil t)))))
 
 (defun vimpulse-mark-range (range &optional widen)
   "Mark RANGE, which has the form (TYPE BEG END).
@@ -65,6 +121,9 @@ If WIDEN is non-nil, expand existing region."
           (vimpulse-visual-activate type)))
       (vimpulse-visual-select beg end widen)))))
 
+;;; Text object range functions
+
+;; Word-like expressions (words, sentences, paragraphs)
 (defun vimpulse-object-range
   (count backward-func forward-func &optional type)
   "Return a text object range (TYPE BEG END).
@@ -208,6 +267,7 @@ See `vimpulse-object-range' for more details."
     ;; Return the range, including point
     (list (min beg (point)) (max end (point)))))
 
+;; Parenthetical expressions
 (defun vimpulse-paren-range (count &optional open close include-parentheses)
   "Return a parenthetical expression range (BEG END).
 The type of parentheses may be specified with OPEN and CLOSE,
@@ -261,6 +321,7 @@ whether to include the parentheses in the range."
             (goto-char end))
           (list (min beg end) (max beg end)))))))
 
+;; Quoted expressions
 (defun vimpulse-quote-range (count &optional quote include-quotes)
   "Return a quoted expression range (BEG END).
 QUOTE is a quote character (default ?\\\"). INCLUDE-QUOTES
@@ -310,24 +371,24 @@ specifies whether to include the quote marks in the range."
           (list beg end)
         (list (min (1+ beg) end) (max (1- end) beg))))))
 
-(defun vimpulse-line (arg)
+;;; Text object definitions
+
+(vimpulse-define-text-object vimpulse-line (arg)
   "Select ARG lines."
-  (interactive "p")
+  :type 'line
   (setq arg (1- arg))
-  (vimpulse-mark-object
-   'vimpulse-line-range
+  (vimpulse-line-range
    (point)
    (save-excursion
      (when (< 0 arg)
        (viper-next-line-carefully arg))
      (point))))
-(put 'vimpulse-line 'motion-type 'line)
 
-(defun vimpulse-a-word (arg)
+(vimpulse-define-text-object vimpulse-a-word (arg)
   "Select a word."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-an-object-range arg
+  :keys "aw"
+  (vimpulse-an-object-range
+   arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-backward-word (cons arg ?r))))
@@ -335,11 +396,11 @@ specifies whether to include the quote marks in the range."
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-end-of-word (cons arg ?r))))))
 
-(defun vimpulse-inner-word (arg)
+(vimpulse-define-text-object vimpulse-inner-word (arg)
   "Select inner word."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-inner-object-range arg
+  :keys "iw"
+  (vimpulse-inner-object-range
+   arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-backward-word (cons arg ?r))))
@@ -347,11 +408,11 @@ specifies whether to include the quote marks in the range."
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-end-of-word (cons arg ?r))))))
 
-(defun vimpulse-a-Word (arg)
+(vimpulse-define-text-object vimpulse-a-Word (arg)
   "Select a Word."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-an-object-range arg
+  :keys "aW"
+  (vimpulse-an-object-range
+   arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-backward-Word (cons arg ?r))))
@@ -359,11 +420,11 @@ specifies whether to include the quote marks in the range."
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-end-of-Word (cons arg ?r))))))
 
-(defun vimpulse-inner-Word (arg)
+(vimpulse-define-text-object vimpulse-inner-Word (arg)
   "Select inner Word."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-inner-object-range arg
+  :keys "iW"
+  (vimpulse-inner-object-range
+   arg
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-backward-Word (cons arg ?r))))
@@ -371,11 +432,11 @@ specifies whether to include the quote marks in the range."
      (vimpulse-limit (line-beginning-position) (line-end-position)
        (viper-end-of-Word (cons arg ?r))))))
 
-(defun vimpulse-a-sentence (arg)
+(vimpulse-define-text-object vimpulse-a-sentence (arg)
   "Select a sentence."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-an-object-range arg
+  :keys "as"
+  (vimpulse-an-object-range
+   arg
    (lambda (arg)
      (viper-backward-sentence arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1))
@@ -383,11 +444,11 @@ specifies whether to include the quote marks in the range."
      (viper-forward-sentence arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1))))
 
-(defun vimpulse-inner-sentence (arg)
+(vimpulse-define-text-object vimpulse-inner-sentence (arg)
   "Select inner sentence."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-inner-object-range arg
+  :keys "is"
+  (vimpulse-inner-object-range
+   arg
    (lambda (arg)
      (viper-backward-sentence arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" 1))
@@ -395,11 +456,11 @@ specifies whether to include the quote marks in the range."
      (viper-forward-sentence arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1))))
 
-(defun vimpulse-a-paragraph (arg)
+(vimpulse-define-text-object vimpulse-a-paragraph (arg)
   "Select a paragraph."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-an-object-range arg
+  :keys "ap"
+  (vimpulse-an-object-range
+   arg
    (lambda (arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)
      (viper-backward-paragraph arg)
@@ -409,11 +470,11 @@ specifies whether to include the quote marks in the range."
      (viper-forward-paragraph arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)) t))
 
-(defun vimpulse-inner-paragraph (arg)
+(vimpulse-define-text-object vimpulse-inner-paragraph (arg)
   "Select inner paragraph."
-  (interactive "p")
-  (vimpulse-mark-object
-   'vimpulse-inner-object-range arg
+  :keys "ip"
+  (vimpulse-inner-object-range
+   arg
    (lambda (arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1)
      (viper-backward-paragraph arg)
@@ -423,100 +484,65 @@ specifies whether to include the quote marks in the range."
      (viper-forward-paragraph arg)
      (vimpulse-skip-regexp "[ \f\t\n\r\v]+" -1))))
 
-(defun vimpulse-a-paren (arg)
+(vimpulse-define-text-object vimpulse-a-paren (arg)
   "Select a parenthesis."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?\( nil t))
+  :keys '("ab" "a(" "a)")
+  (vimpulse-paren-range arg ?\( nil t))
 
-(defun vimpulse-inner-paren (arg)
+(vimpulse-define-text-object vimpulse-inner-paren (arg)
   "Select inner parenthesis."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?\())
+  :keys '("ib" "i(" "i)")
+  (vimpulse-paren-range arg ?\())
 
-(defun vimpulse-a-bracket (arg)
+(vimpulse-define-text-object vimpulse-a-bracket (arg)
   "Select a bracket parenthesis."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?\[ nil t))
+  :keys '("a[" "a]")
+  (vimpulse-paren-range arg ?\[ nil t))
 
-(defun vimpulse-inner-bracket (arg)
+(vimpulse-define-text-object vimpulse-inner-bracket (arg)
   "Select inner bracket parenthesis."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?\[))
+  :keys '("i[" "i]")
+  (vimpulse-paren-range arg ?\[))
 
-(defun vimpulse-a-curly (arg)
+(vimpulse-define-text-object vimpulse-a-curly (arg)
   "Select a curly parenthesis."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?{ nil t))
+  :keys '("aB" "a{" "a}")
+  (vimpulse-paren-range arg ?{ nil t))
 
-(defun vimpulse-inner-curly (arg)
+(vimpulse-define-text-object vimpulse-inner-curly (arg)
   "Select inner curly parenthesis."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?{))
+  :keys '("iB" "i{" "i}")
+  (vimpulse-paren-range arg ?{))
 
-(defun vimpulse-an-angle (arg)
+(vimpulse-define-text-object vimpulse-an-angle (arg)
   "Select an angle bracket."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?< nil t))
+  :keys '("a<" "a>")
+  (vimpulse-paren-range arg ?< nil t))
 
-(defun vimpulse-inner-angle (arg)
+(vimpulse-define-text-object vimpulse-inner-angle (arg)
   "Select inner angle bracket."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-paren-range arg ?<))
+  :keys '("i<" "i>")
+  (vimpulse-paren-range arg ?<))
 
-(defun vimpulse-a-single-quote (arg)
+(vimpulse-define-text-object vimpulse-a-single-quote (arg)
   "Select a single quoted expression."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-quote-range arg ?' t))
+  :keys "a'"
+  (vimpulse-quote-range arg ?' t))
 
-(defun vimpulse-inner-single-quote (arg)
+(vimpulse-define-text-object vimpulse-inner-single-quote (arg)
   "Select inner single quoted expression."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-quote-range arg ?'))
+  :keys "i'"
+  (vimpulse-quote-range arg ?'))
 
-(defun vimpulse-a-double-quote (arg)
+(vimpulse-define-text-object vimpulse-a-double-quote (arg)
   "Select a double quoted expression."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-quote-range arg ?\" t))
+  :keys "a\""
+  (vimpulse-quote-range arg ?\" t))
 
-(defun vimpulse-inner-double-quote (arg)
+(vimpulse-define-text-object vimpulse-inner-double-quote (arg)
   "Select inner double quoted expression."
-  (interactive "p")
-  (vimpulse-mark-object 'vimpulse-quote-range arg ?\"))
-
-(define-key vimpulse-operator-basic-map "aw" 'vimpulse-a-word)
-(define-key vimpulse-operator-basic-map "iw" 'vimpulse-inner-word)
-(define-key vimpulse-operator-basic-map "aW" 'vimpulse-a-Word)
-(define-key vimpulse-operator-basic-map "iW" 'vimpulse-inner-Word)
-(define-key vimpulse-operator-basic-map "as" 'vimpulse-a-sentence)
-(define-key vimpulse-operator-basic-map "is" 'vimpulse-inner-sentence)
-(define-key vimpulse-operator-basic-map "ap" 'vimpulse-a-paragraph)
-(define-key vimpulse-operator-basic-map "ip" 'vimpulse-inner-paragraph)
-(define-key vimpulse-operator-basic-map "ab" 'vimpulse-a-paren)
-(define-key vimpulse-operator-basic-map "a(" 'vimpulse-a-paren)
-(define-key vimpulse-operator-basic-map "a)" 'vimpulse-a-paren)
-(define-key vimpulse-operator-basic-map "ib" 'vimpulse-inner-paren)
-(define-key vimpulse-operator-basic-map "i(" 'vimpulse-inner-paren)
-(define-key vimpulse-operator-basic-map "i)" 'vimpulse-inner-paren)
-(define-key vimpulse-operator-basic-map "aB" 'vimpulse-a-curly)
-(define-key vimpulse-operator-basic-map "a{" 'vimpulse-a-curly)
-(define-key vimpulse-operator-basic-map "a}" 'vimpulse-a-curly)
-(define-key vimpulse-operator-basic-map "iB" 'vimpulse-inner-curly)
-(define-key vimpulse-operator-basic-map "i{" 'vimpulse-inner-curly)
-(define-key vimpulse-operator-basic-map "i}" 'vimpulse-inner-curly)
-(define-key vimpulse-operator-basic-map "a[" 'vimpulse-a-bracket)
-(define-key vimpulse-operator-basic-map "a]" 'vimpulse-a-bracket)
-(define-key vimpulse-operator-basic-map "i[" 'vimpulse-inner-bracket)
-(define-key vimpulse-operator-basic-map "i]" 'vimpulse-inner-bracket)
-(define-key vimpulse-operator-basic-map "a<" 'vimpulse-an-angle)
-(define-key vimpulse-operator-basic-map "a>" 'vimpulse-an-angle)
-(define-key vimpulse-operator-basic-map "i<" 'vimpulse-inner-angle)
-(define-key vimpulse-operator-basic-map "i>" 'vimpulse-inner-angle)
-(define-key vimpulse-operator-basic-map "a\"" 'vimpulse-a-double-quote)
-(define-key vimpulse-operator-basic-map "i\"" 'vimpulse-inner-double-quote)
-(define-key vimpulse-operator-basic-map "a'" 'vimpulse-a-single-quote)
-(define-key vimpulse-operator-basic-map "i'" 'vimpulse-inner-single-quote)
-
-;;; }}} End Text Objects code
+  :keys "i\""
+  (vimpulse-quote-range arg ?\"))
 
 (provide 'vimpulse-text-object-system)
 
