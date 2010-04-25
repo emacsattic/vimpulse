@@ -16,7 +16,7 @@
 
 (defmacro vimpulse-define-text-object (object args &rest body)
   "Define a text object OBJECT.
-ARGS is the argument list, which must have at least one argument:
+ARGS is the argument list, which must contain at least one argument:
 the count. It is followed by an optional docstring and optional
 keywords:
 
@@ -25,17 +25,17 @@ keywords:
                 `vimpulse-operator-basic-map'.
 :type TYPE      The object's motion type.
 
-The keywords are followed by the object definition,
-which must evaluate to a motion range (TYPE BEG END).
-Thus, a simple definition may look like:
+The keywords are followed by the object's body, which must return
+a pure range (BEG END) or a motion range (TYPE BEG END). Thus,
+a simple example may look somewhat like:
 
     (vimpulse-define-text-object test (arg)
       \"Test object.\"
       :keys \"t\"
       (list 'exclusive (point) (+ arg (point))))
 
-The definition should be written to handle negative counts,
-which specify backwards direction."
+Here, the count is stored in ARG. Note that the body must be able
+to handle a negative value, which specifies reverse direction."
   (declare (indent defun))
   (let ((map vimpulse-operator-basic-map)
         count doc keys keyword type)
@@ -67,7 +67,8 @@ which specify backwards direction."
       (define-key map key object))
     ;; Set motion type
     (when type
-      (put object 'motion-type type))
+      (put object 'motion-type type)
+      (setq type `((quote ,type)))) ; for splicing
     ;; Define command
     `(defun ,object ,args
        ,@doc
@@ -84,15 +85,15 @@ which specify backwards direction."
                       (not vimpulse-visual-region-expanded))
              (vimpulse-visual-expand-region))
            (setq range (progn ,@body))
-           (unless (vimpulse-mark-range range t)
+           (unless (vimpulse-mark-range range t ,@type)
              ;; Are we stuck (unchanged region)?
              ;; Move forward and try again.
              (viper-forward-char-carefully (if (> 0 ,count) -1 1))
              (setq range (progn ,@body))
-             (vimpulse-mark-range range t)))
+             (vimpulse-mark-range range t ,@type)))
           (t
            (setq range (progn ,@body))
-           (vimpulse-mark-range range)))))))
+           (vimpulse-mark-range range nil ,@type)))))))
 
 (when (fboundp 'font-lock-add-keywords)
   (font-lock-add-keywords
@@ -101,10 +102,11 @@ which specify backwards direction."
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t)))))
 
-(defun vimpulse-mark-range (range &optional widen)
-  "Mark RANGE, which has the form (TYPE BEG END).
-If WIDEN is non-nil, expand existing region."
-  (let* ((type  (vimpulse-motion-type range))
+(defun vimpulse-mark-range (range &optional widen type)
+  "Mark RANGE, which has the form (BEG END) or (TYPE BEG END).
+If WIDEN is non-nil, expands existing region. If the TYPE
+argument is specified, it overrides the type of RANGE."
+  (let* ((type  (or type (vimpulse-motion-type range)))
          (range (vimpulse-motion-range range))
          (beg (apply 'min range))
          (end (apply 'max range)))
