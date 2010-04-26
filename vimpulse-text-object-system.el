@@ -68,7 +68,7 @@ to handle a negative value, which specifies reverse direction."
     ;; Set motion type
     (when type
       (put object 'motion-type type)
-      (setq type `((quote ,type)))) ; for splicing
+      (setq type `(',type))) ; for splicing
     ;; Define command
     `(defun ,object ,args
        ,@doc
