@@ -1,6 +1,6 @@
 ;;; Code:
 
-(defconst vimpulse-version "0.4"
+(defconst vimpulse-version "0.4+git"
   "The current version of Vimpulse")
 
 ;; Load Viper
