@@ -24,6 +24,11 @@
 ;;  - The code for adding Viper states is generalized.
 ;;    Both Visual mode and Operator-Pending mode are
 ;;    defined with the `vimpulse-define-state' macro.
+;;  - The comments use a more conventional format: ;;;; for major
+;;    headings (one per file), ;;; for subsections (within each file),
+;;    ;; for individual pieces of code and ; for trailing comments.
+;;    This is easier to maintain and complies with section D.7 of
+;;    the GNU Emacs Lisp Reference Manual.
 ;;
 ;; Version 0.3.1
 ;;  [vegard_oye at hotmail.com:]
