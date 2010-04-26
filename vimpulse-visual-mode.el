@@ -16,7 +16,7 @@
 ;; This is pretty transparent, except that we don't wish to do any
 ;; translating when the user is just moving around in the buffer.
 ;; To that end, the variable `vimpulse-movement-cmds' lists all of
-;; Viper's movement commands, so that translation can be postphoned
+;; Viper's movement commands, so that translation can be postponed
 ;; until the user executes a non-movement command.
 ;;
 ;; Block selections are rectangle compatible. This means Emacs'
@@ -273,41 +273,47 @@ Otherwise disable Visual mode."
 (defun vimpulse-visual-activate-normal ()
   "Enable Visual selection."
   (interactive)
-  (vimpulse-visual-activate 'normal)
-  (message "-- VISUAL --"))
+  (let (message-log-max)
+    (vimpulse-visual-activate 'normal)
+    (message "-- VISUAL --")))
 
 (defun vimpulse-visual-activate-line ()
   "Enable Visual Line selection."
   (interactive)
-  (vimpulse-visual-activate 'line)
-  (message "-- VISUAL LINE --"))
+  (let (message-log-max)
+    (vimpulse-visual-activate 'line)
+    (message "-- VISUAL LINE --")))
 
 (defun vimpulse-visual-activate-block ()
   "Enable Visual Block selection."
   (interactive)
-  (vimpulse-visual-activate 'block)
-  (message "-- VISUAL BLOCK --"))
+  (let (message-log-max)
+    (vimpulse-visual-activate 'block)
+    (message "-- VISUAL BLOCK --")))
 
 (defun vimpulse-visual-toggle-normal ()
   "Toggle Visual selection."
   (interactive)
-  (vimpulse-visual-toggle 'normal)
-  (when vimpulse-visual-mode
-    (message "-- VISUAL --")))
+  (let (message-log-max)
+    (vimpulse-visual-toggle 'normal)
+    (when vimpulse-visual-mode
+      (message "-- VISUAL --"))))
 
 (defun vimpulse-visual-toggle-line ()
   "Toggle Visual Line selection."
   (interactive)
-  (vimpulse-visual-toggle 'line)
-  (when vimpulse-visual-mode
-    (message "-- VISUAL LINE --")))
+  (let (message-log-max)
+    (vimpulse-visual-toggle 'line)
+    (when vimpulse-visual-mode
+      (message "-- VISUAL LINE --"))))
 
 (defun vimpulse-visual-toggle-block ()
   "Toggle Visual Block selection."
   (interactive)
-  (vimpulse-visual-toggle 'block)
-  (when vimpulse-visual-mode
-    (message "-- VISUAL BLOCK --")))
+  (let (message-log-max)
+    (vimpulse-visual-toggle 'block)
+    (when vimpulse-visual-mode
+      (message "-- VISUAL BLOCK --"))))
 
 ;;; Visualization
 
