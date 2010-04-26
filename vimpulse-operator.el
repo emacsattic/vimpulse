@@ -514,16 +514,16 @@ TYPE is the motion type."
    (t
     (list (point) (point)))))
 
-(defun vimpulse-motion-type (object &optional no-default)
+(defun vimpulse-motion-type (object &optional raw)
   "Return motion type of OBJECT.
 The type is one of `exclusive', `inclusive', `line' and `block'.
-Defaults to `exclusive' unless NO-DEFAULT is specified."
+Defaults to `exclusive' unless RAW is specified."
   (let ((type (cond
                ((symbolp object)
                 (get object 'motion-type))
                ((vimpulse-motion-range-p object)
                 (car object)))))
-    (if no-default
+    (if raw
         type
       (or type 'exclusive))))
 
@@ -852,7 +852,7 @@ ARGS is passed to `vimpulse-range'."
 
 ;;; Compatibility code allowing old-style Viper motions to work
 
-;; Postphone operator execution by disabling `viper-execute-com'.
+;; Postpone operator execution by disabling `viper-execute-com'.
 ;; However, some motions, like f and /, need to update `viper-d-com'
 ;; with negative count, command-keys, etc., to repeat properly.
 (defadvice viper-execute-com (around vimpulse-operator activate)
