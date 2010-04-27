@@ -4,11 +4,10 @@
   "The current version of Vimpulse")
 
 ;; Load Viper
-(unless (and (boundp 'viper-mode) viper-mode)
-  (setq viper-mode t)
-  (setq viper-inhibit-startup-message t)
-  (setq viper-expert-level 5)
-  (setq viper-want-ctl-h-help t))
+(defvar viper-mode t)
+(defvar viper-inhibit-startup-message t)
+(defvar viper-expert-level 5)
+(defvar viper-want-ctl-h-help t)
 (require 'viper)
 
 ;; Load redo.el if available. Sadly we can't use APEL's require
@@ -74,6 +73,9 @@ SYM is unquoted. Returns VAL."
      (setq ,sym ,val))))
 
 ;;; Carefully set Viper/woman variables
+
+(defvar woman-use-own-frame)
+(defvar woman-use-topic-at-point)
 
 (defun vimpulse-initialize-variables ()
   "Set various variables, unless customized."

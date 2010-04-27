@@ -23,6 +23,7 @@
 
 ;; Additional Ex mode features: `ex-token-alist' is defined as a
 ;; constant, but it appears I can safely push values to it!
+(defvar ex-token-alist)
 (dolist (entry vimpulse-extra-ex-commands)
   (setq ex-token-alist
         (delete (assoc (car entry) ex-token-alist) ex-token-alist))

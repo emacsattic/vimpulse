@@ -173,6 +173,33 @@ If OFFSET is specified, skip first elements of VECTOR."
     (dotimes (idx length result)
       (aset result idx (aref vector (+ idx offset))))))
 
+(defun vimpulse-strip-prefix (key-sequence)
+  "Strip any prefix argument keypresses from KEY-SEQUENCE.
+This is useful for deriving a \"standard\" key-sequence from
+`this-command-keys', to be looked up in `vimpulse-modal-alist'."
+  (let* ((offset 0)
+         (temp-sequence (vconcat key-sequence))
+         (key (aref temp-sequence offset))
+         (length (length temp-sequence)))
+    ;; If XEmacs, get rid of the event object type
+    (and (featurep 'xemacs) (eventp key)
+         (setq key (event-to-character key nil t)))
+    ;; Any keys bound to `universal-argument', `digit-argument' or
+    ;; `negative-argument' or bound in `universal-argument-map'
+    ;; are considered prefix keys.
+    (while (and (or (memq (key-binding (vector key) t)
+                          '(universal-argument
+                            digit-argument
+                            negative-argument))
+                    (lookup-key universal-argument-map
+                                (vector key)))
+                (setq offset (1+ offset))
+                (< offset length))
+      (setq key (aref temp-sequence offset))
+      (and (featurep 'xemacs) (eventp key)
+           (setq key (event-to-character key nil t))))
+    (vimpulse-truncate temp-sequence length offset)))
+
 (defun vimpulse-memq-recursive (elt list)
   "Return t if ELT is an element of LIST.
 LIST may be nested."
@@ -413,6 +440,168 @@ In XEmacs, change the `end-glyph' property."
     (set-extent-end-glyph overlay string))
    (t
     (viper-overlay-put overlay 'after-string string))))
+
+;;; Motion type system
+
+(defun vimpulse-range-p (object)
+  "Return t if OBJECT is a pure range (BEG END)."
+  (and (listp object)
+       (eq 2 (length object))
+       (numberp (car object))
+       (numberp (cadr object))))
+
+(defun vimpulse-motion-range-p (object)
+  "Return t if OBJECT is a motion range (TYPE BEG END)."
+  (and (listp object)
+       (symbolp (car object))
+       (vimpulse-range-p (cdr object))))
+
+(defun vimpulse-motion-range (object)
+  "Return the range part of OBJECT."
+  (cond
+   ((vimpulse-motion-range-p object)
+    (cdr object))
+   ((vimpulse-range-p object)
+    object)
+   (t
+    (list (point) (point)))))
+
+(defun vimpulse-motion-type (object &optional raw)
+  "Return motion type of OBJECT.
+The type is one of `exclusive', `inclusive', `line' and `block'.
+Defaults to `exclusive' unless RAW is specified."
+  (let ((type (cond
+               ((symbolp object)
+                (get object 'motion-type))
+               ((vimpulse-motion-range-p object)
+                (car object)))))
+    (if raw
+        type
+      (or type 'exclusive))))
+
+;; This implements section 1 of motion.txt (Vim Reference Manual)
+(defun vimpulse-normalize-motion-range (range &optional type)
+  "Normalize the beginning and end of a motion range (TYPE FROM TO).
+Returns the normalized range.
+
+Usually, a motion range should be normalized only once, as
+information is lost in the process: an unnormalized motion range
+has the form (TYPE FROM TO), while a normalized motion range has
+the form (TYPE BEG END).
+
+See also `vimpulse-block-range', `vimpulse-line-range',
+`vimpulse-inclusive-range' and `vimpulse-exclusive-range'."
+  (let* ((type (or type (vimpulse-motion-type range)))
+         (range (vimpulse-motion-range range))
+         (from (car range))
+         (to   (cadr range)))
+    (cond
+     ((memq type '(blockwise block))
+      (vimpulse-block-range from to))
+     ((memq type '(linewise line))
+      (vimpulse-line-range from to))
+     ((eq 'inclusive type)
+      (vimpulse-inclusive-range from to))
+     (t
+      (vimpulse-exclusive-range from to t)))))
+
+(defun vimpulse-block-range (mark point)
+  "Return a blockwise motion range (BLOCK BEG END).
+Like `vimpulse-inclusive-range', but for rectangles:
+the last column is included."
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min point mark))
+         (end (max point mark))
+         (beg-col (save-excursion
+                    (goto-char beg)
+                    (current-column)))
+         (end-col (save-excursion
+                    (goto-char end)
+                    (current-column))))
+    (save-excursion
+      (cond
+       ((= beg-col end-col)
+        (goto-char end)
+        (cond
+         ((eolp)
+          (goto-char beg)
+          (if (eolp)
+              (list 'block beg end)
+            (list 'block (1+ beg) end)))
+         (t
+          (list 'block beg (1+ end)))))
+       ((< beg-col end-col)
+        (goto-char end)
+        (if (eolp)
+            (list 'block beg end)
+          (list 'block beg (1+ end))))
+       (t
+        (goto-char beg)
+        (if (eolp)
+            (list 'block beg end)
+          (list 'block (1+ beg) end)))))))
+
+(defun vimpulse-line-range (mark point)
+  "Return a linewise motion range (LINE BEG END)."
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min mark point))
+         (end (max mark point)))
+    (list 'line
+          (save-excursion
+            (goto-char beg)
+            (line-beginning-position))
+          (save-excursion
+            (goto-char end)
+            (line-beginning-position 2)))))
+
+(defun vimpulse-inclusive-range (mark point)
+  "Return an inclusive motion range (INCLUSIVE BEG END).
+That is, the last character is included."
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min mark point))
+         (end (max mark point)))
+    (save-excursion
+      (goto-char end)
+      (unless (or (eobp) (and (eolp) (not (bolp))))
+        (setq end (1+ end)))
+      (list 'inclusive beg end))))
+
+(defun vimpulse-exclusive-range (mark point &optional normalize)
+  "Return an exclusive motion range (EXCLUSIVE BEG END).
+However, if NORMALIZE is t and the end of the range is at the
+beginning of a line, a different type of range is returned:
+
+  * If the start of the motion is at or before the first
+    non-blank in the line, the motion becomes `line' (normalized).
+
+  * Otherwise, the end of the motion is moved to the end of the
+    previous line and the motion becomes `inclusive' (normalized).
+
+Thus, this function may return, e.g., (LINE BEG END) instead."
+  (let* ((point (or point (point)))
+         (mark  (or mark point))
+         (beg (min mark point))
+         (end (max mark point)))
+    (save-excursion
+      (cond
+       ((and normalize
+             (progn
+               (goto-char end)
+               (bolp)))
+        (viper-backward-char-carefully)
+        (setq end (max beg (point)))
+        (cond
+         ((save-excursion
+            (goto-char beg)
+            (looking-back "^[ \f\t\v]*"))
+          (vimpulse-normalize-motion-range (list 'line beg end)))
+         (t
+          (list 'inclusive beg end))))
+       (t
+        (list 'exclusive beg end))))))
 
 (provide 'vimpulse-utils)
 

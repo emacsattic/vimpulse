@@ -599,7 +599,7 @@ With negative ARG, removes highlighting."
    ((and (numberp arg) (> 1 arg))
     (when (viper-overlay-live-p vimpulse-visual-overlay)
       (vimpulse-delete-overlay vimpulse-visual-overlay))
-    (mapcar 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
+    (mapc 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
     (setq vimpulse-visual-block-overlays nil)
     ;; Clean up unreferenced overlays
     (dolist (overlay (vimpulse-overlays-at (point)))
@@ -619,7 +619,7 @@ With negative ARG, removes highlighting."
     (let ((beg (vimpulse-visual-beginning))
           (end (vimpulse-visual-end)))
       ;; Remove any block highlighting
-      (mapcar 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
+      (mapc 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
       (setq vimpulse-visual-block-overlays nil)
       ;; Reuse overlay if possible
       (if (viper-overlay-live-p vimpulse-visual-overlay)
@@ -742,7 +742,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
             (setq new (cons overlay new)))))
         (forward-line 1))
       ;; Trim old trailing overlays
-      (mapcar 'vimpulse-delete-overlay old)
+      (mapc 'vimpulse-delete-overlay old)
       (setq vimpulse-visual-block-overlays (nreverse new)))))
 
 (defun vimpulse-visual-pre-command ()
@@ -1343,12 +1343,6 @@ Returns the insertion point."
 (fset 'viper-exit-insert-state 'vimpulse-exit-insert-state)
 
 ;;; Key bindings
-
-(define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-normal)
-(define-key viper-vi-basic-map "V" 'vimpulse-visual-toggle-line)
-(define-key viper-vi-basic-map "\C-v" 'vimpulse-visual-toggle-block)
-(define-key viper-vi-basic-map "\C-p" 'yank-rectangle)
-(define-key viper-vi-basic-map "gv" 'vimpulse-visual-restore)
 
 (define-key vimpulse-visual-basic-map "v" 'vimpulse-visual-toggle-normal)
 (define-key vimpulse-visual-basic-map "V" 'vimpulse-visual-toggle-line)

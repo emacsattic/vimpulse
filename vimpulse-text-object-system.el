@@ -14,6 +14,8 @@
 ;; Viper's movement commands. More objects are easily added with
 ;; `vimpulse-define-text-object'.
 
+(eval-when-compile (require 'vimpulse-operator))
+
 (defmacro vimpulse-define-text-object (object args &rest body)
   "Define a text object OBJECT.
 ARGS is the argument list, which must contain at least one argument:
@@ -37,7 +39,7 @@ a simple example may look somewhat like:
 Here, the count is stored in ARG. Note that the body must be able
 to handle a negative value, which specifies reverse direction."
   (declare (indent defun))
-  (let ((map vimpulse-operator-basic-map)
+  (let ((map 'vimpulse-operator-basic-map)
         count doc keys keyword type)
     ;; Collect COUNT argument
     (setq args (or args (list 'arg))
@@ -52,48 +54,47 @@ to handle a negative value, which specifies reverse direction."
       (cond
        ((eq :keys keyword)
         (setq keys (vimpulse-unquote (pop body))))
-       ((eq :maps keyword)
-        (setq maps (vimpulse-unquote (pop body))))
+       ((eq :map keyword)
+        (setq map (vimpulse-unquote (pop body))))
        ((eq :type keyword)
         (setq type (vimpulse-unquote (pop body))))
        (t
         (pop body))))
-    ;; Define key bindings
-    (unless (keymapp map)
-      (setq map (eval map)))
     (unless (listp keys)
       (setq keys (list keys)))
-    (dolist (key keys)
-      (define-key map key object))
-    ;; Set motion type
     (when type
-      (put object 'motion-type type)
-      (setq type `(',type))) ; for splicing
-    ;; Define command
-    `(defun ,object ,args
-       ,@doc
-       (interactive "p")
-       (let ((,count (if (numberp ,count) ,count 1))
-             range dir)
-         (cond
-          ((region-active-p)
-           (when (< (point) (mark t))
-             (setq ,count (- ,count)))
-           (when (memq vimpulse-visual-mode '(line block))
-             (vimpulse-visual-activate 'normal))
-           (when (and vimpulse-visual-mode
-                      (not vimpulse-visual-region-expanded))
-             (vimpulse-visual-expand-region))
-           (setq range (progn ,@body))
-           (unless (vimpulse-mark-range range t ,@type)
-             ;; Are we stuck (unchanged region)?
-             ;; Move forward and try again.
-             (viper-forward-char-carefully (if (> 0 ,count) -1 1))
+      (setq type `(',type)))
+    ;; Macro expansion: define key bindings, set motion type
+    ;; and define command
+    `(progn
+       (dolist (key ',keys)
+         (define-key ,map key ',object))
+       ,@(when type
+           `((put ',object 'motion-type ,@type)))
+       (defun ,object ,args
+         ,@doc
+         (interactive "p")
+         (let ((,count (if (numberp ,count) ,count 1))
+               range dir)
+           (cond
+            ((region-active-p)
+             (when (< (point) (mark t))
+               (setq ,count (- ,count)))
+             (when (memq vimpulse-visual-mode '(line block))
+               (vimpulse-visual-activate 'normal))
+             (when (and vimpulse-visual-mode
+                        (not vimpulse-visual-region-expanded))
+               (vimpulse-visual-expand-region))
              (setq range (progn ,@body))
-             (vimpulse-mark-range range t ,@type)))
-          (t
-           (setq range (progn ,@body))
-           (vimpulse-mark-range range nil ,@type)))))))
+             (unless (vimpulse-mark-range range t ,@type)
+               ;; Are we stuck (unchanged region)?
+               ;; Move forward and try again.
+               (viper-forward-char-carefully (if (> 0 ,count) -1 1))
+               (setq range (progn ,@body))
+               (vimpulse-mark-range range t ,@type)))
+            (t
+             (setq range (progn ,@body))
+             (vimpulse-mark-range range nil ,@type))))))))
 
 (when (fboundp 'font-lock-add-keywords)
   (font-lock-add-keywords
