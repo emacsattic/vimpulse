@@ -108,25 +108,25 @@
   :type  'boolean
   :group 'vimpulse)
 
-(defun vimpulse-hs-Open ()
-  (interactive)
-  (hs-show-block)
-  (hs-hide-level -1))
-
 (eval-after-load 'hideshow
-  '(add-hook 'hs-minor-mode-hook
-             (lambda ()
-               (call-interactively 'hs-hide-all)
-               (define-key viper-vi-basic-map "za"
-                 (lambda ()
-                   (interactive)
-                   (hs-toggle-hiding)
-                   (hs-hide-level vimpulse-fold-level)))
-               (define-key viper-vi-basic-map "za" 'hs-toggle-hiding)
-               (define-key viper-vi-basic-map "zm" 'hs-hide-all)
-               (define-key viper-vi-basic-map "zr" 'hs-show-all)
-               (define-key viper-vi-basic-map "zo" 'hs-show-block)
-               (define-key viper-vi-basic-map "zc" 'hs-hide-block))))
+  '(progn
+     (defun vimpulse-hs-Open ()
+       (interactive)
+       (hs-show-block)
+       (hs-hide-level -1))
+     (add-hook 'hs-minor-mode-hook
+               (lambda ()
+                 (call-interactively 'hs-hide-all)
+                 (define-key viper-vi-basic-map "za"
+                   (lambda ()
+                     (interactive)
+                     (hs-toggle-hiding)
+                     (hs-hide-level vimpulse-fold-level)))
+                 (define-key viper-vi-basic-map "za" 'hs-toggle-hiding)
+                 (define-key viper-vi-basic-map "zm" 'hs-hide-all)
+                 (define-key viper-vi-basic-map "zr" 'hs-show-all)
+                 (define-key viper-vi-basic-map "zo" 'hs-show-block)
+                 (define-key viper-vi-basic-map "zc" 'hs-hide-block)))))
 
 ;; Load reveal.el if available
 (unless (featurep 'reveal)

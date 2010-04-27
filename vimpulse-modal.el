@@ -161,34 +161,6 @@ directly, but shadowing them with a `let' binding works."
 
 ;;; General functions
 
-;; These deal with key sequences
-(defun vimpulse-strip-prefix (key-sequence)
-  "Strip any prefix argument keypresses from KEY-SEQUENCE.
-This is useful for deriving a \"standard\" key-sequence from
-`this-command-keys', to be looked up in `vimpulse-modal-alist'."
-  (let* ((offset 0)
-         (temp-sequence (vconcat key-sequence))
-         (key (aref temp-sequence offset))
-         (length (length temp-sequence)))
-    ;; If XEmacs, get rid of the event object type
-    (and (featurep 'xemacs) (eventp key)
-         (setq key (event-to-character key nil t)))
-    ;; Any keys bound to `universal-argument', `digit-argument' or
-    ;; `negative-argument' or bound in `universal-argument-map'
-    ;; are considered prefix keys.
-    (while (and (or (memq (key-binding (vector key) t)
-                          '(universal-argument
-                            digit-argument
-                            negative-argument))
-                    (lookup-key universal-argument-map
-                                (vector key)))
-                (setq offset (1+ offset))
-                (< offset length))
-      (setq key (aref temp-sequence offset))
-      (and (featurep 'xemacs) (eventp key)
-           (setq key (event-to-character key nil t))))
-    (vimpulse-truncate temp-sequence length offset)))
-
 (defun vimpulse-modal-check (key-sequence)
   "Return t if KEY-SEQUENCE defaults to `this-command',
 but only for bindings listed in `vimpulse-modal-alist'."
@@ -228,7 +200,8 @@ non-nil, advice DEF by means of `vimpulse-advice-command'."
     ;; http://tracker.xemacs.org/XEmacs/its/msg2021
     (unless (keymapp submap)
       (setq submap (make-sparse-keymap)))
-    (set-keymap-default-binding submap def)
+    (when (fboundp 'set-keymap-default-binding)
+      (set-keymap-default-binding submap def))
     (funcall define-func keymap temp-sequence submap)))
 
 (defun vimpulse-default-binding
@@ -279,11 +252,12 @@ functions, respectively."
       ;; Change command loop variables
       (setq vimpulse-last-command-event
             (elt key-sequence (1- (1- (length key-sequence)))))
-      (unless (featurep 'xemacs) ; if XEmacs, do this with advice
-        (setq last-command-event vimpulse-last-command-event)
-        (setq last-command-char  vimpulse-last-command-event)
-        (setq last-input-event   vimpulse-last-command-event)
-        (setq last-input-char    vimpulse-last-command-event))
+      (unless (featurep 'xemacs)      ; if XEmacs, do this with advice
+        (with-no-warnings
+          (setq last-command-event vimpulse-last-command-event
+                last-command-char  vimpulse-last-command-event
+                last-input-event   vimpulse-last-command-event
+                last-input-char    vimpulse-last-command-event)))
       (setq key-sequence
             (vimpulse-truncate key-sequence -1)))))
 
@@ -336,8 +310,10 @@ only if called in the same state. The functions `vimpulse-map',
     (setq key-vector key)
     (when (stringp key-vector)
       (condition-case nil
-          (setq key-vector (kbd key-vector))
-        (error nil)))
+          (setq key-vector (eval `(kbd ,key-vector)))
+        (error nil))
+      (when (memq key-vector '("" [] nil))
+        (setq key-vector key)))
     (setq key-vector (vconcat key-vector))
     (cond
      ;; nil unbinds the key-sequence
