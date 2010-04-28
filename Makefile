@@ -9,7 +9,8 @@ vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
                  vimpulse-text-object-system.el \
                  vimpulse-visual-mode.el vimpulse-compatibility.el \
                  vimpulse.el
-	cat Header \
+	sed "/^(\(provide\|require\) 'vimpulse-/d" \
+	    Header \
 	    INSTALL \
 	    README \
 	    Changelog \
