@@ -92,117 +92,132 @@ selection on each line."
         (viper-change-state-to-vi))))
     (kill-local-variable 'vimpulse-visual-previous-state))))
 
-(defvar vimpulse-visual-remap-alist nil
-  "Association list of command remappings in Visual mode.")
+;;; Initialize variables
 
-(put 'vimpulse-visual-basic-map
-     'remap-alist 'vimpulse-visual-remap-alist)
+(eval-and-compile
+  (defvar vimpulse-visual-remap-alist nil
+    "Association list of command remappings in Visual mode.")
 
-(viper-deflocalvar vimpulse-visual-mode nil
-  "Current Visual mode: may be nil, `normal', `line' or `block'.")
+  (put 'vimpulse-visual-basic-map
+       'remap-alist 'vimpulse-visual-remap-alist)
 
-(defcustom vimpulse-visual-block-untabify nil
-  "Whether Block mode may change tabs to spaces for fine movement.
-Off by default."
-  :type  'boolean
-  :group 'vimpulse-visual)
+  (viper-deflocalvar vimpulse-visual-mode nil
+    "Current Visual mode: may be nil, `normal', `line' or `block'.")
 
-(viper-deflocalvar vimpulse-visual-global-vars nil
-  "List of variables which were global.")
+  (viper-deflocalvar vimpulse-visual-global-vars nil
+    "List of variables which were global.")
 
-(viper-deflocalvar vimpulse-visual-local-vars
-  '(cua-mode
-    mark-active
-    transient-mark-mode
-    zmacs-regions
-    vimpulse-visual-region-expanded)
-  "System variables which are reset for each Visual session.")
+  (viper-deflocalvar vimpulse-visual-local-vars
+    '(cua-mode
+      mark-active
+      transient-mark-mode
+      zmacs-regions
+      vimpulse-visual-region-expanded)
+    "System variables which are reset for each Visual session.")
 
-(viper-deflocalvar vimpulse-visual-vars-alist nil
-  "Alist of old variable values.")
+  (viper-deflocalvar vimpulse-visual-vars-alist nil
+    "Alist of old variable values.")
 
-(viper-deflocalvar vimpulse-visual-last nil
-  "Last active Visual mode.
+  (viper-deflocalvar vimpulse-visual-last nil
+    "Last active Visual mode.
 May be `normal', `line', `block' or nil.")
 
-(viper-deflocalvar vimpulse-visual-previous-state 'viper-state
-  "Previous state before enabling Visual mode.
+  (viper-deflocalvar vimpulse-visual-previous-state 'viper-state
+    "Previous state before enabling Visual mode.
 This lets us revert to Emacs state in non-vi buffers.")
 
-(viper-deflocalvar vimpulse-visual-region-expanded nil
-  "Whether region is expanded to the Visual selection.")
+  (viper-deflocalvar vimpulse-visual-region-expanded nil
+    "Whether region is expanded to the Visual selection.")
 
-(viper-deflocalvar vimpulse-visual-point nil
-  "Last expanded `point' in Visual mode.")
+  (viper-deflocalvar vimpulse-visual-point nil
+    "Last expanded `point' in Visual mode.")
 
-(viper-deflocalvar vimpulse-visual-mark nil
-  "Last expanded `mark' in Visual mode.")
+  (viper-deflocalvar vimpulse-visual-mark nil
+    "Last expanded `mark' in Visual mode.")
 
-(defvar vimpulse-visual-height nil
-  "Height of last Visual selection.")
-
-(defvar vimpulse-visual-width nil
-  "Width of last Visual selection.")
-
-(viper-deflocalvar vimpulse-visual-overlay nil
-  "Overlay for Visual selection.
+  (viper-deflocalvar vimpulse-visual-overlay nil
+    "Overlay for Visual selection.
 In XEmacs, this is an extent.")
 
-(viper-deflocalvar vimpulse-visual-block-overlays nil
-  "Overlays for Visual Block selection.")
+  (viper-deflocalvar vimpulse-visual-block-overlays nil
+    "Overlays for Visual Block selection.")
 
-(viper-deflocalvar vimpulse-visual-whitespace-overlay nil
-  "Overlay encompassing text inserted into the buffer
+  (viper-deflocalvar vimpulse-visual-whitespace-overlay nil
+    "Overlay encompassing text inserted into the buffer
 to make Block selection at least one column wide.")
 
-;; Defined in rect.el
-(defvar killed-rectangle nil)
+  (viper-deflocalvar vimpulse-undo-needs-adjust nil
+    "If true, several commands in the undo-list should be connected.")
 
-(viper-deflocalvar vimpulse-undo-needs-adjust nil
-  "If true, several commands in the undo-list should be connected.")
+  (defconst vimpulse-buffer-undo-list-mark 'vimpulse
+    "Everything up to this mark is united in the undo-list.")
 
-(defconst vimpulse-buffer-undo-list-mark 'vimpulse
-  "Everything up to this mark is united in the undo-list.")
+  ;; Defined in rect.el
+  (defvar killed-rectangle nil)
 
-;; This variable holds the point and column of the first line
-;; as well as the number of lines in the region
-(defvar vimpulse-visual-insert-coords nil
-  "List with (I-COM UL-POS COL NLINES), where
+  (defvar vimpulse-visual-height nil
+    "Height of last Visual selection.")
+
+  (defvar vimpulse-visual-width nil
+    "Width of last Visual selection.")
+
+  (defcustom vimpulse-visual-block-untabify nil
+    "Whether Block mode may change tabs to spaces for fine movement.
+Off by default."
+    :type  'boolean
+    :group 'vimpulse-visual)
+
+  ;; This variable holds the point and column of the first line
+  ;; as well as the number of lines in the region
+  (defvar vimpulse-visual-insert-coords nil
+    "List with (I-COM UL-POS COL NLINES), where
 I-COM is the insert command (?i, ?a, ?I or ?A),
 UL-POS is the position of the upper left corner of the region,
 COL is the column of insertion, and
 NLINES is the number of lines in the region.")
 
-(defun vimpulse-visual-remap (from to)
-  "Remap FROM to TO in Visual mode."
-  (vimpulse-remap vimpulse-visual-basic-map from to))
+  ;; Lists
+  (defvar vimpulse-movement-cmds
+    '(backward-char backward-list backward-paragraph backward-sentence
+      backward-sexp backward-up-list backward-word beginning-of-buffer
+      beginning-of-defun beginning-of-line beginning-of-visual-line
+      cua-cancel down-list end-of-buffer end-of-defun end-of-line
+      end-of-visual-line exchange-point-and-mark forward-char
+      forward-list forward-paragraph forward-sentence forward-sexp
+      forward-word keyboard-quit mouse-drag-region mouse-save-then-kill
+      mouse-set-point mouse-set-region move-beginning-of-line
+      move-end-of-line next-line previous-line scroll-down scroll-up
+      undo universal-argument up-list vimpulse-end-of-previous-word
+      vimpulse-goto-definition vimpulse-goto-first-line
+      vimpulse-goto-line vimpulse-visual-block-rotate
+      vimpulse-visual-exchange-corners vimpulse-visual-reselect
+      vimpulse-visual-restore vimpulse-visual-toggle-block
+      vimpulse-visual-toggle-line vimpulse-visual-toggle-normal
+      viper-backward-Word viper-backward-char viper-backward-paragraph
+      viper-backward-sentence viper-backward-word
+      viper-beginning-of-line viper-end-of-Word viper-end-of-word
+      viper-exec-mapped-kbd-macro viper-find-char-backward
+      viper-find-char-forward viper-forward-Word viper-forward-char
+      viper-forward-paragraph viper-forward-sentence viper-forward-word
+      viper-goto-char-backward viper-goto-char-forward viper-goto-eol
+      viper-goto-line viper-insert viper-intercept-ESC-key
+      viper-line-to-bottom viper-line-to-middle viper-line-to-top
+      viper-next-line viper-paren-match viper-previous-line
+      viper-search-Next viper-search-backward viper-search-forward
+      viper-search-next viper-window-bottom viper-window-middle
+      viper-window-top)
+    "List of commands that move point.
+If listed here, the region is not expanded to the
+Visual selection before the command is executed.")
 
-(defun vimpulse-filter-undos (undo-list)
-  "Filters all `nil' marks from `undo-list' until the first
-occurrence of `vimpulse-buffer-undo-list-mark'."
-  (cond
-   ((null undo-list)
-    nil)
-   ((eq (car undo-list) 'vimpulse)
-    (cdr undo-list))
-   ((null (car undo-list))
-    (vimpulse-filter-undos (cdr undo-list)))
-   (t
-    (cons (car undo-list)
-          (vimpulse-filter-undos (cdr undo-list))))))
-
-(defun vimpulse-connect-undos ()
-  "Connects all undo-steps from `buffer-undo-list' up to the
-first occurrence of `vimpulse-buffer-undo-list-mark'."
-  (when (and vimpulse-undo-needs-adjust
-             (listp buffer-undo-list))
-    (setq buffer-undo-list
-          (vimpulse-filter-undos buffer-undo-list)))
-  (setq vimpulse-undo-needs-adjust nil))
-
-(defun vimpulse-push-buffer-undo-list-mark ()
-  (setq vimpulse-undo-needs-adjust t)
-  (push vimpulse-buffer-undo-list-mark buffer-undo-list))
+  (defvar vimpulse-newline-cmds
+    '(cua-copy-region cua-cut-region cua-delete-region delete-region
+      exchange-point-and-mark execute-extended-command kill-region
+      kill-ring-save viper-put-back viper-Put-back
+      vimpulse-visual-exchange-corners)
+    "Non-operator commands needing trailing newline in Visual Line mode.
+In most cases, it's more useful not to include this newline in
+the region acted on."))
 
 ;;; Activation
 
@@ -359,7 +374,8 @@ Enable forcefully with positive ARG. Disable with negative ARG."
                        (cons 'cua-mode cua-mode))))
       (cond
        ((and (fboundp 'cua-mode)
-             (vimpulse-visual-before (eq cua-mode t))
+             (and (fboundp 'vimpulse-visual-before)
+                  (vimpulse-visual-before (eq cua-mode t)))
              (or (not cua-mode) (numberp arg)))
         (cua-mode 1))
        ((and (fboundp 'transient-mark-mode)
@@ -374,24 +390,29 @@ Enable forcefully with positive ARG. Disable with negative ARG."
  Also restores Cua mode."
   (when vimpulse-visual-vars-alist
     (when (boundp 'transient-mark-mode)
-      (if (vimpulse-visual-before transient-mark-mode)
+      (if (and (fboundp 'vimpulse-visual-before)
+               (vimpulse-visual-before transient-mark-mode))
           (transient-mark-mode 1)
         (transient-mark-mode -1)))
     (when (boundp 'cua-mode)
-      (if (vimpulse-visual-before cua-mode)
+      (if (and (fboundp 'vimpulse-visual-before)
+               (vimpulse-visual-before cua-mode))
           (cua-mode 1)
         (cua-mode -1)))
     (when (boundp 'zmacs-regions)
-      (let ((oldval (vimpulse-visual-before zmacs-regions)))
+      (let ((oldval (and (fboundp 'vimpulse-visual-before)
+                         (vimpulse-visual-before zmacs-regions))))
         (setq zmacs-regions oldval)))))
 
-(defmacro vimpulse-visual-before (&rest body)
-  "Evaluate BODY with original system values from before Visual mode.
+;; This needs to be evaluated at runtime, obviously
+(dont-compile
+  (defmacro vimpulse-visual-before (&rest body)
+    "Evaluate BODY with original system values from before Visual mode.
 This is based on `vimpulse-visual-vars-alist'."
-  `(let ,(mapcar (lambda (elt)
-                   `(,(car elt) (quote ,(cdr elt))))
-                 vimpulse-visual-vars-alist)
-     ,@body))
+    `(let ,(mapcar (lambda (elt)
+                     `(,(car elt) (quote ,(cdr elt))))
+                   vimpulse-visual-vars-alist)
+       ,@body)))
 
 (defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection.
@@ -886,6 +907,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                        viper-forward-paragraph
                        viper-forward-sentence
                        viper-goto-line
+                       viper-search-next
+                       viper-search-Next
                        viper-window-bottom
                        viper-window-middle
                        viper-window-top)))
@@ -935,50 +958,6 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   (when vimpulse-visual-mode
     (vimpulse-visual-highlight)))
 
-;;; Lists
-
-(defvar vimpulse-movement-cmds
-  '(backward-char backward-list backward-paragraph backward-sentence
-    backward-sexp backward-up-list backward-word beginning-of-buffer
-    beginning-of-defun beginning-of-line beginning-of-visual-line
-    cua-cancel down-list end-of-buffer end-of-defun end-of-line
-    end-of-visual-line exchange-point-and-mark forward-char
-    forward-list forward-paragraph forward-sentence forward-sexp
-    forward-word keyboard-quit mouse-drag-region mouse-save-then-kill
-    mouse-set-point mouse-set-region move-beginning-of-line
-    move-end-of-line next-line previous-line scroll-down scroll-up
-    undo universal-argument up-list vimpulse-end-of-previous-word
-    vimpulse-goto-definition vimpulse-goto-first-line
-    vimpulse-goto-line vimpulse-visual-block-rotate
-    vimpulse-visual-exchange-corners vimpulse-visual-reselect
-    vimpulse-visual-restore vimpulse-visual-toggle-block
-    vimpulse-visual-toggle-line vimpulse-visual-toggle-normal
-    viper-backward-Word viper-backward-char viper-backward-paragraph
-    viper-backward-sentence viper-backward-word
-    viper-beginning-of-line viper-end-of-Word viper-end-of-word
-    viper-exec-mapped-kbd-macro viper-find-char-backward
-    viper-find-char-forward viper-forward-Word viper-forward-char
-    viper-forward-paragraph viper-forward-sentence viper-forward-word
-    viper-goto-char-backward viper-goto-char-forward viper-goto-eol
-    viper-goto-line viper-insert viper-intercept-ESC-key
-    viper-line-to-bottom viper-line-to-middle viper-line-to-top
-    viper-next-line viper-paren-match viper-previous-line
-    viper-search-Next viper-search-backward viper-search-forward
-    viper-search-next viper-window-bottom viper-window-middle
-    viper-window-top)
-  "List of commands that move point.
-If listed here, the region is not expanded to the
-Visual selection before the command is executed.")
-
-(defvar vimpulse-newline-cmds
-  '(cua-copy-region cua-cut-region cua-delete-region delete-region
-    exchange-point-and-mark execute-extended-command kill-region
-    kill-ring-save viper-put-back viper-Put-back
-    vimpulse-visual-exchange-corners)
-  "Non-operator commands needing trailing newline in Visual Line mode.
-In most cases, it's more useful not to include this newline in
-the region acted on.")
-
 (defun vimpulse-movement-cmd-p (command)
   "Whether COMMAND is a \"movement\" command.
 That is, whether it is listed in `vimpulse-movement-cmds'."
@@ -991,6 +970,37 @@ In most cases (say, when wrapping the selection in a skeleton),
 it is more useful to exclude the last newline from the region."
   (or (member command vimpulse-newline-cmds)
       (vimpulse-operator-cmd-p command)))
+
+(defun vimpulse-visual-remap (from to)
+  "Remap FROM to TO in Visual mode."
+  (vimpulse-remap vimpulse-visual-basic-map from to))
+
+(defun vimpulse-filter-undos (undo-list)
+  "Filters all `nil' marks from `undo-list' until the first
+occurrence of `vimpulse-buffer-undo-list-mark'."
+  (cond
+   ((null undo-list)
+    nil)
+   ((eq (car undo-list) 'vimpulse)
+    (cdr undo-list))
+   ((null (car undo-list))
+    (vimpulse-filter-undos (cdr undo-list)))
+   (t
+    (cons (car undo-list)
+          (vimpulse-filter-undos (cdr undo-list))))))
+
+(defun vimpulse-connect-undos ()
+  "Connects all undo-steps from `buffer-undo-list' up to the
+first occurrence of `vimpulse-buffer-undo-list-mark'."
+  (when (and vimpulse-undo-needs-adjust
+             (listp buffer-undo-list))
+    (setq buffer-undo-list
+          (vimpulse-filter-undos buffer-undo-list)))
+  (setq vimpulse-undo-needs-adjust nil))
+
+(defun vimpulse-push-buffer-undo-list-mark ()
+  (setq vimpulse-undo-needs-adjust t)
+  (push vimpulse-buffer-undo-list-mark buffer-undo-list))
 
 ;;; Ex
 
