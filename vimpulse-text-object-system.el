@@ -546,4 +546,3 @@ specifies whether to include the quote marks in the range."
   (vimpulse-quote-range arg ?\"))
 
 (provide 'vimpulse-text-object-system)
-

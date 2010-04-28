@@ -577,4 +577,3 @@ Thus, this function may return, e.g., (LINE BEG END) instead."
         (list 'exclusive beg end))))))
 
 (provide 'vimpulse-utils)
-

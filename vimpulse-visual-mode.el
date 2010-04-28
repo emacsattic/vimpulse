@@ -1249,4 +1249,3 @@ Returns the insertion point."
 (vimpulse-visual-remap 'viper-repeat 'viper-nil)
 
 (provide 'vimpulse-visual-mode)
-

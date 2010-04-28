@@ -534,4 +534,3 @@ Search backwards if a match isn't found."
                (dabbrev-expand nil) nil)))))
 
 (provide 'vimpulse-misc-keybindings)
-

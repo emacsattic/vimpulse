@@ -395,4 +395,3 @@ the region acted on.")
   (add-hook 'after-init-hook 'vimpulse-configure-variables))
 
 (provide 'vimpulse-dependencies)
-

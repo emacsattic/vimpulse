@@ -503,4 +503,3 @@ binding, use `vimpulse-omap'."
   (vimpulse-map-state-local 'visual-state key def))
 
 (provide 'vimpulse-modal)
-

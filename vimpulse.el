@@ -1,5 +1,3 @@
-;;;; Load Vimpulse components
-
 (require 'vimpulse-dependencies)
 (require 'vimpulse-viper-function-redefinitions)
 (require 'vimpulse-utils)
@@ -11,5 +9,4 @@
 (require 'vimpulse-text-object-system)
 (require 'vimpulse-visual-mode)
 (require 'vimpulse-compatibility)
-
 (provide 'vimpulse)

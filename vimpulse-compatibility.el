@@ -107,4 +107,3 @@
   (global-reveal-mode 1))
 
 (provide 'vimpulse-compatibility)
-
