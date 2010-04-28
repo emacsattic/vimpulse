@@ -639,12 +639,13 @@ keybindings in %s.\n\n%s" state-name doc) t))
       (2 font-lock-function-name-face nil t)))))
 
 ;; These are for making `vimpulse-define-state' more forgiving
-(defun vimpulse-unquote (exp)
-  "Return EXP unquoted."
-  (if (and (listp exp)
-           (eq 'quote (car exp)))
-      (eval exp)
-    exp))
+(eval-and-compile
+  (defun vimpulse-unquote (exp)
+    "Return EXP unquoted."
+    (if (and (listp exp)
+             (eq 'quote (car exp)))
+        (eval exp)
+      exp)))
 
 (defun vimpulse-define-symbol
   (sym-or-val varname varval &optional val-p doc local)

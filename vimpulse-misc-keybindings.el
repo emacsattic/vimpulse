@@ -404,8 +404,9 @@
 
  ;;; C-o, C-i
 
-(viper-deflocalvar vimpulse-mark-list nil
-  "List of mark positions to jump to with `vimpulse-jump-forward'.
+(eval-and-compile
+  (viper-deflocalvar vimpulse-mark-list nil
+    "List of mark positions to jump to with `vimpulse-jump-forward'.
  They are stored as markers, the current position first:
 
      (car vimpulse-mark-list)  = current position (last popped)
@@ -413,7 +414,7 @@
      (cadr vimpulse-mark-list) = next position (to jump to)
 
  In other words, a sort of \"reverse mark ring\": marks which are
- popped off the mark ring, are collected here.")
+ popped off the mark ring, are collected here."))
 
 (defadvice set-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
@@ -481,10 +482,11 @@
   :group 'vimpulse
   :type  'boolean)
 
-(viper-deflocalvar vimpulse-replace-alist nil
-  "Alist of characters overwritten in Replace mode.
+(eval-and-compile
+  (viper-deflocalvar vimpulse-replace-alist nil
+    "Alist of characters overwritten in Replace mode.
  Used by `vimpulse-replace-backspace' to restore text.
- The format is (POS . CHAR).")
+ The format is (POS . CHAR)."))
 
 (defun vimpulse-replace-pre-command ()
   "Remember the character under point."
