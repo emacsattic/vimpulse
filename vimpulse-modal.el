@@ -125,18 +125,6 @@
 ;; to complete. Emacs, on the other hand, will wait indefinitely. This
 ;; behavior is probably not implementable.
 
-;;; Variables
-
-;; This deals with default key bindings
-(defvar vimpulse-last-command-event nil
-  "Value for overwriting `last-command-event'.
-Used by `vimpulse-modal-pre-hook'.")
-
-(defvar vimpulse-modal-alist nil
-  "Key bindings for which `vimpulse-modal-pre-hook' is active.
-That is, `last-command-event' and `read-char' work differently
-for these bindings. The format is (KEY-VECTOR . COMMAND).")
-
 ;;; Advice
 
 ;; For XEmacs, construct a wrap-around advice of the current command
@@ -361,9 +349,6 @@ only if called in the same state. The functions `vimpulse-map',
           (vimpulse-default-binding
            keymap key-vector def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
-
-(defvar vimpulse-modal-map (make-sparse-keymap)
-  "Keymap of bindings overwritten by `vimpulse-map' et al.")
 
 (define-minor-mode vimpulse-modal-minor-mode
   "Minor mode of bindings overwritten by `vimpulse-map' et al."

@@ -2,13 +2,6 @@
 
 (eval-when-compile (require 'viper))
 
-(defcustom vimpulse-want-change-state nil
-  "Whether commands like \"cw\" invoke Replace state, vi-like.
-The default is to delete the text and enter Insert state,
-like in Vim."
-  :group 'vimpulse
-  :type  'boolean)
-
 (defadvice viper-change
   (around vimpulse-want-change-state activate)
   "Disable Replace state if `vimpulse-want-change-state' is nil."
@@ -175,7 +168,6 @@ expression for determining the keymap of MODE.")
   (let ((id (assq viper-current-state vimpulse-state-vars-alist)))
     (setq id (eval (cdr (assq 'id (cdr id)))))
     (when id
-      (defvar viper-mode-string)
       (set (make-local-variable 'viper-mode-string) id)
       (force-mode-line-update))))
 
@@ -267,6 +259,14 @@ Usage:
       (viper-set-mode-vars-for viper-current-state))))
 
 (fset 'viper-add-local-keys 'vimpulse-add-local-keys)
+
+(eval-and-compile
+  (defun vimpulse-unquote (exp)
+    "Return EXP unquoted."
+    (if (and (listp exp)
+             (eq 'quote (car exp)))
+        (eval exp)
+      exp)))
 
 ;; Macro for defining new Viper states. This saves us the trouble of
 ;; defining and indexing all those minor modes manually.
@@ -637,15 +637,6 @@ keybindings in %s.\n\n%s" state-name doc) t))
    '(("(\\(vimpulse-define-state\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t)))))
-
-;; These are for making `vimpulse-define-state' more forgiving
-(eval-and-compile
-  (defun vimpulse-unquote (exp)
-    "Return EXP unquoted."
-    (if (and (listp exp)
-             (eq 'quote (car exp)))
-        (eval exp)
-      exp)))
 
 (defun vimpulse-define-symbol
   (sym-or-val varname varval &optional val-p doc local)
