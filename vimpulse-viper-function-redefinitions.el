@@ -770,4 +770,3 @@ docstring. The variable becomes buffer-local whenever set.")
 (fset 'viper-end-of-Word 'vimpulse-end-of-Word)
 
 (provide 'vimpulse-viper-function-redefinitions)
-

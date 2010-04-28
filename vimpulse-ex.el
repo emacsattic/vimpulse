@@ -29,4 +29,3 @@
   (add-to-list 'ex-token-alist entry t))
 
 (provide 'vimpulse-ex)
-

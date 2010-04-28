@@ -767,4 +767,3 @@ type TYPE. A custom function body may be specified via BODY."
 (put 'viper-window-top 'motion-type 'line)
 
 (provide 'vimpulse-operator)
-

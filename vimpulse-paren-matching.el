@@ -133,4 +133,3 @@ or mismatched paren."
     ad-do-it)))
 
 (provide 'vimpulse-paren-matching)
-
