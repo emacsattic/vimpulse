@@ -13,12 +13,6 @@
 ;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
 ;; in your .emacs before loading Vimpulse.
 
-;; Do we really need this option?
-(defcustom vimpulse-enhanced-paren-matching t
-  "Enhanced matching of parentheses, on by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 ;; Load and enable paren.el if available
 (unless (featurep 'paren)
   (condition-case nil
@@ -29,12 +23,6 @@
      ;; Fast paren-matching
      (vimpulse-setq show-paren-delay 0)
      (show-paren-mode 1))
-
-(defvar vimpulse-paren-overlay-open nil
-  "Overlay used to highlight the opening paren.")
-
-(defvar vimpulse-paren-overlay-close nil
-  "Overlay used to highlight the closing paren.")
 
 (defun vimpulse-paren-open-p (&optional pos)
   "Return t if the character at point (or POS) is an opening paren."

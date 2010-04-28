@@ -87,57 +87,12 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 ;; We place all remap bindings in a keymap of their own.
 ;; This enables Visual mode only to inherit text object
 ;; bindings from Operator-Pending mode, not any remapping.
-(defvar vimpulse-operator-remap-map (make-sparse-keymap))
-
-(defvar vimpulse-operator-remap-alist nil
-  "Association list of command remappings in Operator-Pending mode.")
-
 (define-minor-mode vimpulse-operator-remap-minor-mode
   "Minor mode of bindings overwritten by `vimpulse-map' et al."
   :keymap vimpulse-operator-remap-map)
 
 (put 'vimpulse-operator-remap-map
      'remap-alist 'vimpulse-operator-remap-alist)
-
-;; Command loop variables
-(defvar vimpulse-this-operator nil
-  "Current operator.
-In general, motions and operators are orthogonal, with some exceptions:
-\"cw\" and \"dw\" work on slightly different ranges, for example.
-Motions can check this variable if they need to know what
-operator receives their range. See also `vimpulse-this-motion'.")
-
-(defvar vimpulse-this-motion nil
-  "Current motion.
-In general, motions and operators are orthogonal, with some exceptions:
-\"cc\" may indent the current line while \"cw\" may not, for example.
-Operators may check this variable if they need to know what
-motion produced the current range. See also `vimpulse-this-operator'.")
-
-;; The last motion count is stored in `viper-d-com'
-(defvar vimpulse-this-count nil
-  "Current count (operator count times motion count).")
-
-(defvar vimpulse-this-motion-type nil
-  "Current motion type.
-May be `block', `line', `inclusive', `exclusive' or nil.")
-
-(defvar vimpulse-last-motion-type nil
-  "Last repeated range type.
-May be `block', `line', `inclusive', `exclusive' or nil.")
-
-(defvar vimpulse-last-operator nil
-  "Last repeated operator.
-Used by `vimpulse-operator-repeat'.")
-
-(defvar vimpulse-last-motion nil
-  "Last repeated motion.
-Used by `vimpulse-operator-repeat'.")
-
-(defcustom vimpulse-want-operator-pending-cursor t
-  "Whether the cursor changes in Operator-Pending mode, on by default."
-  :group 'vimpulse
-  :type  'boolean)
 
 (when (featurep 'xemacs)
   ;; XEmacs shows the tag before the modes, so truncate it to a
@@ -494,7 +449,8 @@ TYPE is the motion type."
 
 ;;; Operators (yank, delete, change)
 
-(defvar killed-rectangle)
+(defvar killed-rectangle nil)
+
 (defun vimpulse-yank (beg end)
   "Yank text from BEG to END."
   (interactive (vimpulse-range t t))

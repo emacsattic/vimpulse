@@ -14,8 +14,6 @@
 ;; Viper's movement commands. More objects are easily added with
 ;; `vimpulse-define-text-object'.
 
-(eval-when-compile (require 'vimpulse-operator))
-
 (defmacro vimpulse-define-text-object (object args &rest body)
   "Define a text object OBJECT.
 ARGS is the argument list, which must contain at least one argument:

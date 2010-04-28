@@ -4,11 +4,6 @@
 
 ;;; C-u
 
-(defcustom vimpulse-want-C-u-like-Vim nil
-  "Whether C-u scrolls like in Vim, off by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 (unless vimpulse-want-C-u-like-Vim
   (define-key viper-vi-basic-map "\C-u" 'universal-argument))
 
@@ -404,18 +399,6 @@
 
  ;;; C-o, C-i
 
-(eval-and-compile
-  (viper-deflocalvar vimpulse-mark-list nil
-    "List of mark positions to jump to with `vimpulse-jump-forward'.
- They are stored as markers, the current position first:
-
-     (car vimpulse-mark-list)  = current position (last popped)
-     (cdr vimpulse-mark-list)  = future positions (previously popped)
-     (cadr vimpulse-mark-list) = next position (to jump to)
-
- In other words, a sort of \"reverse mark ring\": marks which are
- popped off the mark ring, are collected here."))
-
 (defadvice set-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
   (mapc (lambda (marker)
@@ -482,12 +465,6 @@
   :group 'vimpulse
   :type  'boolean)
 
-(eval-and-compile
-  (viper-deflocalvar vimpulse-replace-alist nil
-    "Alist of characters overwritten in Replace mode.
- Used by `vimpulse-replace-backspace' to restore text.
- The format is (POS . CHAR)."))
-
 (defun vimpulse-replace-pre-command ()
   "Remember the character under point."
   (cond
@@ -529,10 +506,6 @@
 ;; Getting dabbrev to search forwards first and then backwards
 ;; is tricky, because (dabbrev-expand -1) just fails when it
 ;; doesn't find a following match
-(defvar dabbrev--last-direction)
-(defvar dabbrev--last-abbreviation)
-(defvar dabbrev--last-expansion)
-(defvar dabbrev--last-abbrev-location)
 (defun vimpulse-abbrev-expand-after ()
   "Expand to the nearest following word.
 Search backwards if a match isn't found."

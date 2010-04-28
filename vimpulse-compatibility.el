@@ -3,11 +3,6 @@
 ;;; Add vi navigation to help buffers
 
 ;; Apropos
-(defcustom vimpulse-want-vi-keys-in-apropos t
-  "Whether to use vi keys in Apropos mode, on by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 (eval-after-load 'apropos
   '(when vimpulse-want-vi-keys-in-apropos
      (add-to-list 'viper-vi-state-mode-list 'apropos-mode)
@@ -17,11 +12,6 @@
        (viper-modify-major-mode 'apropos-mode 'vi-state map))))
 
 ;; Buffer-menu
-(defcustom vimpulse-want-vi-keys-in-buffmenu t
-  "Whether to use vi keys in Buffer menu, on by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 (eval-after-load "buff-menu"
   '(when vimpulse-want-vi-keys-in-buffmenu
      (setq viper-emacs-state-mode-list
@@ -33,11 +23,6 @@
        (viper-modify-major-mode 'Buffer-menu-mode 'vi-state map))))
 
 ;; Dired
-(defcustom vimpulse-want-vi-keys-in-dired t
-  "Whether to use vi keys in Dired mode, on by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 (eval-after-load 'dired
   '(when vimpulse-want-vi-keys-in-dired
      (setq viper-emacs-state-mode-list
@@ -53,11 +38,6 @@
        (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
 ;; Info
-(defcustom vimpulse-want-vi-keys-in-Info t
-  "Whether to use vi keys in Info mode, on by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 (eval-after-load 'info
   '(when vimpulse-want-vi-keys-in-Info
      (setq viper-emacs-state-mode-list
@@ -75,11 +55,6 @@
        (viper-modify-major-mode 'Info-mode 'vi-state map))))
 
 ;; Help
-(defcustom vimpulse-want-vi-keys-in-help t
-  "Whether to use vi keys in Help mode, on by default."
-  :group 'vimpulse
-  :type  'boolean)
-
 (eval-after-load 'help-mode
   '(when vimpulse-want-vi-keys-in-help
      (setq viper-emacs-state-mode-list
@@ -103,11 +78,6 @@
 ;; coded by Brad Beveridge (bradbev at gmail.com)
 ;; - I changed the prefix of the custom functions to `vimpulse'
 ;;   to avoid multiple prefixes
-(defcustom vimpulse-fold-level 0
-  "Default fold level."
-  :type  'boolean
-  :group 'vimpulse)
-
 (eval-after-load 'hideshow
   '(progn
      (defun vimpulse-hs-Open ()
