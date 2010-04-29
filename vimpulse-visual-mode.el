@@ -1192,6 +1192,7 @@ Returns the insertion point."
 ;; because its code is closely related to Visual mode.
 (defun vimpulse-exit-insert-state ()
   (interactive)
+  (viper-move-marker-locally 'vimpulse-exit-point (point))
   (viper-change-state-to-vi)
   (when vimpulse-visual-insert-coords
     ;; Get the saved info about the Visual selection
