@@ -1,7 +1,5 @@
 ;;;; Keybindings
 
-(eval-when-compile (require 'viper))
-
 ;;; C-u
 
 (unless vimpulse-want-C-u-like-Vim
