@@ -278,7 +278,7 @@ Enable forcefully with positive ARG. Disable with negative ARG."
                          (vimpulse-visual-before zmacs-regions))))
         (setq zmacs-regions oldval)))))
 
-;; This needs to be evaluated at runtime, obviously
+;; This needs to be expanded at runtime, obviously
 (dont-compile
   (defmacro vimpulse-visual-before (&rest body)
     "Evaluate BODY with original system values from before Visual mode.
