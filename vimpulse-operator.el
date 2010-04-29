@@ -617,7 +617,6 @@ If called interactively, read REGISTER and COMMAND from keyboard."
   "Return Operator-Pending remapping for CMD."
   (if (featurep 'xemacs)
       (or (cdr (assq cmd vimpulse-operator-remap-alist)) cmd)
-    vimpulse-operator-remap-minor-mode
     (or (command-remapping cmd) cmd)))
 
 (vimpulse-operator-remap 'redo 'viper-nil)
@@ -696,8 +695,7 @@ type TYPE. A custom function body may be specified via BODY."
      (setq motion-name
            (concat "vimpulse-operator-" motion-name))
      (setq motion-name (intern motion-name))
-     (eval-after-load 'vimpulse-visual-mode
-       `(add-to-list 'vimpulse-movement-cmds ',motion-name))
+     (add-to-list 'vimpulse-movement-cmds motion-name)
      (vimpulse-operator-remap viper-motion motion-name)
      (eval `(defun ,motion-name (arg)
               ,(format "Operator-pending %s part of `%s'.\n\n%s"
