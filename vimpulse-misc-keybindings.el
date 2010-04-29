@@ -5,7 +5,7 @@
 (unless vimpulse-want-C-u-like-Vim
   (define-key viper-vi-basic-map "\C-u" 'universal-argument))
 
- ;;; vi (command) mode keys
+;;; vi (command) mode keys
 
 (define-key viper-vi-basic-map "y" 'vimpulse-yank)
 (define-key viper-vi-basic-map "d" 'vimpulse-delete)
@@ -24,6 +24,7 @@
 (define-key viper-vi-basic-map "gf" 'find-file-at-point)
 (define-key viper-vi-basic-map "gg" 'vimpulse-goto-first-line)
 (define-key viper-vi-basic-map "gh" 'backward-char)
+(define-key viper-vi-basic-map "gi" 'vimpulse-resume-insert)
 (define-key viper-vi-basic-map "gj" 'next-line)
 (define-key viper-vi-basic-map "gk" 'previous-line)
 (define-key viper-vi-basic-map "gl" 'forward-char)
@@ -71,7 +72,7 @@
   (define-key viper-vi-basic-map "\C-wk" 'windmove-up)
   (define-key viper-vi-basic-map "\C-wl" 'windmove-right))
 
- ;;; Insert mode keys
+;;; Insert mode keys
 
 ;; Vim-like completion keys
 (define-key viper-insert-basic-map "\C-p" 'dabbrev-expand)
@@ -93,7 +94,7 @@
   (interactive)
   (select-window (next-window)))
 
- ;;; r, J, =, >, <
+;;; r, J, =, >, <
 
 (defun vimpulse-replace (beg end)
   "Replace all selected characters with ARG."
@@ -145,7 +146,101 @@
   (let ((nlines (count-lines beg end)))
     (viper-next-line (cons (1- nlines) ?>))))
 
- ;;; gq, gu, gU
+;;; gg
+
+(defun vimpulse-goto-first-line (arg)
+  "Go to first line."
+  (interactive "P")
+  (let ((val (viper-P-val arg))
+	(com (viper-getCom arg)))
+    (when (eq ?c com) (setq com ?C))
+    (viper-move-marker-locally 'viper-com-point (point))
+    (viper-deactivate-mark)
+    (push-mark nil t)
+    (cond
+     ((null val)
+      (goto-char (point-min)))
+     (t
+      (goto-line val)))
+    (when com
+      (viper-execute-com 'vimpulse-goto-line val com))))
+
+;;; gb
+
+(defun vimpulse-beginning-of-Word-p ()
+  (save-excursion
+    (or (bobp)
+	(when (viper-looking-at-alpha)
+	  (backward-char)
+	  (not (viper-looking-at-alpha))))))
+
+(defun vimpulse-end-of-previous-word (arg)
+  "Move point to end of previous word."
+  (interactive "P")
+  (viper-leave-region-active)
+  (let ((val (viper-p-val arg))
+	(com (viper-getcom arg)))
+    (when com
+      (viper-move-marker-locally 'viper-com-point (point)))
+    (unless (vimpulse-beginning-of-Word-p)
+      (viper-backward-Word 1))
+    (viper-backward-Word val)
+    (viper-end-of-Word '(1 . ?r))
+    (unless com
+      (backward-char))
+    (when com
+      (viper-execute-com 'viper-end-of-word val com))))
+
+;;; gd
+
+(defun vimpulse-goto-definition ()
+  "Go to definition or first occurrence of symbol under cursor."
+  (interactive)
+  (let ((str (vimpulse-search-string (point) 'symbol))
+	ientry ipos)
+    (cond
+     ((string= "" str)
+      (error "No string under cursor"))
+     ;; If imenu is available, try it
+     ((or (fboundp 'imenu--make-index-alist)
+	  (load "imenu" t))
+      (setq ientry
+	    (condition-case nil
+		(and (fboundp 'imenu--make-index-alist)
+		     (imenu--make-index-alist))
+	      (error nil)))
+      (setq ientry (assoc str ientry))
+      (setq ipos (cdr ientry))
+      (unless (markerp ipos)
+	(setq ipos (cadr ientry)))
+      (cond
+       ;; imenu found a position, so go there and
+       ;; highlight the occurrence
+       ((and (markerp ipos)
+	     (eq (current-buffer) (marker-buffer ipos)))
+	(vimpulse-search-for-symbol nil ipos str))
+       ;; imenu failed, so just go to first occurrence in buffer
+       (t
+	(vimpulse-search-for-symbol nil (point-min)))))
+     ;; No imenu, so just go to first occurrence in buffer
+     (t
+      (vimpulse-search-for-symbol nil (point-min))))))
+
+(defun vimpulse-jump-to-tag-at-point ()
+  (interactive)
+  (let ((tag (thing-at-point 'word)))
+    (find-tag tag)))
+
+;;; gi
+
+(defun vimpulse-resume-insert (arg)
+  "Insert at previous insert position."
+  (interactive "P")
+  (when (markerp vimpulse-exit-point)
+    (goto-char vimpulse-exit-point))
+  (viper-insert arg))
+
+;;; gq, gu, gU
 
 (defun vimpulse-fill (beg end)
   "Fill text."
@@ -209,26 +304,7 @@
   (interactive (vimpulse-range))
   (rot13-region beg end))
 
- ;;; gg
-
-(defun vimpulse-goto-first-line (arg)
-  "Go to first line."
-  (interactive "P")
-  (let ((val (viper-P-val arg))
-	(com (viper-getCom arg)))
-    (when (eq ?c com) (setq com ?C))
-    (viper-move-marker-locally 'viper-com-point (point))
-    (viper-deactivate-mark)
-    (push-mark nil t)
-    (cond
-     ((null val)
-      (goto-char (point-min)))
-     (t
-      (goto-line val)))
-    (when com
-      (viper-execute-com 'vimpulse-goto-line val com))))
-
- ;;; +, _
+;;; +, _
 
 (defun vimpulse-previous-line-skip-white (&optional arg)
   "Go ARG lines backward and to the first non-blank character."
@@ -254,7 +330,7 @@
     (when com
       (viper-execute-com 'vimpulse-next-line-nonblank val com))))
 
- ;;; *, #
+;;; *, #
 
 (defun vimpulse-search-string (&optional pos thing backward regexp)
   "Find something to search for near POS or point.
@@ -321,73 +397,7 @@
   (interactive)
   (vimpulse-search-for-symbol t))
 
- ;;; gb
-
-(defun vimpulse-beginning-of-Word-p ()
-  (save-excursion
-    (or (bobp)
-	(when (viper-looking-at-alpha)
-	  (backward-char)
-	  (not (viper-looking-at-alpha))))))
-
-(defun vimpulse-end-of-previous-word (arg)
-  "Move point to end of previous word."
-  (interactive "P")
-  (viper-leave-region-active)
-  (let ((val (viper-p-val arg))
-	(com (viper-getcom arg)))
-    (when com
-      (viper-move-marker-locally 'viper-com-point (point)))
-    (unless (vimpulse-beginning-of-Word-p)
-      (viper-backward-Word 1))
-    (viper-backward-Word val)
-    (viper-end-of-Word '(1 . ?r))
-    (unless com
-      (backward-char))
-    (when com
-      (viper-execute-com 'viper-end-of-word val com))))
-
- ;;; gd
-
-(defun vimpulse-goto-definition ()
-  "Go to definition or first occurrence of symbol under cursor."
-  (interactive)
-  (let ((str (vimpulse-search-string (point) 'symbol))
-	ientry ipos)
-    (cond
-     ((string= "" str)
-      (error "No string under cursor"))
-     ;; If imenu is available, try it
-     ((or (fboundp 'imenu--make-index-alist)
-	  (load "imenu" t))
-      (setq ientry
-	    (condition-case nil
-		(and (fboundp 'imenu--make-index-alist)
-		     (imenu--make-index-alist))
-	      (error nil)))
-      (setq ientry (assoc str ientry))
-      (setq ipos (cdr ientry))
-      (unless (markerp ipos)
-	(setq ipos (cadr ientry)))
-      (cond
-       ;; imenu found a position, so go there and
-       ;; highlight the occurrence
-       ((and (markerp ipos)
-	     (eq (current-buffer) (marker-buffer ipos)))
-	(vimpulse-search-for-symbol nil ipos str))
-       ;; imenu failed, so just go to first occurrence in buffer
-       (t
-	(vimpulse-search-for-symbol nil (point-min)))))
-     ;; No imenu, so just go to first occurrence in buffer
-     (t
-      (vimpulse-search-for-symbol nil (point-min))))))
-
-(defun vimpulse-jump-to-tag-at-point ()
-  (interactive)
-  (let ((tag (thing-at-point 'word)))
-    (find-tag tag)))
-
- ;;; Auto-indent
+;;; Auto-indent
 
 (defadvice viper-line (after vimpulse activate)
   "Indent if `viper-auto-indent' is t."
@@ -395,7 +405,7 @@
        (eq ?C (cdr arg))
        (indent-according-to-mode)))
 
- ;;; C-o, C-i
+;;; C-o, C-i
 
 (defadvice set-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
@@ -455,7 +465,7 @@
 (unless (key-binding "\C-c\C-o")
   (global-set-key "\C-c\C-o" 'open-line)) ; some may miss this command
 
- ;;; Replace backspace
+;;; Replace backspace
 
 (defcustom vimpulse-backspace-restore t
   "Whether Backspace restores the original text in Replace mode.
