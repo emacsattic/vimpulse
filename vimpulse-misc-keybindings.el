@@ -52,10 +52,13 @@
 (define-key viper-vi-basic-map "\C-v" 'vimpulse-visual-toggle-block)
 (define-key viper-vi-basic-map "gv" 'vimpulse-visual-restore)
 
-;; Map undo and redo from XEmacs' redo.el
+;; Map undo and redo
 (define-key viper-vi-basic-map "u" 'undo)
-(when (fboundp 'redo)
-  (define-key viper-vi-basic-map "\C-r" 'redo))
+(cond
+ ((fboundp 'undo-tree-redo)
+  (define-key viper-vi-basic-map "\C-r" 'undo-tree-redo))
+ ((fboundp 'redo)
+  (define-key viper-vi-basic-map "\C-r" 'redo)))
 
 ;; Window manipulation
 (define-key viper-vi-basic-map "\C-w" (make-sparse-keymap))
@@ -78,7 +81,7 @@
 (define-key viper-insert-basic-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-basic-map "\C-n" 'vimpulse-abbrev-expand-after)
 (define-key viper-insert-basic-map [delete] 'delete-char) ;; delete key
-					; make ^[ work
+                                        ; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
 ;; My code (Alessandro)
@@ -104,18 +107,18 @@
      ((eq 'block vimpulse-this-motion-type)
       (viper-replace-char 1)
       (let ((char (char-after (point)))
-	    (length (abs (- (save-excursion
-			      (goto-char beg)
-			      (current-column))
-			    (save-excursion
-			      (goto-char end)
-			      (current-column))))))
-	(vimpulse-apply-on-block
-	 (lambda (beg end)
-	   (goto-char beg)
-	   (delete-region beg end)
-	   (insert (make-string length char)))
-	 beg end)))
+            (length (abs (- (save-excursion
+                              (goto-char beg)
+                              (current-column))
+                            (save-excursion
+                              (goto-char end)
+                              (current-column))))))
+        (vimpulse-apply-on-block
+         (lambda (beg end)
+           (goto-char beg)
+           (delete-region beg end)
+           (insert (make-string length char)))
+         beg end)))
      (t
       (viper-replace-char length)))))
 
@@ -152,7 +155,7 @@
   "Go to first line."
   (interactive "P")
   (let ((val (viper-P-val arg))
-	(com (viper-getCom arg)))
+        (com (viper-getCom arg)))
     (when (eq ?c com) (setq com ?C))
     (viper-move-marker-locally 'viper-com-point (point))
     (viper-deactivate-mark)
@@ -170,16 +173,16 @@
 (defun vimpulse-beginning-of-Word-p ()
   (save-excursion
     (or (bobp)
-	(when (viper-looking-at-alpha)
-	  (backward-char)
-	  (not (viper-looking-at-alpha))))))
+        (when (viper-looking-at-alpha)
+          (backward-char)
+          (not (viper-looking-at-alpha))))))
 
 (defun vimpulse-end-of-previous-word (arg)
   "Move point to end of previous word."
   (interactive "P")
   (viper-leave-region-active)
   (let ((val (viper-p-val arg))
-	(com (viper-getcom arg)))
+        (com (viper-getcom arg)))
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
     (unless (vimpulse-beginning-of-Word-p)
@@ -197,31 +200,31 @@
   "Go to definition or first occurrence of symbol under cursor."
   (interactive)
   (let ((str (vimpulse-search-string (point) 'symbol))
-	ientry ipos)
+        ientry ipos)
     (cond
      ((string= "" str)
       (error "No string under cursor"))
      ;; If imenu is available, try it
      ((or (fboundp 'imenu--make-index-alist)
-	  (load "imenu" t))
+          (load "imenu" t))
       (setq ientry
-	    (condition-case nil
-		(and (fboundp 'imenu--make-index-alist)
-		     (imenu--make-index-alist))
-	      (error nil)))
+            (condition-case nil
+                (and (fboundp 'imenu--make-index-alist)
+                     (imenu--make-index-alist))
+              (error nil)))
       (setq ientry (assoc str ientry))
       (setq ipos (cdr ientry))
       (unless (markerp ipos)
-	(setq ipos (cadr ientry)))
+        (setq ipos (cadr ientry)))
       (cond
        ;; imenu found a position, so go there and
        ;; highlight the occurrence
        ((and (markerp ipos)
-	     (eq (current-buffer) (marker-buffer ipos)))
-	(vimpulse-search-for-symbol nil ipos str))
+             (eq (current-buffer) (marker-buffer ipos)))
+        (vimpulse-search-for-symbol nil ipos str))
        ;; imenu failed, so just go to first occurrence in buffer
        (t
-	(vimpulse-search-for-symbol nil (point-min)))))
+        (vimpulse-search-for-symbol nil (point-min)))))
      ;; No imenu, so just go to first occurrence in buffer
      (t
       (vimpulse-search-for-symbol nil (point-min))))))
@@ -246,9 +249,9 @@
   "Fill text."
   (interactive (vimpulse-range t t))
   (setq end (save-excursion
-	      (goto-char end)
-	      (skip-chars-backward " ")
-	      (point)))
+              (goto-char end)
+              (skip-chars-backward " ")
+              (point)))
   (save-excursion
     (fill-region beg end)))
 
@@ -259,7 +262,7 @@
       (vimpulse-apply-on-block 'downcase-region beg end)
     (downcase-region beg end))
   (when (and viper-auto-indent
-	     (looking-back "^[ \f\t\v]*"))
+             (looking-back "^[ \f\t\v]*"))
     (back-to-indentation)))
 
 (defun vimpulse-upcase (beg end)
@@ -269,7 +272,7 @@
       (vimpulse-apply-on-block 'upcase-region beg end)
     (upcase-region beg end)
     (when (and viper-auto-indent
-	       (looking-back "^[ \f\t\v]*"))
+               (looking-back "^[ \f\t\v]*"))
       (back-to-indentation))))
 
 (defun vimpulse-invert-case (beg end)
@@ -279,19 +282,19 @@
     (save-excursion
       (cond
        ((eq 'block vimpulse-this-motion-type)
-	(let (vimpulse-this-motion-type)
-	  (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
+        (let (vimpulse-this-motion-type)
+          (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
        (t
-	(goto-char beg)
-	(while (< beg end)
-	  (setq char (following-char))
-	  (delete-char 1 nil)
-	  (if (eq char (upcase char))
-	      (insert-char (downcase char) 1)
-	    (insert-char (upcase char) 1))
-	  (setq beg (1+ beg))))))
+        (goto-char beg)
+        (while (< beg end)
+          (setq char (following-char))
+          (delete-char 1 nil)
+          (if (eq char (upcase char))
+              (insert-char (downcase char) 1)
+            (insert-char (upcase char) 1))
+          (setq beg (1+ beg))))))
     (when (and viper-auto-indent
-	       (looking-back "^[ \f\t\v]*"))
+               (looking-back "^[ \f\t\v]*"))
       (back-to-indentation))))
 
 (defun vimpulse-invert-char (beg end)
@@ -310,7 +313,7 @@
   "Go ARG lines backward and to the first non-blank character."
   (interactive "P")
   (let ((val (viper-p-val arg))
-	(com (viper-getcom arg)))
+        (com (viper-getcom arg)))
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
     (forward-line (- val))
@@ -322,7 +325,7 @@
   "Go ARG lines forward and to the first non-blank character."
   (interactive "P")
   (let ((val (viper-p-val arg))
-	(com (viper-getcom arg)))
+        (com (viper-getcom arg)))
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
     (forward-line val)
@@ -340,20 +343,20 @@
  Returns the empty string if nothing is found."
   (save-excursion
     (setq pos (or pos (point))
-	  thing (or thing 'symbol))
+          thing (or thing 'symbol))
     (goto-char pos)
     (let ((str (thing-at-point thing)))
       ;; If there's nothing under point, go forwards
       ;; (or backwards) to find it
       (while (and (not str) (or (and backward (not (bobp)))
-				(and (not backward) (not (eobp)))))
-	(if backward (backward-char) (forward-char))
-	(setq str (thing-at-point 'symbol)))
+                                (and (not backward) (not (eobp)))))
+        (if backward (backward-char) (forward-char))
+        (setq str (thing-at-point 'symbol)))
       (setq str (or str ""))
       ;; No text properties, thank you very much
       (set-text-properties 0 (length str) nil str)
       (when regexp
-	(setq str (regexp-quote str)))
+        (setq str (regexp-quote str)))
       str)))
 
 (defun vimpulse-search-for-symbol (&optional backward pos search)
@@ -365,27 +368,27 @@
  if POS is specified and at the beginning of a match, that match
  is highlighted rather than skipped past."
   (setq search (or search (vimpulse-search-string
-			   (point) 'symbol backward t)))
+                           (point) 'symbol backward t)))
   (cond
    ((string= "" search)
     (error "No string under cursor"))
    (t
     (setq viper-s-string  (concat "\\_<" search "\\_>")
-	  viper-s-forward (not backward))
+          viper-s-forward (not backward))
     (cond
      (pos
       (unless (region-active-p)
-	(push-mark nil t))
+        (push-mark nil t))
       (goto-char pos)
       (cond
        ((looking-at search)
-	(save-excursion
-	  (search-forward search))
-	(viper-flash-search-pattern))
+        (save-excursion
+          (search-forward search))
+        (viper-flash-search-pattern))
        (t
-	(viper-search viper-s-string (not backward) 1)
-	(unless (region-active-p)
-	  (pop-mark)))))
+        (viper-search viper-s-string (not backward) 1)
+        (unless (region-active-p)
+          (pop-mark)))))
      (t
       (viper-search viper-s-string (not backward) 1))))))
 
@@ -410,15 +413,15 @@
 (defadvice set-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
   (mapc (lambda (marker)
-	  (set-marker marker nil))
-	vimpulse-mark-list)
+          (set-marker marker nil))
+        vimpulse-mark-list)
   (setq vimpulse-mark-list nil))
 
 (defadvice push-mark (after vimpulse activate)
   "Clear `vimpulse-mark-list'."
   (mapc (lambda (marker)
-	  (set-marker marker nil))
-	vimpulse-mark-list)
+          (set-marker marker nil))
+        vimpulse-mark-list)
   (setq vimpulse-mark-list nil))
 
 (defun vimpulse-jump-backward (arg)
@@ -434,16 +437,16 @@
       ;; Skip past duplicate entries in the mark ring
       (setq i (length mark-ring))
       (while (progn (move-marker current-pos (point))
-		    (let (vimpulse-mark-list)
-		      ;; Protect `vimpulse-mark-list'
-		      (set-mark-command 0))
-		    (setq i (1- i))
-		    (and (= (point) current-pos) (< 0 i))))
+                    (let (vimpulse-mark-list)
+                      ;; Protect `vimpulse-mark-list'
+                      (set-mark-command 0))
+                    (setq i (1- i))
+                    (and (= (point) current-pos) (< 0 i))))
       ;; Already there?
       (move-marker current-pos (point))
       (unless (= current-pos (car vimpulse-mark-list))
-	(setq vimpulse-mark-list
-	      (cons current-pos vimpulse-mark-list))))))
+        (setq vimpulse-mark-list
+              (cons current-pos vimpulse-mark-list))))))
 
 (defun vimpulse-jump-forward (arg)
   "Go to newer position in jump list.
@@ -452,13 +455,13 @@
   (let (current-pos next-pos)
     (dotimes (arg arg)
       (setq current-pos (car vimpulse-mark-list)
-	    next-pos (cadr vimpulse-mark-list))
+            next-pos (cadr vimpulse-mark-list))
       (when next-pos
-	;; Protect `vimpulse-mark-list'
-	(let (vimpulse-mark-list)
-	  (push-mark current-pos t nil))
-	(goto-char next-pos)
-	(setq vimpulse-mark-list (cdr vimpulse-mark-list))))))
+        ;; Protect `vimpulse-mark-list'
+        (let (vimpulse-mark-list)
+          (push-mark current-pos t nil))
+        (goto-char next-pos)
+        (setq vimpulse-mark-list (cdr vimpulse-mark-list))))))
 
 (define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
 (define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
@@ -479,17 +482,17 @@
    (viper-replace-minor-mode
     (unless (assq (point) vimpulse-replace-alist)
       (add-to-list 'vimpulse-replace-alist
-		   (cons (point) (char-after)))))
+                   (cons (point) (char-after)))))
    ;; If not in Replace mode, remove itself
    (t
     (remove-hook 'pre-command-hook 'vimpulse-replace-pre-command))))
 
 (add-hook 'viper-replace-state-hook
-	  (lambda ()
-	    (setq vimpulse-replace-alist nil)
-	    (vimpulse-replace-pre-command)
-	    (add-hook 'pre-command-hook
-		      'vimpulse-replace-pre-command)))
+          (lambda ()
+            (setq vimpulse-replace-alist nil)
+            (vimpulse-replace-pre-command)
+            (add-hook 'pre-command-hook
+                      'vimpulse-replace-pre-command)))
 
 (defun vimpulse-replace-backspace ()
   "Restore character under cursor.
@@ -501,9 +504,9 @@
     (backward-char)
     (let ((oldchar (cdr (assq (point) vimpulse-replace-alist))))
       (when oldchar
-	(save-excursion
-	  (delete-char 1)
-	  (insert oldchar)))))
+        (save-excursion
+          (delete-char 1)
+          (insert oldchar)))))
    (t
     (viper-del-backward-char-in-replace))))
 

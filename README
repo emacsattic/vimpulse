@@ -26,7 +26,7 @@
 ;;
 ;; Tips:
 ;;
-;; - Vimpulse makes C-r run `redo' in command mode, but you can
+;; - Vimpulse makes C-r run Redo in command mode, but you can
 ;;   still get reverse isearch by pressing C-s and then C-r.
 ;;
 ;; - To change the color of Visual mode, add the following to .emacs:

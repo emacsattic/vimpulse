@@ -294,7 +294,7 @@ Returns the new position."
   "Deactivate region, respecting Emacs version."
   (cond
    ((and (boundp 'cua-mode) cua-mode
-	 (fboundp 'cua--deactivate))
+         (fboundp 'cua--deactivate))
     (cua--deactivate now))
    ((featurep 'xemacs)
     (let ((zmacs-region-active-p t))
@@ -317,7 +317,7 @@ If POS if specified, set mark at POS instead."
       (goto-char (or pos (mark t) (point)))
       (unwind-protect
           (and (fboundp 'cua-set-mark)
-	       (cua-set-mark))
+               (cua-set-mark))
         (message oldmsg))
       (goto-char opoint)))
    (t

@@ -316,11 +316,11 @@ of `viper-change-state'. :advice specifies the advice type
                            def-body))
            (indent defun))
   (let (advice basic-map basic-mode change-func diehard-map
-               diehard-mode enable global-user-map global-user-mode hook id
-               intercept-map intercept-mode kbd-map kbd-mode keyword
-               local-user-map local-user-mode modifier-alist modifier-mode
-               name name-string need-local-map prefix prefixed-name-string
-               state-name state-name-string)
+        diehard-mode enable global-user-map global-user-mode hook id
+        intercept-map intercept-mode kbd-map kbd-mode keyword
+        local-user-map local-user-mode modifier-alist modifier-mode
+        name name-string need-local-map prefix prefixed-name-string
+        state-name state-name-string)
     ;; Collect keywords
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
@@ -684,7 +684,7 @@ create a buffer-local variable. Returns the result."
       (add-to-list 'vimpulse-state-modes-alist
                    (cons state state-entry) t)))))
 
-;;; Viper bugs (should be forwarded to Kifer)
+;;; Viper bugs (should be forwarded to Michael Kifer)
 
 ;; `viper-deflocalvar's definition lacks a `declare' statement,
 ;; so Emacs tends to mess up the indentation. Luckily, the

@@ -1,5 +1,34 @@
 ;;;; This code integrates Viper with the outside world
 
+;;; undo-tree.el
+
+(when (and (boundp 'undo-tree-visualizer-map)
+           (fboundp 'undo-tree-visualizer-quit))
+  (defun vimpulse-undo-quit ()
+    "Quit the undo-tree visualizer and delete window."
+    (interactive)
+    (let ((w (selected-window)))
+      (undo-tree-visualizer-quit)
+      (when (eq w (selected-window))
+        (delete-window))))
+  (add-to-list 'viper-vi-state-mode-list 'undo-tree-visualizer-mode)
+  (let ((map undo-tree-visualizer-map))
+    (vimpulse-add-core-movement-cmds map)
+    (vimpulse-inhibit-destructive-cmds map)
+    (define-key map [remap viper-backward-char] 'undo-tree-visualize-switch-branch-left)
+    (define-key map [remap viper-forward-char] 'undo-tree-visualize-switch-branch-right)
+    (define-key map [remap viper-next-line] 'undo-tree-visualize-redo)
+    (define-key map [remap viper-previous-line] 'undo-tree-visualize-undo)
+    (define-key map [remap undo-tree-visualizer-scroll-left] 'viper-scroll-up)
+    (define-key map [remap undo-tree-visualizer-scroll-left] 'viper-scroll-up-one)
+    (define-key map [remap undo-tree-visualizer-scroll-right] 'viper-scroll-down)
+    (define-key map [remap undo-tree-visualizer-scroll-right] 'viper-scroll-down-one)
+    (define-key map [remap viper-intercept-ESC-key] 'vimpulse-undo-quit)
+    (define-key map [remap undo-tree-visualizer-quit] 'vimpulse-undo-quit)
+    (viper-modify-major-mode 'undo-tree-visualizer-mode 'vi-state map)
+    (add-to-list 'ex-token-alist '("undolist" (undo-tree-visualize)))
+    (add-to-list 'ex-token-alist '("ulist" (undo-tree-visualize)))))
+
 ;;; Add vi navigation to help buffers
 
 ;; Apropos
