@@ -619,8 +619,9 @@ If called interactively, read REGISTER and COMMAND from keyboard."
       (or (cdr (assq cmd vimpulse-operator-remap-alist)) cmd)
     (or (command-remapping cmd) cmd)))
 
-(vimpulse-operator-remap 'redo 'viper-nil)
 (vimpulse-operator-remap 'undo 'viper-nil)
+(vimpulse-operator-remap 'undo-tree-redo 'viper-nil)
+(vimpulse-operator-remap 'redo 'viper-nil)
 (vimpulse-operator-remap 'viper-Put-back 'viper-nil)
 (vimpulse-operator-remap 'viper-delete-backward-char 'viper-nil)
 (vimpulse-operator-remap 'viper-delete-char 'viper-nil)
@@ -763,5 +764,7 @@ type TYPE. A custom function body may be specified via BODY."
 (put 'viper-window-bottom 'motion-type 'line)
 (put 'viper-window-middle 'motion-type 'line)
 (put 'viper-window-top 'motion-type 'line)
+(put 'next-line 'motion-type 'line)
+(put 'previous-line 'motion-type 'line)
 
 (provide 'vimpulse-operator)

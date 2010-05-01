@@ -15,9 +15,8 @@
 ;;
 ;; That's all the required steps.  The rest is optional:
 ;;
-;; 3. If using GNU Emacs, download and install
-;;    http://wonderworks.com/download/redo.el to get C-r
-;;    (redo key) to work.  redo.el is included with XEmacs.
+;; 3. For linear undo/redo and undo branches, install
+;;    undo-tree.el: http://www.emacswiki.org/emacs/UndoTree.
 ;;
 ;; Vimpulse automatically enables Viper.  You can temporarily disable
 ;; Viper (and Vimpulse) with the C-z key.
