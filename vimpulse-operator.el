@@ -43,7 +43,7 @@
 ;;
 ;; For example, (put 'foo 'motion-type 'line) gives `foo' a type of
 ;; `line'. If unspecified, the motion is considered `exclusive'.
-;; You can override the type with v, V and C-v: for example,
+;; You can override the type with v, V and C-v: for instance,
 ;; dvj will delete an exclusive range rather than a linewise.
 ;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
