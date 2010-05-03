@@ -43,6 +43,13 @@
       (setq ad-return-value vimpulse-search-prompt)
     ad-do-it))
 
+(defadvice isearch-delete-char (around vimpulse-search activate)
+  "Exit search if no search string."
+  (if (and vimpulse-search-prompt
+           (string= "" isearch-string))
+      (isearch-exit)
+    ad-do-it))
+
 (defadvice isearch-update-ring (after vimpulse-search activate)
   "Update `viper-s-string'."
   (when (eq regexp viper-re-search)
@@ -98,7 +105,8 @@ Based on `viper-re-search' and `viper-s-forward'."
       (isearch-repeat-backward)
       (isearch-exit))
     (message oldmsg)
-    (vimpulse-flash-search-pattern t)
+    (unless (string= "" isearch-string)
+      (vimpulse-flash-search-pattern t))
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-search-forward (arg)
@@ -119,7 +127,8 @@ Based on `viper-re-search' and `viper-s-forward'."
       (isearch-exit))
     (and isearch-other-end (goto-char isearch-other-end))
     (message oldmsg)
-    (vimpulse-flash-search-pattern t)
+    (unless (string= "" isearch-string)
+      (vimpulse-flash-search-pattern t))
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-flash-search-pattern (&optional only-current)
