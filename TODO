@@ -5,13 +5,6 @@
 ;;   are even the simplest of docs (a nice keymap), people will have a
 ;;   far easier time using Vimpulse and so I bet more will contribute.
 ;;
-;; - The / key should allow isearch that works like Vim's, or until
-;;   that's implemented, it should at least remap / to
-;;   `isearch-forward' or `viper-isearch-forward'.  This should be an
-;;   option that should be disabled by default.  For now, have Viper
-;;   load .vimrc and check for Vim-specific option strings like "set
-;;   incsearch". If anyone complains, rethink that plan.
-;;
 ;; - Folding.  This should be implemented as a separate Lisp library
 ;;   usable for even non-Viper users. Which foldmethods to do first?  I
 ;;   personally only use foldmethod=marker, and even that only rarely.
