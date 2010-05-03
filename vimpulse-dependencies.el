@@ -69,6 +69,9 @@ Off by default."
 (defcustom vimpulse-incremental-search t
   "Use isearch for / and ?, on by default.")
 
+(defcustom vimpulse-incremental-delay 2
+  "Number of seconds to flash search matches.")
+
 (defcustom vimpulse-want-vi-keys-in-apropos t
   "Whether to use vi keys in Apropos mode, on by default."
   :group 'vimpulse

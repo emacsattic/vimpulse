@@ -97,6 +97,7 @@ Based on `viper-re-search' and `viper-s-forward'."
       (isearch-repeat-backward)
       (isearch-exit))
     (message oldmsg)
+    (vimpulse-flash-search-pattern t)
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-search-forward (arg)
@@ -116,6 +117,7 @@ Based on `viper-re-search' and `viper-s-forward'."
       (isearch-exit))
     (and isearch-other-end (goto-char isearch-other-end))
     (message oldmsg)
+    (vimpulse-flash-search-pattern t)
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-flash-search-pattern (&optional only-current)
@@ -129,7 +131,7 @@ Based on `viper-re-search' and `viper-s-forward'."
       (unless only-current
         (isearch-lazy-highlight-new-loop)
         (isearch-lazy-highlight-update))
-      (sit-for 2)
+      (sit-for vimpulse-incremental-delay)
       (isearch-dehighlight)
       (lazy-highlight-cleanup t))))
 
