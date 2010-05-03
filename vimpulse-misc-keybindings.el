@@ -402,11 +402,35 @@
 
 ;;; Auto-indent
 
-(defadvice viper-line (after vimpulse activate)
-  "Indent if `viper-auto-indent' is t."
-  (and (boundp 'viper-auto-indent) viper-auto-indent
-       (eq ?C (cdr arg))
-       (indent-according-to-mode)))
+(defun vimpulse-autoindent ()
+  "Auto Indentation, Vim-style."
+  (interactive)
+  (let ((col (current-indentation)))
+    (when abbrev-mode
+      (expand-abbrev))
+    (if viper-preserve-indent
+	(setq viper-preserve-indent nil)
+      (setq viper-current-indent col))
+    ;; Don't leave whitespace lines around
+    (if (memq last-command
+	      '(viper-autoindent
+		viper-open-line viper-Open-line
+		viper-replace-state-exit-cmd))
+	(indent-to-left-margin))
+    (when viper-auto-indent
+      (setq viper-cted t)
+      (if (and viper-electric-mode
+               (not (memq major-mode
+                          '(fundamental-mode
+                            text-mode
+                            paragraph-indent-text-mode))))
+          (if (fboundp 'comment-indent-new-line)
+              (comment-indent-new-line)
+            (newline-and-indent))
+        (newline)
+        (indent-to col)))))
+
+(fset 'viper-autoindent 'vimpulse-autoindent)
 
 ;;; C-o, C-i
 
