@@ -66,6 +66,9 @@ Off by default."
   :type  'boolean
   :group 'vimpulse-visual)
 
+(defcustom vimpulse-incremental-search t
+  "Use isearch for / and ?, on by default.")
+
 (defcustom vimpulse-want-vi-keys-in-apropos t
   "Whether to use vi keys in Apropos mode, on by default."
   :group 'vimpulse
@@ -144,6 +147,7 @@ SYM is unquoted. Returns VAL."
 (defvar dabbrev--last-abbrev-location)
 (defvar killed-rectangle nil)
 (defvar show-paren-delay)
+(defvar undo-tree-visualizer-map)
 (defvar woman-use-own-frame)
 (defvar woman-use-topic-at-point)
 
@@ -334,31 +338,32 @@ NLINES is the number of lines in the region.")
   '(backward-char backward-list backward-paragraph backward-sentence
     backward-sexp backward-up-list backward-word beginning-of-buffer
     beginning-of-defun beginning-of-line beginning-of-visual-line
-    cua-cancel down-list end-of-buffer end-of-defun end-of-line
-    end-of-visual-line exchange-point-and-mark forward-char
-    forward-list forward-paragraph forward-sentence forward-sexp
-    forward-word keyboard-quit mouse-drag-region mouse-save-then-kill
-    mouse-set-point mouse-set-region move-beginning-of-line
-    move-end-of-line next-line previous-line scroll-down scroll-up
-    undo universal-argument up-list vimpulse-end-of-previous-word
-    vimpulse-goto-definition vimpulse-goto-first-line
-    vimpulse-goto-line vimpulse-visual-block-rotate
-    vimpulse-visual-exchange-corners vimpulse-visual-reselect
-    vimpulse-visual-restore vimpulse-visual-toggle-block
-    vimpulse-visual-toggle-line vimpulse-visual-toggle-normal
-    viper-backward-Word viper-backward-char viper-backward-paragraph
+    cua-cancel digit-argument down-list end-of-buffer end-of-defun
+    end-of-line end-of-visual-line exchange-point-and-mark
+    forward-char forward-list forward-paragraph forward-sentence
+    forward-sexp forward-word keyboard-quit mouse-drag-region
+    mouse-save-then-kill mouse-set-point mouse-set-region
+    move-beginning-of-line move-end-of-line next-line previous-line
+    scroll-down scroll-up undo universal-argument up-list
+    vimpulse-end-of-previous-word vimpulse-goto-definition
+    vimpulse-goto-first-line vimpulse-goto-line
+    vimpulse-visual-block-rotate vimpulse-visual-exchange-corners
+    vimpulse-visual-reselect vimpulse-visual-restore
+    vimpulse-visual-toggle-block vimpulse-visual-toggle-line
+    vimpulse-visual-toggle-normal viper-backward-Word
+    viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
-    viper-beginning-of-line viper-end-of-Word viper-end-of-word
-    viper-exec-mapped-kbd-macro viper-find-char-backward
-    viper-find-char-forward viper-forward-Word viper-forward-char
-    viper-forward-paragraph viper-forward-sentence viper-forward-word
-    viper-goto-char-backward viper-goto-char-forward viper-goto-eol
-    viper-goto-line viper-insert viper-intercept-ESC-key
-    viper-line-to-bottom viper-line-to-middle viper-line-to-top
-    viper-next-line viper-paren-match viper-previous-line
-    viper-search-Next viper-search-backward viper-search-forward
-    viper-search-next viper-window-bottom viper-window-middle
-    viper-window-top)
+    viper-beginning-of-line viper-digit-argument viper-end-of-Word
+    viper-end-of-word viper-exec-mapped-kbd-macro
+    viper-find-char-backward viper-find-char-forward
+    viper-forward-Word viper-forward-char viper-forward-paragraph
+    viper-forward-sentence viper-forward-word viper-goto-char-backward
+    viper-goto-char-forward viper-goto-eol viper-goto-line
+    viper-insert viper-intercept-ESC-key viper-line-to-bottom
+    viper-line-to-middle viper-line-to-top viper-next-line
+    viper-paren-match viper-previous-line viper-search-Next
+    viper-search-backward viper-search-forward viper-search-next
+    viper-window-bottom viper-window-middle viper-window-top)
   "List of commands that move point.
 If listed here, the region is not expanded to the
 Visual selection before the command is executed.")
@@ -371,6 +376,9 @@ Visual selection before the command is executed.")
   "Non-operator commands needing trailing newline in Visual Line mode.
 In most cases, it's more useful not to include this newline in
 the region acted on.")
+
+(defvar vimpulse-search-prompt nil
+  "String to use for vi-like searching.")
 
 ;;; Carefully set Viper/woman variables
 
