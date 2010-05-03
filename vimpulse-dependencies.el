@@ -148,6 +148,7 @@ SYM is unquoted. Returns VAL."
 (defvar dabbrev--last-abbreviation)
 (defvar dabbrev--last-expansion)
 (defvar dabbrev--last-abbrev-location)
+(defvar isearch-string)
 (defvar killed-rectangle nil)
 (defvar show-paren-delay)
 (defvar undo-tree-visualizer-map)
