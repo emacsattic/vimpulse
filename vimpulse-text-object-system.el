@@ -73,7 +73,7 @@ to handle a negative value, which specifies reverse direction."
          ,@doc
          (interactive "p")
          (let ((,count (if (numberp ,count) ,count 1))
-               range dir)
+               range)
            (cond
             ((region-active-p)
              (when (< (point) (mark t))
