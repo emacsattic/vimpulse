@@ -1,5 +1,10 @@
 ;;;; Redefinitions of some of Viper's functions
 
+(defadvice viper-digit-argument (around vimpulse activate)
+  "Echo digits immediately."
+  (let ((echo-keystrokes 0.01))
+    ad-do-it))
+
 (defadvice viper-change
   (around vimpulse-want-change-state activate)
   "Disable Replace state if `vimpulse-want-change-state' is nil."
