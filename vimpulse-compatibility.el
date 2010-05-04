@@ -65,7 +65,6 @@
   (isearch-update-ring string viper-re-search))
 
 ;; If `viper-search-wrap-around' is t, we want the search to wrap
-;; without warning
 (defun vimpulse-search-fun-function (&optional regexp forward)
   "Return a wrapping search function.
 Based on `viper-re-search' and `viper-s-forward'."
@@ -94,10 +93,14 @@ Based on `viper-re-search' and `viper-s-forward'."
   (let ((vimpulse-search-prompt "?")
         (lazy-highlight-initial-delay 0)
         (orig (point))
+        (isearch-mode-map isearch-mode-map)
         (isearch-search-fun-function 'vimpulse-search-fun-function)
         (oldmsg (current-message))
         message-log-max
         search-nonincremental-instead)
+    (vimpulse-vi-remap 'viper-intercept-ESC-key
+                       'isearch-exit
+                       isearch-mode-map)
     (setq viper-s-forward nil)
     (isearch-backward viper-re-search)
     (when (and (eq (point) orig)
@@ -112,12 +115,15 @@ Based on `viper-re-search' and `viper-s-forward'."
 (defun vimpulse-search-forward (arg)
   (interactive "P")
   (let ((vimpulse-search-prompt "/")
-        (lazy-highlight-initial-delay 0)
         (orig (point))
+        (isearch-mode-map isearch-mode-map)
         (isearch-search-fun-function 'vimpulse-search-fun-function)
         (oldmsg (current-message))
         message-log-max
         search-nonincremental-instead)
+    (vimpulse-vi-remap 'viper-intercept-ESC-key
+                       'isearch-exit
+                       isearch-mode-map)
     (setq viper-s-forward t)
     (isearch-forward viper-re-search)
     (and isearch-other-end (goto-char isearch-other-end))
@@ -132,19 +138,29 @@ Based on `viper-re-search' and `viper-s-forward'."
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-flash-search-pattern (&optional only-current)
-  (let* ((isearch-string viper-s-string)
-         (isearch-forward viper-s-forward)
-         (isearch-regexp viper-re-search)
-         (isearch-search-fun-function 'vimpulse-search-fun-function)
-         isearch-lazy-highlight-last-string)
+  (let ((lazy-highlight-initial-delay 0)
+        (isearch-search-fun-function 'vimpulse-search-fun-function))
+    (when vimpulse-flash-timer
+      (cancel-timer vimpulse-flash-timer))
     (when (viper-has-face-support-p)
       (isearch-highlight (match-beginning 0) (match-end 0))
       (unless only-current
+        (setq isearch-string viper-s-string
+              isearch-forward viper-s-forward
+              isearch-regexp viper-re-search
+              isearch-lazy-highlight-wrapped nil
+              isearch-lazy-highlight-start (point)
+              isearch-lazy-highlight-end (point))
         (isearch-lazy-highlight-new-loop)
-        (isearch-lazy-highlight-update))
-      (sit-for vimpulse-incremental-delay)
-      (isearch-dehighlight)
-      (lazy-highlight-cleanup t))))
+        (unless isearch-lazy-highlight-overlays
+          (isearch-lazy-highlight-update)))
+      (setq vimpulse-flash-timer
+            (run-at-time
+             vimpulse-flash-delay nil
+             (lambda ()
+               (isearch-dehighlight)
+               (setq isearch-lazy-highlight-last-string nil)
+               (lazy-highlight-cleanup t)))))))
 
 (when vimpulse-incremental-search
   (fset 'viper-search-backward 'vimpulse-search-backward)
@@ -199,7 +215,7 @@ Based on `viper-re-search' and `viper-s-forward'."
        (vimpulse-inhibit-destructive-cmds map)
        (define-key map "\C-t" 'Info-history-back) ; l
        (define-key map "\C-o" 'Info-history-back)
-       (define-key map "\M-h" 'Info-help) ; h
+       (define-key map (kbd "\M-h") 'Info-help) ; h
        (define-key map " " 'Info-scroll-up)
        (define-key map "\C-]" 'Info-follow-nearest-node)
        (define-key map [backspace] 'Info-scroll-down)
