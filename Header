@@ -35,7 +35,7 @@
 ;; minor mode that emulates vi.  Vimpulse is not a minor mode; as soon
 ;; as it is loaded, Viper will start working in a more Vim-like way.
 ;;
-;; Vimpulse is under heavy development, but seems to work quite well
+;; Vimpulse is under active development, and seems to work quite well
 ;; with GNU Emacs 22.3 and 23.1, as well as XEmacs 21.4.22.  Patches
 ;; and feature requests are welcome.
 
