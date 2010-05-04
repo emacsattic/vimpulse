@@ -409,14 +409,14 @@
     (when abbrev-mode
       (expand-abbrev))
     (if viper-preserve-indent
-	(setq viper-preserve-indent nil)
+        (setq viper-preserve-indent nil)
       (setq viper-current-indent col))
     ;; Don't leave whitespace lines around
     (if (memq last-command
-	      '(viper-autoindent
-		viper-open-line viper-Open-line
-		viper-replace-state-exit-cmd))
-	(indent-to-left-margin))
+              '(viper-autoindent
+                viper-open-line viper-Open-line
+                viper-replace-state-exit-cmd))
+        (indent-to-left-margin))
     (when viper-auto-indent
       (setq viper-cted t)
       (if (and viper-electric-mode
