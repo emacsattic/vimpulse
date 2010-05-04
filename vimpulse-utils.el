@@ -29,7 +29,7 @@ where KEY and DEF are passed to `define-key'."
   "Add vi bindings for CMDS to MAP.
 Add forcefully if REPLACE is t. Don't add keys matching FILTER,
 which is a list of key vectors."
-  (let (pmap keys)
+  (let ((bindings (apply 'vimpulse-get-vi-bindings cmds)))
     (unless filter
       (when (and (boundp 'viper-want-ctl-h-help)
                  viper-want-ctl-h-help)
@@ -37,30 +37,35 @@ which is a list of key vectors."
       (unless (and (boundp 'vimpulse-want-C-u-like-Vim)
                    vimpulse-want-C-u-like-Vim)
         (add-to-list 'filter [?\C-u])))
-    (setq pmap (make-sparse-keymap))
-    (dolist (cmd cmds map)
-      (dolist (vimap (list viper-vi-intercept-map
-                           viper-vi-local-user-map
-                           viper-vi-global-user-map
-                           viper-vi-kbd-map
-                           viper-vi-diehard-map
-                           viper-vi-basic-map))
-        (setq keys (where-is-internal cmd vimap))
-        (dolist (key keys)
-          (unless (let (match)
-                    (dolist (entry filter match)
-                      (when (equal key (vimpulse-truncate
-                                        entry (length key)))
-                        (setq match t))))
-            (when (or (not (lookup-key pmap key))
-                      (numberp (lookup-key pmap key)))
-              (vimpulse-augment-keymap map
-                                       `((,key . ,cmd))
-                                       replace)
-              ;; To prioritize between maps in `vimap',
-              ;; we keep track of bindings by augmenting `pmap'.
-              (vimpulse-augment-keymap pmap
-                                       `((,key . ,cmd))))))))))
+    (dolist (key filter)
+      (setq bindings (assq-delete-all key bindings)))
+    (vimpulse-augment-keymap map bindings replace)))
+
+(defun vimpulse-get-bindings (cmd &rest maps)
+  "Return assocation list of bindings for CMD in MAPS."
+  (let (keys bindings)
+    (setq maps (or maps '(nil)))
+    (dolist (map maps bindings)
+      (unless (keymapp map)
+        (setq map (eval map)))
+      (setq keys (where-is-internal cmd map))
+      (dolist (key keys)
+        (unless (assq key bindings)
+          (add-to-list 'bindings (cons key cmd) t))))))
+
+(defun vimpulse-get-vi-bindings (&rest cmds)
+  "Return assocation list of vi bindings for CMDS."
+  (let (bindings)
+    (dolist (cmd cmds bindings)
+      (dolist (binding (apply 'vimpulse-get-bindings cmd
+                              '(viper-vi-intercept-map
+                                viper-vi-local-user-map
+                                viper-vi-global-user-map
+                                viper-vi-kbd-map
+                                viper-vi-diehard-map
+                                viper-vi-basic-map)))
+        (unless (assq (car binding) bindings)
+          (add-to-list 'bindings binding t))))))
 
 (defun vimpulse-add-movement-cmds (map &optional replace)
   "Add Viper/Vimpulse movement commands to MAP.
@@ -121,6 +126,18 @@ association list\"."
            (add-to-list remap-alist (cons from to))))
     `(let ((keymap ,keymap) (from ,from) (to ,to))
        (define-key keymap `[remap ,from] to))))
+
+(defun vimpulse-vi-remap (from to &optional keymap)
+  "Remap FROM to TO in vi (command) state.
+If KEYMAP is specified, take the keys that FROM is bound to
+in vi state and bind them to TO in KEYMAP."
+  (if keymap
+      (vimpulse-augment-keymap
+       keymap
+       (mapcar (lambda (binding)
+                 (cons (car binding) to))
+               (vimpulse-get-vi-bindings from)))
+    (define-key viper-vi-basic-map `[remap ,from] to)))
 
 ;;; Vector tools
 
