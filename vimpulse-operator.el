@@ -79,7 +79,7 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 (defun vimpulse-operator-exit-hook ()
   "Exit Operator-Pending mode."
   (when (eq 'operator-state viper-current-state)
-    (viper-change-state-to-vi)))
+    (save-excursion (viper-change-state-to-vi))))
 
 (add-hook 'pre-command-hook 'vimpulse-operator-exit-hook)
 (add-hook 'post-command-hook 'vimpulse-operator-exit-hook)
@@ -154,8 +154,7 @@ from the keyboard. This has no effect on Visual behavior."
                       (vimpulse-visual-toggle-line . line)
                       (vimpulse-visual-toggle-block . block)))
         (type (when whole-lines 'line))
-        (oldmsg (current-message))
-        viper-ESC-moves-cursor-back)
+        (oldmsg (current-message)))
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
           vimpulse-this-motion nil
@@ -221,7 +220,7 @@ from the keyboard. This has no effect on Visual behavior."
                   '(viper-nil
                     keyboard-quit))
             (vimpulse-operator-cmd-p vimpulse-this-motion))
-        (viper-change-state-to-vi)
+        (save-excursion (viper-change-state-to-vi))
         (setq quit-flag t))
        (t
         ;; Multiply operator count and motion count together
@@ -245,7 +244,7 @@ from the keyboard. This has no effect on Visual behavior."
           (when (and viper-auto-indent
                      (looking-back "^[ \f\t\v]*"))
             (back-to-indentation)))
-        (viper-change-state-to-vi)))))
+        (save-excursion (viper-change-state-to-vi))))))
     ;; Set up repeat
     (unless no-repeat
       (setq vimpulse-last-operator vimpulse-this-operator
