@@ -89,6 +89,8 @@ Based on `viper-re-search' and `viper-s-forward'."
                retval)))))
 
 (defun vimpulse-search-backward (arg)
+  "Search backward for user-entered text.
+Searches for regular expression if `viper-re-search' is t."
   (interactive "P")
   (let ((vimpulse-search-prompt "?")
         (lazy-highlight-initial-delay 0)
@@ -113,6 +115,8 @@ Based on `viper-re-search' and `viper-s-forward'."
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-search-forward (arg)
+  "Search forward for user-entered text.
+Searches for regular expression if `viper-re-search' is t."
   (interactive "P")
   (let ((vimpulse-search-prompt "/")
         (orig (point))
@@ -138,10 +142,20 @@ Based on `viper-re-search' and `viper-s-forward'."
     (setq vimpulse-this-motion 'viper-search-next)))
 
 (defun vimpulse-flash-search-pattern (&optional only-current)
+  "Flash search matches for duration of `vimpulse-flash-delay'."
   (let ((lazy-highlight-initial-delay 0)
-        (isearch-search-fun-function 'vimpulse-search-fun-function))
+        (isearch-search-fun-function 'vimpulse-search-fun-function)
+        (disable-func (lambda (&optional arg)
+                        (isearch-dehighlight)
+                        (setq isearch-lazy-highlight-last-string nil)
+                        (and (fboundp 'isearch-highlight-all-cleanup)
+                             (isearch-highlight-all-cleanup))
+                        (and (fboundp 'lazy-highlight-cleanup)
+                             (lazy-highlight-cleanup t)))))
     (when vimpulse-flash-timer
-      (cancel-timer vimpulse-flash-timer))
+      (if (fboundp 'disable-timeout)
+          (disable-timeout vimpulse-flash-timer)
+        (cancel-timer vimpulse-flash-timer)))
     (when (viper-has-face-support-p)
       (isearch-highlight (match-beginning 0) (match-end 0))
       (unless only-current
@@ -151,16 +165,16 @@ Based on `viper-re-search' and `viper-s-forward'."
               isearch-lazy-highlight-wrapped nil
               isearch-lazy-highlight-start (point)
               isearch-lazy-highlight-end (point))
-        (isearch-lazy-highlight-new-loop)
-        (unless isearch-lazy-highlight-overlays
-          (isearch-lazy-highlight-update)))
+        (and (fboundp 'isearch-lazy-highlight-new-loop)
+             (isearch-lazy-highlight-new-loop))
+        (unless (and (boundp 'isearch-lazy-highlight-overlays)
+                     isearch-lazy-highlight-overlays)
+          (and (fboundp 'isearch-lazy-highlight-update)
+               (isearch-lazy-highlight-update))))
       (setq vimpulse-flash-timer
-            (run-at-time
-             vimpulse-flash-delay nil
-             (lambda ()
-               (isearch-dehighlight)
-               (setq isearch-lazy-highlight-last-string nil)
-               (lazy-highlight-cleanup t)))))))
+            (if (fboundp 'run-at-time)
+                (add-timeout vimpulse-flash-delay disable-func nil)
+              (run-at-time vimpulse-flash-delay nil disable-func))))))
 
 (when vimpulse-incremental-search
   (fset 'viper-search-backward 'vimpulse-search-backward)
