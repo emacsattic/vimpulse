@@ -145,13 +145,7 @@ Searches for regular expression if `viper-re-search' is t."
   "Flash search matches for duration of `vimpulse-flash-delay'."
   (let ((lazy-highlight-initial-delay 0)
         (isearch-search-fun-function 'vimpulse-search-fun-function)
-        (disable-func (lambda (&optional arg)
-                        (isearch-dehighlight)
-                        (setq isearch-lazy-highlight-last-string nil)
-                        (and (fboundp 'isearch-highlight-all-cleanup)
-                             (isearch-highlight-all-cleanup))
-                        (and (fboundp 'lazy-highlight-cleanup)
-                             (lazy-highlight-cleanup t)))))
+        (disable (lambda (&optional arg) (vimpulse-flash-hook t))))
     (when vimpulse-flash-timer
       (if (fboundp 'disable-timeout)
           (disable-timeout vimpulse-flash-timer)
@@ -171,10 +165,38 @@ Searches for regular expression if `viper-re-search' is t."
                      isearch-lazy-highlight-overlays)
           (and (fboundp 'isearch-lazy-highlight-update)
                (isearch-lazy-highlight-update))))
+      (add-hook 'pre-command-hook 'vimpulse-flash-hook)
       (setq vimpulse-flash-timer
             (if (fboundp 'run-at-time)
-                (add-timeout vimpulse-flash-delay disable-func nil)
-              (run-at-time vimpulse-flash-delay nil disable-func))))))
+                (add-timeout vimpulse-flash-delay disable nil)
+              (run-at-time vimpulse-flash-delay nil disable))))))
+
+(defun vimpulse-flash-hook (&optional force)
+  "Disable hightlighting if `this-command' is not search.
+Disable anyway if FORCE is t."
+  (when (or force
+            ;; To avoid flicker, don't disable highlighting if the
+            ;; next command is also a search command
+            (not (memq this-command
+                       '(viper-exec-mapped-kbd-macro
+                         viper-search
+                         viper-search-backward
+                         viper-search-forward
+                         viper-search-next
+                         viper-search-Next
+                         vimpulse-search-backward
+                         vimpulse-search-forward
+                         vimpulse-search-backward-for-symbol-at-point
+                         vimpulse-search-forward-for-symbol-at-point))))
+    (isearch-dehighlight)
+    (setq isearch-lazy-highlight-last-string nil)
+    (and (fboundp 'isearch-highlight-all-cleanup)
+         (isearch-highlight-all-cleanup))
+    (and (fboundp 'lazy-highlight-cleanup)
+         (lazy-highlight-cleanup t))
+    (when vimpulse-flash-timer
+      (cancel-timer vimpulse-flash-timer)))
+  (remove-hook 'pre-command-hook 'vimpulse-flash-hook))
 
 (when vimpulse-incremental-search
   (fset 'viper-search-backward 'vimpulse-search-backward)
