@@ -710,6 +710,94 @@ docstring. The variable becomes buffer-local whenever set.")
       (2 font-lock-variable-name-face nil t))
      ("(\\(viper-loop\\)\\>" 1 font-lock-keyword-face))))
 
+;; Search bug: `viper-search' flashes twice when search wraps
+(defun vimpulse-search
+  (string forward arg
+          &optional no-offset init-point fail-if-not-found dont-flash)
+  (if (not (equal string ""))
+      (let ((val (viper-p-val arg))
+            (com (viper-getcom arg))
+            (offset (not no-offset))
+            (case-fold-search viper-case-fold-search)
+            (start-point (or init-point (point))))
+        (viper-deactivate-mark)
+        (if forward
+            (condition-case nil
+                (progn
+                  (if offset (viper-forward-char-carefully))
+                  (if viper-re-search
+                      (progn
+                        (re-search-forward string nil nil val)
+                        (re-search-backward string))
+                    (search-forward string nil nil val)
+                    (search-backward string))
+                  (if (not (equal start-point (point)))
+                      (push-mark start-point t)))
+              (search-failed
+               (if (and (not fail-if-not-found)
+                        viper-search-wrap-around)
+                   (progn
+                     (message "Search wrapped around BOTTOM of buffer")
+                     (goto-char (point-min))
+                     (viper-search string forward (cons 1 com)
+                                   t start-point 'fail)
+                     (setq dont-flash t)
+                     ;; don't wait in macros
+                     (or executing-kbd-macro
+                         (memq viper-intermediate-command
+                               '(viper-repeat
+                                 viper-digit-argument
+                                 viper-command-argument))
+                         (sit-for 2))
+                     ;; delete the wrap-around message
+                     (message ""))
+                 (goto-char start-point)
+                 (error "`%s': %s not found"
+                        string
+                        (if viper-re-search "Pattern" "String")))))
+          ;; backward
+          (condition-case nil
+              (progn
+                (if viper-re-search
+                    (re-search-backward string nil nil val)
+                  (search-backward string nil nil val))
+                (if (not (equal start-point (point)))
+                    (push-mark start-point t)))
+            (search-failed
+             (if (and (not fail-if-not-found) viper-search-wrap-around)
+                 (progn
+                   (message "Search wrapped around TOP of buffer")
+                   (goto-char (point-max))
+                   (viper-search string forward (cons 1 com)
+                                 t start-point 'fail)
+                   (setq dont-flash t)
+                   ;; don't wait in macros
+                   (or executing-kbd-macro
+                       (memq viper-intermediate-command
+                             '(viper-repeat
+                               viper-digit-argument
+                               viper-command-argument))
+                       (sit-for 2))
+                   ;; delete the wrap-around message
+                   (message ""))
+               (goto-char start-point)
+               (error "`%s': %s not found"
+                      string
+                      (if viper-re-search "Pattern" "String"))))))
+        ;; pull up or down if at top/bottom of window
+        (viper-adjust-window)
+        ;; highlight the result of search
+        ;; don't wait and don't highlight in macros
+        (or dont-flash
+            executing-kbd-macro
+            (memq viper-intermediate-command
+                  '(viper-repeat
+                    viper-digit-argument
+                    viper-command-argument))
+            (viper-flash-search-pattern)))))
+
+(fset 'viper-search 'vimpulse-search)
+
 ;; e/E bug: on a single-letter word, ce may change two words
 (defun vimpulse-end-of-word-kernel ()
   (when (viper-looking-at-separator)
