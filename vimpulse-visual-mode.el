@@ -746,7 +746,9 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
           (yank-rectangle))
       ad-do-it)
     (when vimpulse-visual-mode
-      (vimpulse-visual-mode -1))))
+      (vimpulse-visual-mode -1))
+    (when (and viper-auto-indent viper-electric-mode)
+      (indent-region (region-beginning) (region-end)))))
 
 (defadvice viper-put-back (around vimpulse-visual activate)
   "Delete selection before pasting in Visual mode."
@@ -767,7 +769,9 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
    (t
     ad-do-it))
   (when vimpulse-visual-mode
-    (vimpulse-visual-mode -1)))
+    (vimpulse-visual-mode -1))
+  (when (and viper-auto-indent viper-electric-mode)
+    (indent-region (region-beginning) (region-end))))
 
 ;; Viper's larger movement commands use the mark to store the previous
 ;; position, which is fine and useful when the mark isn't active. When
