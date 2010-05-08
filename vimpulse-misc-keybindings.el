@@ -43,6 +43,9 @@
 (define-key viper-vi-basic-map "#" 'vimpulse-search-backward-for-symbol-at-point)
 (define-key viper-vi-basic-map "+" 'vimpulse-previous-line-skip-white)
 (define-key viper-vi-basic-map "_" 'vimpulse-next-line-skip-white)
+(define-key viper-vi-basic-map "]" nil) ; delete `viper-ket-function' binding
+(define-key viper-vi-basic-map "]P" 'vimpulse-Put-and-indent)
+(define-key viper-vi-basic-map "]p" 'vimpulse-put-and-indent)
 (define-key viper-vi-basic-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-basic-map "\C-t" 'pop-tag-mark)
 
@@ -429,6 +432,22 @@
             (newline-and-indent))
         (newline)
         (indent-to col)))))
+
+(defun vimpulse-Put-and-indent (&optional arg)
+  "Put before point/line and indent to current line.
+Doesn't indent with a prefix argument."
+  (interactive "P")
+  (viper-Put-back nil)
+  (unless arg
+    (indent-region (region-beginning) (region-end))))
+
+(defun vimpulse-put-and-indent (&optional arg)
+  "Put after point/line and indent to current line.
+Doesn't indent with a prefix argument."
+  (interactive "P")
+  (viper-put-back nil)
+  (unless arg
+    (indent-region (region-beginning) (region-end))))
 
 (fset 'viper-autoindent 'vimpulse-autoindent)
 
