@@ -18,6 +18,22 @@
     (kill-region beg end)
     (viper-change-state-to-insert))))
 
+(defun vimpulse-set-replace-cursor-type ()
+  "Display a horizontal bar cursor."
+  (unless (featurep 'xemacs)
+    (setq cursor-type '(hbar . 4))))
+
+(set-face-foreground viper-replace-overlay-face nil)
+(set-face-background viper-replace-overlay-face nil)
+
+(unless (featurep 'xemacs)
+  (setq viper-replace-overlay-cursor-color
+        viper-vi-state-cursor-color)
+  (add-hook 'viper-replace-state-hook
+            'vimpulse-set-replace-cursor-type)
+  (remove-hook 'viper-replace-state-hook
+               'viper-restore-cursor-type))
+
 ;;; Code for adding extra states
 
 ;; State index variables: for keeping track of which modes
