@@ -83,6 +83,8 @@
 ;; Vim-like completion keys
 (define-key viper-insert-basic-map "\C-p" 'dabbrev-expand)
 (define-key viper-insert-basic-map "\C-n" 'vimpulse-abbrev-expand-after)
+(define-key viper-insert-basic-map "\C-x\C-p" 'vimpulse-expand-line)
+(define-key viper-insert-basic-map "\C-x\C-n" 'vimpulse-expand-line)
 (define-key viper-insert-basic-map [delete] 'delete-char) ;; delete key
                                         ; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
@@ -567,10 +569,12 @@ Search backwards if a match isn't found."
   ;; Back up global variables
   (let ((abbrev (and (boundp 'dabbrev--last-abbreviation)
                      dabbrev--last-abbreviation))
+        (abbrev-loc (and (boundp 'dabbrev--last-abbrev-location)
+                         dabbrev--last-abbrev-location))
         (expansion (and (boundp 'dabbrev--last-expansion)
                         dabbrev--last-expansion))
-        (location (and (boundp 'dabbrev--last-abbrev-location)
-                       dabbrev--last-abbrev-location)))
+        (expansion-loc (and (boundp 'dabbrev--last-expansion-location)
+                            dabbrev--last-expansion-location)))
     ;; Expand in same direction as previously,
     ;; initially forward
     (condition-case nil
@@ -578,13 +582,25 @@ Search backwards if a match isn't found."
             (dabbrev-expand nil)
           (setq dabbrev--last-direction -1)
           (dabbrev-expand -1))
-      ;; Failure wipes out global variables; restore them
-      ;; and search in opposite direction
+      ;; Restore dabbrev variables if version < 23.2
       (error (progn
-               (setq dabbrev--last-abbreviation abbrev
-                     dabbrev--last-expansion expansion
-                     dabbrev--last-abbrev-location location)
+               (when (< 23.2 (progn (string-match "^[0-9]+\\.[0-9]+"
+                                                  emacs-version)
+                                    (string-to-number
+                                     (match-string 0 emacs-version))))
+                 (setq dabbrev--last-abbreviation abbrev
+                       dabbrev--last-abbrev-location abbrev-loc
+                       dabbrev--last-expansion expansion
+                       dabbrev--last-expansion-location expansion-loc))
                (setq dabbrev--last-direction 1)
                (dabbrev-expand nil) nil)))))
+
+(defun vimpulse-expand-line (&optional arg)
+  "Expand a whole line."
+  (interactive "P")
+  (let ((hippie-expand-try-functions-list
+         '(try-expand-line
+           try-expand-line-all-buffers)))
+    (hippie-expand arg)))
 
 (provide 'vimpulse-misc-keybindings)
