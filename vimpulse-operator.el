@@ -658,7 +658,8 @@ ARGS is passed to `vimpulse-range'."
    ((eq 'operator-state viper-current-state)
     (setq com ?r)
     ad-do-it
-    (unless (eq 'viper-repeat viper-intermediate-command)
+    (unless (or (eq 'viper-repeat this-command)
+                (eq 'viper-repeat viper-intermediate-command))
       (unless viper-d-com
         (setq viper-d-com (list nil nil nil nil nil nil)))
       (unless (eq vimpulse-this-motion
