@@ -584,10 +584,7 @@ Search backwards if a match isn't found."
           (dabbrev-expand -1))
       ;; Restore dabbrev variables if version < 23.2
       (error (progn
-               (when (< 23.2 (progn (string-match "^[0-9]+\\.[0-9]+"
-                                                  emacs-version)
-                                    (string-to-number
-                                     (match-string 0 emacs-version))))
+               (when (version< "23.2.1" emacs-version)
                  (setq dabbrev--last-abbreviation abbrev
                        dabbrev--last-abbrev-location abbrev-loc
                        dabbrev--last-expansion expansion
