@@ -10,3 +10,5 @@
 (require 'vimpulse-visual-mode)
 (require 'vimpulse-compatibility)
 (provide 'vimpulse)
+
+;;; vimpulse.el ends here
