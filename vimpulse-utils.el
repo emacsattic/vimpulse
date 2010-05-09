@@ -84,35 +84,46 @@ If AUGMENT is non-nil, don't overwrite bindings in MAP."
                             vimpulse-core-movement-cmds
                             (not augment)))
 
+(defun vimpulse-inhibit-cmds (map cmds &optional replace)
+  "Remap CMDS to `viper-nil' in MAP.
+REPLACE is passed to `vimpulse-augment-keymap'."
+  (vimpulse-augment-keymap
+   map (mapcar (lambda (cmd)
+                 (cons `[remap ,cmd] 'viper-nil))
+               cmds) replace))
+
 (defun vimpulse-inhibit-movement-cmds (map &optional replace)
   "Remap Viper movement commands to `viper-nil' in MAP.
 The commands are taken from `vimpulse-viper-movement-cmds'.
 If REPLACE is non-nil, may overwrite bindings in MAP."
-  (dolist (cmd vimpulse-viper-movement-cmds)
-    (eval `(vimpulse-augment-keymap
-            map '(([remap ,cmd] . viper-nil))
-            replace))))
+  (vimpulse-inhibit-cmds map vimpulse-viper-movement-cmds replace))
+
+(defun vimpulse-inhibit-other-movement-cmds (map &optional replace)
+  "Remap non-core Viper movement commands to `viper-nil' in MAP.
+The commands are taken from `vimpulse-viper-movement-cmds'.
+If REPLACE is non-nil, may overwrite bindings in MAP."
+  (let ((cmds vimpulse-viper-movement-cmds))
+    ;; Remove core movement commands
+    (dolist (cmd vimpulse-core-movement-cmds)
+      (setq cmds (delq cmd cmds)))
+    (vimpulse-inhibit-cmds map cmds replace)))
 
 (defun vimpulse-inhibit-destructive-cmds (map &optional replace)
-  "Remap destructive Viper commands to `viper-nil' in MAP.
-This isn't complete since `viper-command-argument' is left out so
-that yanking may work, but as change and delete fail silently in
-read-only buffers anyway, it does the job."
-  (dolist (cmd '(viper-Append
-                 viper-Insert
-                 viper-append
-                 viper-change-to-eol
-                 viper-insert
-                 viper-kill-line
-                 viper-substitute
-                 viper-substitute-line
-                 vimpulse-change
-                 vimpulse-delete
-                 vimpulse-visual-append
-                 vimpulse-visual-insert))
-    (eval `(vimpulse-augment-keymap
-            map '(([remap ,cmd] . viper-nil))
-            replace))))
+  "Remap destructive Viper commands to `viper-nil' in MAP."
+  (let ((cmds '(viper-Append
+                viper-Insert
+                viper-append
+                viper-change-to-eol
+                viper-command-argument
+                viper-insert
+                viper-kill-line
+                viper-substitute
+                viper-substitute-line
+                vimpulse-change
+                vimpulse-delete
+                vimpulse-visual-append
+                vimpulse-visual-insert)))
+    (vimpulse-inhibit-cmds map cmds replace)))
 
 (defmacro vimpulse-remap (keymap from to)
   "Remap FROM to TO in KEYMAP.
