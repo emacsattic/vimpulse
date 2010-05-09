@@ -113,37 +113,46 @@ Off by default."
       (get symbol 'customized-face)
       (get symbol 'saved-value)))
 
-(defmacro vimpulse-setq-custom (sym val)
+(defmacro vimpulse-setq-custom (sym val &rest body)
   "Set the customized value of SYM to VAL."
-  `(prog1 (setq ,sym ,val)              ; return VAL
-     (when (get ',sym 'custom-autoload)
-       (custom-load-symbol ',sym))
-     (put ',sym 'customized-value (list (custom-quote ,val)))))
+  `(progn
+     (prog1 (setq ,sym ,val)            ; return VAL
+       (when (get ',sym 'custom-autoload)
+         (custom-load-symbol ',sym))
+       (put ',sym 'customized-value (list (custom-quote ,val))))
+     ,@(when body
+         `((vimpulse-setq-custom ,@body)))))
 
-(defmacro vimpulse-setq-custom-default (symbol value)
+(defmacro vimpulse-setq-custom-default (symbol value &rest body)
   "Set the customized default value of SYMBOL to VALUE."
-  `(prog1 ,value                        ; return VALUE
-     (when (get ',symbol 'custom-autoload)
-       (custom-load-symbol ',symbol))
-     (put ',symbol 'standard-value (list (custom-quote ,value)))))
+  `(progn
+     (prog1 ,value                       ; return VALUE
+       (when (get ',symbol 'custom-autoload)
+         (custom-load-symbol ',symbol))
+       (put ',symbol 'standard-value (list (custom-quote ,value))))
+     ,@(when body
+         `((vimpulse-setq-custom-default ,@body)))))
 
-(defmacro vimpulse-setq (sym val)
+(defmacro vimpulse-setq (sym val &rest body)
   "Set SYM to VAL, defaults included, unless SYM is customized.
 SYM is unquoted. Returns VAL."
-  `(cond
-    ;; Customized value: just set custom standard value
-    ((vimpulse-custom-value-p ',sym)
-     (vimpulse-setq-custom-default ,sym ,val))
-    ;; Customized variable: set custom and regular values
-    ((custom-variable-p ',sym)
-     (vimpulse-setq-custom-default ,sym ,val)
-     (vimpulse-setq-custom ,sym ,val)
-     (setq-default ,sym ,val)
-     (setq ,sym ,val))
-    ;; Regular variable; set default and local values
-    (t
-     (setq-default ,sym ,val)
-     (setq ,sym ,val))))
+  `(progn
+     (cond
+      ;; Customized value: just set custom standard value
+      ((vimpulse-custom-value-p ',sym)
+       (vimpulse-setq-custom-default ,sym ,val))
+      ;; Customized variable: set custom and regular values
+      ((custom-variable-p ',sym)
+       (vimpulse-setq-custom-default ,sym ,val)
+       (vimpulse-setq-custom ,sym ,val)
+       (setq-default ,sym ,val)
+       (setq ,sym ,val))
+      ;; Regular variable; set default and local values
+      (t
+       (setq-default ,sym ,val)
+       (setq ,sym ,val)))
+     ,@(when body
+         `((vimpulse-setq ,@body)))))
 
 ;;; Initialize variables
 
