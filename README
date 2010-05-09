@@ -5,9 +5,9 @@
 ;; change, r to replace, or y to copy.  You can use p to paste.  For
 ;; Line selection, press V instead of v; then you can copy and paste
 ;; whole lines.  For Block selection, press C-v; now you can copy and
-;; paste the selected rectangle.  In Block selection, you may use I
-;; or A to insert or append text before or after the selection on each
-;; line.
+;; paste the selected rectangle.  In Block selection, you may use
+;; I or A to insert or append text before or after the selection on
+;; each line.
 ;;
 ;; Other features:
 ;;
@@ -29,6 +29,12 @@
 ;; - Vimpulse makes C-r run Redo in command mode, but you can
 ;;   still get reverse isearch by pressing C-s and then C-r.
 ;;
-;; - To change the color of Visual mode, add the following to .emacs:
-;;   (set-face-background 'region "blue") ; `zmacs-region' in XEmacs
-
+;; - To change the color of search, add something like the following
+;;   to .emacs:
+;;
+;;       (set-face-foreground isearch nil)
+;;       (set-face-background isearch "lightgoldenrod2")
+;;
+;; - To change the color of Visual mode (`zmacs-region' in XEmacs):
+;;
+;;       (set-face-background 'region "blue")
