@@ -584,7 +584,7 @@ Search backwards if a match isn't found."
           (dabbrev-expand -1))
       ;; Restore dabbrev variables if version < 23.2
       (error (progn
-               (when (version< "23.2.1" emacs-version)
+               (when (version< emacs-version "23.2")
                  (setq dabbrev--last-abbreviation abbrev
                        dabbrev--last-abbrev-location abbrev-loc
                        dabbrev--last-expansion expansion
