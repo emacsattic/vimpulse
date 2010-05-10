@@ -174,7 +174,8 @@ from the keyboard. This has no effect on Visual behavior."
       (if (eq 'block vimpulse-this-motion-type)
           (vimpulse-visual-block-rotate
            'upper-left (apply 'min range) (apply 'max range))
-        (goto-char (apply 'min range)))
+        (goto-char (apply 'min range))
+        (set-mark  (apply 'max range)))
       ;; Disable selection
       (setq vimpulse-this-motion 'vimpulse-visual-reselect)
       (unless keep-visual
