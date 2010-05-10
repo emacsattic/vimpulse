@@ -169,7 +169,7 @@
      ((null val)
       (goto-char (point-min)))
      (t
-      (goto-line val)))
+      (viper-goto-line val)))
     (when com
       (viper-execute-com 'vimpulse-goto-line val com))))
 
