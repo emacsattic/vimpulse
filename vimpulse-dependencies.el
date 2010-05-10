@@ -215,7 +215,7 @@ These should be present in every mode, to avoid confusion.")
      (cdr vimpulse-mark-list)  = future positions (previously popped)
      (cadr vimpulse-mark-list) = next position (to jump to)
 
- In other words, a sort of \"reverse mark ring\": marks which are
+ In other words, a sort of \"reverse mark ring\": marks that are
  popped off the mark ring, are collected here.")
 
 (viper-deflocalvar vimpulse-replace-alist nil
@@ -296,7 +296,7 @@ Used by `vimpulse-operator-repeat'.")
   "Current Visual mode: may be nil, `normal', `line' or `block'.")
 
 (viper-deflocalvar vimpulse-visual-global-vars nil
-  "List of variables which were global.")
+  "List of variables that were global.")
 
 (viper-deflocalvar vimpulse-visual-local-vars
   '(cua-mode
@@ -304,7 +304,7 @@ Used by `vimpulse-operator-repeat'.")
     transient-mark-mode
     zmacs-regions
     vimpulse-visual-region-expanded)
-  "System variables which are reset for each Visual session.")
+  "System variables that are reset for each Visual session.")
 
 (viper-deflocalvar vimpulse-visual-vars-alist nil
   "Alist of old variable values.")
