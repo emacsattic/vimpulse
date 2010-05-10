@@ -1,3 +1,4 @@
+.PHONY: all
 all: vimpulse-big.el
 
 vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
@@ -32,7 +33,6 @@ vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
 	    vimpulse.el \
 	> vimpulse-big.el
 
+.PHONY: clean
 clean:
-	-rm vimpulse-big.el
-
-
+	rm -f vimpulse-big.el
