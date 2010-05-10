@@ -160,6 +160,7 @@ SYM is unquoted. Returns VAL."
 (defvar dabbrev--last-abbreviation)
 (defvar dabbrev--last-direction)
 (defvar dabbrev--last-expansion)
+(defvar dabbrev--last-expansion-location)
 (defvar isearch-forward)
 (defvar isearch-lazy-highlight-end)
 (defvar isearch-lazy-highlight-last-string)
