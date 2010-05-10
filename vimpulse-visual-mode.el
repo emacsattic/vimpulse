@@ -248,8 +248,7 @@ Enable forcefully with positive ARG. Disable with negative ARG."
                        (cons 'cua-mode cua-mode))))
       (cond
        ((and (fboundp 'cua-mode)
-             (and (fboundp 'vimpulse-visual-before)
-                  (vimpulse-visual-before (eq cua-mode t)))
+             (and (vimpulse-visual-before (eq cua-mode t)))
              (or (not cua-mode) (numberp arg)))
         (cua-mode 1))
        ((and (fboundp 'transient-mark-mode)
@@ -264,29 +263,25 @@ Enable forcefully with positive ARG. Disable with negative ARG."
  Also restores Cua mode."
   (when vimpulse-visual-vars-alist
     (when (boundp 'transient-mark-mode)
-      (if (and (fboundp 'vimpulse-visual-before)
-               (vimpulse-visual-before transient-mark-mode))
+      (if (and (vimpulse-visual-before transient-mark-mode))
           (transient-mark-mode 1)
         (transient-mark-mode -1)))
     (when (boundp 'cua-mode)
-      (if (and (fboundp 'vimpulse-visual-before)
-               (vimpulse-visual-before cua-mode))
+      (if (and (vimpulse-visual-before cua-mode))
           (cua-mode 1)
         (cua-mode -1)))
     (when (boundp 'zmacs-regions)
-      (let ((oldval (and (fboundp 'vimpulse-visual-before)
-                         (vimpulse-visual-before zmacs-regions))))
+      (let ((oldval (and (vimpulse-visual-before zmacs-regions))))
         (setq zmacs-regions oldval)))))
 
-;; This needs to be expanded at runtime, obviously
-(dont-compile
-  (defmacro vimpulse-visual-before (&rest body)
-    "Evaluate BODY with original system values from before Visual mode.
+(defmacro vimpulse-visual-before (&rest body)
+  "Evaluate BODY with original system values from before Visual mode.
 This is based on `vimpulse-visual-vars-alist'."
-    `(let ,(mapcar (lambda (elt)
-                     `(,(car elt) (quote ,(cdr elt))))
-                   vimpulse-visual-vars-alist)
-       ,@body)))
+  ;; This needs to be expanded at runtime, obviously
+  `(eval `(let ,(mapcar (lambda (elt)
+                          `(,(car elt) (quote ,(cdr elt))))
+                        vimpulse-visual-vars-alist)
+            ,',@body)))
 
 (defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection.
