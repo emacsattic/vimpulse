@@ -38,3 +38,4 @@
 ;; - To change the color of Visual mode (`zmacs-region' in XEmacs):
 ;;
 ;;       (set-face-background 'region "blue")
+
