@@ -299,7 +299,7 @@ Then follows one or more optional keywords:
 :change-func FUNC       Function to change to STATE.
 :basic-mode MODE        Basic minor mode for STATE.
 :basic-map MAP          Keymap of :basic-mode.
-:diehard-mode MODE      Minor mode for when Viper want to be vi.
+:diehard-mode MODE      Minor mode for when Viper wants to be vi.
 :diehard-map MAP        Keymap of :diehard-mode.
 :modifier-mode MODE     Minor mode for modifying major modes.
 :modifier-alist LIST    Keymap alist for :modifier-mode.
