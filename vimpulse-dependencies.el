@@ -102,7 +102,7 @@ Off by default."
 
 (defcustom vimpulse-fold-level 0
   "Default fold level."
-  :type  'boolean
+  :type  'integer
   :group 'vimpulse)
 
 ;; The secrets discovered from untold diggings among
