@@ -279,36 +279,19 @@ Disable anyway if FORCE is t."
 
 ;;; Folding
 
-;; Almost all of this code is taken from extended-viper
-;; coded by Brad Beveridge (bradbev at gmail.com)
-;; - I changed the prefix of the custom functions to `vimpulse'
-;;   to avoid multiple prefixes
 (eval-after-load 'hideshow
   '(progn
-     (defun vimpulse-hs-Open ()
+     (defun vimpulse-za ()
        (interactive)
-       (hs-show-block)
-       (hs-hide-level -1))
-     (add-hook 'hs-minor-mode-hook
-               (lambda ()
-                 (call-interactively 'hs-hide-all)
-                 (define-key viper-vi-basic-map "za"
-                   (lambda ()
-                     (interactive)
-                     (hs-toggle-hiding)
-                     (hs-hide-level vimpulse-fold-level)))
-                 (define-key viper-vi-basic-map "za" 'hs-toggle-hiding)
-                 (define-key viper-vi-basic-map "zm" 'hs-hide-all)
-                 (define-key viper-vi-basic-map "zr" 'hs-show-all)
-                 (define-key viper-vi-basic-map "zo" 'hs-show-block)
-                 (define-key viper-vi-basic-map "zc" 'hs-hide-block)))))
-
-;; Load reveal.el if available
-(unless (featurep 'reveal)
-  (condition-case nil
-      (require 'reveal)
-    (error nil)))
-(when (fboundp 'global-reveal-mode)
-  (global-reveal-mode 1))
+       (hs-toggle-hiding)
+       (hs-hide-level vimpulse-fold-level))
+     (defun vimpulse-hs-setup ()
+       (hs-hide-all)
+       (define-key viper-vi-basic-map "za" 'vimpulse-za)
+       (define-key viper-vi-basic-map "zm" 'hs-hide-all)
+       (define-key viper-vi-basic-map "zr" 'hs-show-all)
+       (define-key viper-vi-basic-map "zo" 'hs-show-block)
+       (define-key viper-vi-basic-map "zc" 'hs-hide-block))
+     (add-hook 'hs-minor-mode-hook 'vimpulse-hs-setup)))
 
 (provide 'vimpulse-compatibility)
