@@ -64,19 +64,20 @@
   (define-key viper-vi-basic-map "\C-r" 'redo)))
 
 ;; Window manipulation
-(define-key viper-vi-basic-map "\C-w" (make-sparse-keymap))
-(define-key viper-vi-basic-map "\C-w\C-w" 'vimpulse-cycle-windows)
-(define-key viper-vi-basic-map "\C-ww" 'vimpulse-cycle-windows)
-(define-key viper-vi-basic-map "\C-wo" 'delete-other-windows)
-(define-key viper-vi-basic-map "\C-wc" 'delete-window)
-(define-key viper-vi-basic-map "\C-ws" 'split-window-vertically)
-(define-key viper-vi-basic-map "\C-wv" 'split-window-horizontally)
+(define-prefix-command 'vimpulse-window-map)
+(define-key viper-vi-basic-map "\C-w" 'vimpulse-window-map)
+(define-key vimpulse-window-map "\C-w" 'vimpulse-cycle-windows)
+(define-key vimpulse-window-map "w" 'vimpulse-cycle-windows)
+(define-key vimpulse-window-map "o" 'delete-other-windows)
+(define-key vimpulse-window-map "c" 'delete-window)
+(define-key vimpulse-window-map "s" 'split-window-vertically)
+(define-key vimpulse-window-map "v" 'split-window-horizontally)
 
 (when (fboundp 'windmove-left)
-  (define-key viper-vi-basic-map "\C-wh" 'windmove-left)
-  (define-key viper-vi-basic-map "\C-wj" 'windmove-down)
-  (define-key viper-vi-basic-map "\C-wk" 'windmove-up)
-  (define-key viper-vi-basic-map "\C-wl" 'windmove-right))
+  (define-key vimpulse-window-map "h" 'windmove-left)
+  (define-key vimpulse-window-map "j" 'windmove-down)
+  (define-key vimpulse-window-map "k" 'windmove-up)
+  (define-key vimpulse-window-map "l" 'windmove-right))
 
 ;;; Insert mode keys
 
