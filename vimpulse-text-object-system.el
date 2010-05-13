@@ -141,6 +141,8 @@ may be specified with TYPE. Otherwise, the type is inferred
 from the motion types of BACKWARD-FUNC and FORWARD-FUNC."
   (let ((types '(exclusive inclusive line block))
         beg end forward-range backward-range
+        viper-com-point
+        vimpulse-visual-vars-alist
         vimpulse-this-motion
         vimpulse-this-motion-type)
     (save-excursion

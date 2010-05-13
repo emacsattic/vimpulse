@@ -220,7 +220,10 @@ Otherwise disable Visual mode."
 
 (defun vimpulse-transient-mark (&optional arg)
   "Enable Transient Mark mode (and Cua mode) if not already enabled.
-Enable forcefully with positive ARG. Disable with negative ARG."
+Enable forcefully with positive ARG. Disable with negative ARG.
+Saves the previous state of Transient Mark mode in
+`vimpulse-visual-vars-alist', so it can be restored with
+`vimpulse-transient-restore'."
   (setq deactivate-mark nil)
   (and (boundp 'mark-active)
        (setq mark-active (region-active-p)))

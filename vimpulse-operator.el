@@ -261,14 +261,13 @@ from the keyboard. This has no effect on Visual behavior."
 (defun vimpulse-make-motion-range (count motion &optional type refresh)
   "Derive motion range (TYPE BEG END) from MOTION and COUNT.
 MOTION can move point or select some text (a text object).
-TYPE may specify the motion type for normalizing the resulting range.
-If REFRESH is t, this function changes `vimpulse-this-motion-type'
-and point."
-  ;; Unless REFRESH is t, we create a local binding for
-  ;; `vimpulse-this-motion-type' so it's not affected
+TYPE may specify the motion type for normalizing the resulting
+range. If REFRESH is t, this function changes point,
+`viper-com-point' and `vimpulse-this-motion-type'."
   (cond
+   ;; REFRESH is nil, so bind global variables
    ((not refresh)
-    (let (vimpulse-this-motion-type)
+    (let (viper-com-point vimpulse-this-motion-type)
       (save-excursion
         (vimpulse-make-motion-range count motion type t))))
    (t
@@ -279,48 +278,46 @@ and point."
           (motion-type (vimpulse-motion-type motion t))
           (already-selection (or vimpulse-visual-mode
                                  (region-active-p)))
-          range)
+          (range (list 'exclusive (point) (point)))
+          vimpulse-visual-vars-alist)
       (setq vimpulse-this-motion-type
             (or type motion-type 'exclusive))
       (viper-move-marker-locally 'viper-com-point (point))
       ;; Enable Transient Mark mode so we can reliably
       ;; detect selection commands
-      (unless already-selection
-        (vimpulse-transient-mark))
-      ;; Execute MOTION
-      (condition-case nil
-          (if (commandp motion)
-              (call-interactively motion)
-            (funcall motion count))
-        (error nil))
-      (cond
-       ;; If text has been selected (i.e., it's a text object),
-       ;; return the selection
-       ((and (or vimpulse-visual-mode (region-active-p))
-             (not already-selection))
-        (setq range (vimpulse-visual-range))
-        (cond
-         ((and motion-type (not (eq motion-type (car range))))
-          (setcar range motion-type))
-         ((and type (not (eq type (car range))))
-          (setcar range type)
-          (setq range (vimpulse-normalize-motion-range range))))
-        ;; Deactivate region (and Transient Mark mode)
-        ;; unless they were already activated
-        (if (and vimpulse-visual-mode
-                 (fboundp 'vimpulse-visual-mode))
-            (vimpulse-visual-mode -1)
-          (vimpulse-deactivate-region))
+      (vimpulse-transient-mark)
+      ;; Whatever happens next, we must restore Transient Mark mode
+      ;; to its original state afterwards!
+      (unwind-protect
+          (let (vimpulse-visual-vars-alist) ; used for restoring
+            (if (commandp motion)
+                (call-interactively motion)
+              (funcall motion count))
+            (cond
+             ;; If text has been selected (i.e., it's a text object),
+             ;; return the selection
+             ((and (not already-selection)
+                   (or vimpulse-visual-mode (region-active-p)))
+              (setq range (vimpulse-visual-range))
+              (cond
+               ((and motion-type (not (eq motion-type (car range))))
+                (setcar range motion-type))
+               ((and type (not (eq type (car range))))
+                (setcar range type)
+                (setq range (vimpulse-normalize-motion-range range))))
+              ;; Deactivate Visual mode/region
+              (if (and vimpulse-visual-mode
+                       (fboundp 'vimpulse-visual-mode))
+                  (vimpulse-visual-mode -1)
+                (vimpulse-deactivate-region)))
+             ;; Otherwise, range is defined by `viper-com-point'
+             ;; and point (Viper type motion)
+             (t
+              (setq range (vimpulse-normalize-motion-range
+                           (list (or type vimpulse-this-motion-type)
+                                 (marker-position viper-com-point)
+                                 (point)))))))
         (vimpulse-transient-restore))
-       ;; Otherwise, range is defined by `viper-com-point'
-       ;; and point (Viper type motion)
-       (t
-        (setq range (vimpulse-normalize-motion-range
-                     (list (or type vimpulse-this-motion-type)
-                           (marker-position viper-com-point)
-                           (point))))
-        (unless already-selection
-          (vimpulse-transient-restore))))
       range))))
 
 ;; A keypress parser of some kind is unavoidable because we need to
