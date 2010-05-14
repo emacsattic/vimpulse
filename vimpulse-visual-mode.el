@@ -108,8 +108,10 @@ May also be used to change the Visual mode."
     ;; Make global variables buffer-local
     (setq vimpulse-visual-vars-alist nil)
     (vimpulse-visual-block-cleanup-whitespace)
+    (vimpulse-transient-remember)
     (dolist (var vimpulse-visual-local-vars)
-      (when (boundp var)
+      (when (and (boundp var)
+                 (not (assq var vimpulse-visual-vars-alist)))
         ;; Remember old value
         (add-to-list 'vimpulse-visual-vars-alist
                      (cons var (eval var))))
@@ -240,14 +242,7 @@ Saves the previous state of Transient Mark mode in
            (setq zmacs-regions nil)))
      ;; Enable Transient Mark/Cua
      (t
-      (unless vimpulse-visual-vars-alist
-        (when (boundp 'transient-mark-mode)
-          (add-to-list 'vimpulse-visual-vars-alist
-                       (cons 'transient-mark-mode
-                             transient-mark-mode)))
-        (when (boundp 'cua-mode)
-          (add-to-list 'vimpulse-visual-vars-alist
-                       (cons 'cua-mode cua-mode))))
+      (vimpulse-transient-remember)
       (cond
        ((and (fboundp 'cua-mode)
              (and (vimpulse-visual-before (eq cua-mode t)))
@@ -259,6 +254,20 @@ Saves the previous state of Transient Mark mode in
        ((and (boundp 'zmacs-regions)
              (or (not zmacs-regions) (numberp arg)))
         (setq zmacs-regions t)))))))
+
+(defun vimpulse-transient-remember ()
+  "Remember Transient Mark mode state in `vimpulse-visual-vars-alist'."
+  (when (and (boundp 'transient-mark-mode)
+             (not (assq 'transient-mark-mode
+                        vimpulse-visual-vars-alist)))
+    (add-to-list 'vimpulse-visual-vars-alist
+                 (cons 'transient-mark-mode
+                       (when (eq transient-mark-mode t)
+                         transient-mark-mode))))
+  (when (and (boundp 'cua-mode)
+             (not (assq 'cua-mode vimpulse-visual-vars-alist)))
+    (add-to-list 'vimpulse-visual-vars-alist
+                 (cons 'cua-mode cua-mode))))
 
 (defun vimpulse-transient-restore ()
   "Restore Transient Mark mode to what is was before Visual mode.
