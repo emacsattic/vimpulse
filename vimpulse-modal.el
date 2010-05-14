@@ -156,8 +156,8 @@ but only for bindings listed in `vimpulse-modal-alist'."
     (setq temp-sequence (vimpulse-truncate temp-sequence -1))
     (and this-command ; may be nil
          (not (key-binding key-sequence)) ; only default bindings
-         (eq this-command
-             (cdr (assoc temp-sequence vimpulse-modal-alist))))))
+         (eq (cdr (assoc temp-sequence vimpulse-modal-alist))
+             this-command))))
 
 (defun vimpulse-modal-remove (key-vector &optional recursive)
   "Delete entry with KEY-VECTOR from `vimpulse-modal-alist'.
@@ -165,9 +165,9 @@ If RECURSIVE is non-nil, also delete entries whose key-vectors
 start with KEY-VECTOR."
   (if recursive
       (dolist (entry vimpulse-modal-alist)
-        (when (equal key-vector
-                     (vimpulse-truncate (car entry)
-                                        (length key-vector)))
+        (when (equal (vimpulse-truncate (car entry)
+                                        (length key-vector))
+                     key-vector)
           (setq vimpulse-modal-alist
                 (delq entry vimpulse-modal-alist))))
     (assq-delete-all key-vector vimpulse-modal-alist)))
@@ -181,8 +181,8 @@ non-nil, advice DEF by means of `vimpulse-advice-command'."
     (unless define-func (setq define-func 'define-key))
     (and modal-binding (commandp def)
          (eval `(vimpulse-advice-command ,def)))
-    (and (< 1 (length temp-sequence))
-         (eq t (aref temp-sequence (1- (length temp-sequence))))
+    (and (> (length temp-sequence) 1)
+         (eq (aref temp-sequence (1- (length temp-sequence))) t)
          (setq temp-sequence (vimpulse-truncate temp-sequence -1)))
     ;; The following is from
     ;; http://tracker.xemacs.org/XEmacs/its/msg2021
@@ -204,7 +204,7 @@ the binding is listed in `vimpulse-modal-alist'."
       (vimpulse-xemacs-def-binding
        keymap temp-sequence def modal-binding define-func))
      (t
-      (unless (eq t (aref temp-sequence (1- (length temp-sequence))))
+      (unless (eq (aref temp-sequence (1- (length temp-sequence))) t)
         (setq temp-sequence (vconcat temp-sequence [t])))
       (funcall define-func keymap temp-sequence def)))
     (when modal-binding
@@ -228,7 +228,7 @@ functions, respectively."
     ;; If XEmacs, get rid of the event object type
     (when (featurep 'xemacs)
       (setq key-sequence (events-to-keys key-sequence)))
-    (while (and (< 1 (length key-sequence))
+    (while (and (> (length key-sequence) 1)
                 (vimpulse-modal-check key-sequence))
       ;; Unread last event
       (setq vimpulse-last-command-event
@@ -307,12 +307,12 @@ only if called in the same state. The functions `vimpulse-map',
      ;; nil unbinds the key-sequence
      ((not def)
       (funcall define-func keymap key-vector def)
-      (while (and (< 1 (length key-vector))
+      (while (and (> (length key-vector) 1)
                   (not (lookup-key keymap key-vector)))
         (vimpulse-modal-remove key-vector t)
         (setq key-vector (vimpulse-truncate key-vector -1))))
      ;; undefined also unbinds, but less forcefully
-     ((eq 'undefined def)
+     ((eq def 'undefined)
       (if (keymapp (lookup-key keymap key-vector))
           (vimpulse-default-binding keymap key-vector nil t define-func)
         (funcall define-func keymap key-vector def))
@@ -376,7 +376,7 @@ Don't use this function directly; see `vimpulse-map',
     (cond
      (modes
       (dolist (mode modes)
-        (if (eq t mode)
+        (if (eq mode t)
             (vimpulse-define-key global-user-map key def)
           (setq map (vimpulse-modifier-map state mode))
           (vimpulse-define-key map key def)

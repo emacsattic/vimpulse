@@ -30,7 +30,7 @@
   (let ((class (syntax-after pos)))
     (when class
       (setq class (syntax-class class))
-      (= 4 class))))
+      (= class 4))))
 
 (defun vimpulse-paren-close-p (&optional pos)
   "Return t if the character at point (or POS) is an closing paren."
@@ -38,7 +38,7 @@
   (let ((class (syntax-after pos)))
     (when class
       (setq class (syntax-class class))
-      (= 5 class))))
+      (= class 5))))
 
 (defun vimpulse-paren-match (&optional pos)
   "Return the position of possible matching paren at point (or POS).
