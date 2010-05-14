@@ -487,7 +487,7 @@ Doesn't indent with a prefix argument."
                       ;; Protect `vimpulse-mark-list'
                       (set-mark-command 0))
                     (setq i (1- i))
-                    (and (= (point) current-pos) (< i 0))))
+                    (and (= (point) current-pos) (> i 0))))
       ;; Already there?
       (move-marker current-pos (point))
       (unless (= (car vimpulse-mark-list) current-pos)
