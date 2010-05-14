@@ -10,7 +10,7 @@
     (interactive)
     (let ((w (selected-window)))
       (undo-tree-visualizer-quit)
-      (when (eq w (selected-window))
+      (when (eq (selected-window) w)
         (delete-window))))
 
   (add-to-list 'viper-vi-state-mode-list 'undo-tree-visualizer-mode)
@@ -48,13 +48,13 @@
 (defadvice isearch-delete-char (around vimpulse-search activate)
   "Exit search if no search string."
   (if (and vimpulse-search-prompt
-           (string= "" isearch-string))
+           (string= isearch-string ""))
       (isearch-exit)
     ad-do-it))
 
 (defadvice isearch-update-ring (after vimpulse-search activate)
   "Update `viper-s-string'."
-  (when (eq regexp viper-re-search)
+  (when (eq viper-re-search regexp)
     (setq viper-s-string string)))
 
 (defadvice isearch-lazy-highlight-search (around vimpulse-search activate)
@@ -107,12 +107,12 @@ Searches for regular expression if `viper-re-search' is t."
                        isearch-mode-map)
     (setq viper-s-forward nil)
     (isearch-backward viper-re-search)
-    (when (and (eq (point) orig)
-               (not (string= "" isearch-string)))
+    (when (and (eq orig (point))
+               (not (string= isearch-string "")))
       (isearch-repeat-backward)
       (isearch-exit))
     (message oldmsg)
-    (unless (string= "" isearch-string)
+    (unless (string= isearch-string "")
       (vimpulse-flash-search-pattern t))
     (setq vimpulse-this-motion 'viper-search-next)))
 
@@ -133,13 +133,13 @@ Searches for regular expression if `viper-re-search' is t."
     (setq viper-s-forward t)
     (isearch-forward viper-re-search)
     (and isearch-other-end (goto-char isearch-other-end))
-    (when (and (eq (point) orig)
-               (not (string= "" isearch-string)))
+    (when (and (eq orig (point))
+               (not (string= isearch-string "")))
       (isearch-repeat-forward)
       (isearch-exit))
     (and isearch-other-end (goto-char isearch-other-end))
     (message oldmsg)
-    (unless (string= "" isearch-string)
+    (unless (string= isearch-string "")
       (vimpulse-flash-search-pattern t))
     (setq vimpulse-this-motion 'viper-search-next)))
 

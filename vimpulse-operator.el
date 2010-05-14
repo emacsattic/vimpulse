@@ -19,13 +19,13 @@
 ;;       ;; Do stuff from BEG to END
 ;;       )
 ;;
-;; If you like, you can convert any region command to an operator
-;; with `vimpulse-convert-to-operator'.
+;; (If you like, you can convert any region command to an operator
+;; with `vimpulse-convert-to-operator'.)
 ;;
-;; When the latter command above is run, `vimpulse-range' will query
-;; the user for a motion and determine the resulting range to pass on
-;; to the command's arguments. (In Visual mode, however, it skips the
-;; querying and returns the selection boundaries instead.)
+;; When the latter command above is run in vi state, `vimpulse-range'
+;; will query the user for a motion and determine the resulting range
+;; to pass on to the command's arguments. Note that if any text is
+;; selected, it simply uses the selection boundaries (no querying).
 ;;
 ;; While a motion is read from the keyboard, a temporary Viper state,
 ;; Operator-Pending mode, is entered. This state inherits bindings
@@ -34,8 +34,8 @@
 ;; starting point as well as an ending point. They are implemented
 ;; simply as selection commands.
 ;;
-;; As in Vim, a motion may specify a motion type, such as `line'.
-;; The following motion types are defined:
+;; As in Vim, a motion may specify a motion type, such as `line',
+;; stored in the `motion-type' symbol property:
 ;;
 ;;   * `line': the motion range is extended to whole lines.
 ;;   * `inclusive': the ending character is included.
@@ -68,7 +68,7 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
             (viper-vi-kbd-minor-mode nil)
             vi-state vimpulse-modal-minor-mode)
   (cond
-   ((eq 'operator-state viper-current-state)
+   ((eq viper-current-state 'operator-state)
     (vimpulse-modal-minor-mode 1))
    (t
     (vimpulse-modal-minor-mode -1))))
@@ -78,7 +78,7 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 ;; command loop, exit to vi state immediately.
 (defun vimpulse-operator-exit-hook ()
   "Exit Operator-Pending mode."
-  (when (eq 'operator-state viper-current-state)
+  (when (eq viper-current-state 'operator-state)
     (save-excursion (viper-change-state-to-vi))))
 
 (add-hook 'pre-command-hook 'vimpulse-operator-exit-hook)
@@ -164,14 +164,14 @@ from the keyboard. This has no effect on Visual behavior."
      ((or vimpulse-visual-mode (region-active-p))
       ;; Extend range to whole lines
       (when (and whole-lines
-                 (not (eq 'line vimpulse-visual-mode)))
+                 (not (eq vimpulse-visual-mode 'line)))
         (vimpulse-visual-activate 'line)
         (vimpulse-visual-dimensions))
       ;; Determine range and go to beginning
       (setq range (vimpulse-visual-range))
       (setq vimpulse-this-motion-type (vimpulse-motion-type range)
             range (vimpulse-motion-range range))
-      (if (eq 'block vimpulse-this-motion-type)
+      (if (eq vimpulse-this-motion-type 'block)
           (vimpulse-visual-block-rotate
            'upper-left (apply 'min range) (apply 'max range))
         (goto-char (apply 'min range))
@@ -210,7 +210,7 @@ from the keyboard. This has no effect on Visual behavior."
         ;; Motion reading done: clear echo area
         (message oldmsg)
         ;; Return current line motion if operator calls itself
-        (if (eq vimpulse-this-operator vimpulse-this-motion)
+        (if (eq vimpulse-this-motion vimpulse-this-operator)
             (setq vimpulse-this-motion 'vimpulse-line)
           (setq vimpulse-this-motion
                 (vimpulse-operator-remapping vimpulse-this-motion))))
@@ -230,7 +230,7 @@ from the keyboard. This has no effect on Visual behavior."
                 (* (prefix-numeric-value current-prefix-arg)
                    (prefix-numeric-value vimpulse-this-count))))
         ;; Determine type to use for type conversion
-        (when (and (eq 'inclusive type)
+        (when (and (eq type 'inclusive)
                    (memq (vimpulse-motion-type vimpulse-this-motion)
                          '(line inclusive)))
           (setq type 'exclusive))
@@ -300,9 +300,9 @@ range. If REFRESH is t, this function changes point,
                    (or vimpulse-visual-mode (region-active-p)))
               (setq range (vimpulse-visual-range))
               (cond
-               ((and motion-type (not (eq motion-type (car range))))
+               ((and motion-type (not (eq (car range) motion-type)))
                 (setcar range motion-type))
-               ((and type (not (eq type (car range))))
+               ((and type (not (eq (car range) type)))
                 (setcar range type)
                 (setq range (vimpulse-normalize-motion-range range))))
               ;; Deactivate Visual mode/region
@@ -353,8 +353,8 @@ of CMD. Both COUNT and CMD may be nil."
              ;; the reading loop will continue
              (cond
               ;; If calling itself ("cc"), return current command
-              ((eq keys (vimpulse-strip-prefix
-                         (vconcat (this-command-keys))))
+              ((eq (vimpulse-strip-prefix
+                    (vconcat (this-command-keys))) keys)
                (setq cmd this-command)
                nil)
               ;; If CMD is a keymap, we need to read more
@@ -364,7 +364,7 @@ of CMD. Both COUNT and CMD may be nil."
               ((or (memq cmd '(viper-digit-argument digit-argument))
                    ;; The 0 key runs `viper-beginning-of-line',
                    ;; so ignore it unless preceded by other digits
-                   (and (eq 1 (length keys))
+                   (and (eq (length keys) 1)
                         (not (keymapp cmd))
                         count
                         ;; Probably overkill: only 0 bound this way
@@ -376,7 +376,7 @@ of CMD. Both COUNT and CMD may be nil."
                t)
               ;; Catch middle digits like "da2w"
               ((and (not cmd)
-                    (< 1 (length keys))
+                    (> (length keys) 1)
                     (memq digit '(0 1 2 3 4 5 6 7 8 9)))
                (setq count (concat (or count "")
                                    (number-to-string digit)))
@@ -387,18 +387,18 @@ of CMD. Both COUNT and CMD may be nil."
                t)
               ;; We might as well accept negative numbers using
               ;; Emacs' C--. Best of both worlds, right?
-              ((eq 'negative-argument cmd)
+              ((eq cmd 'negative-argument)
                (unless count
                  (setq count "-")))
               ;; User pressed C-g, so return nil for CMD
-              ((eq 'keyboard-quit cmd)
+              ((eq cmd 'keyboard-quit)
                (setq cmd nil))
               ;; We are done, exit the `while' loop
               (t
                nil))))
     ;; Determine COUNT
     (when (stringp count)
-      (if (string= "-" count)
+      (if (string= count "-")
           (setq count nil)
         (setq count (string-to-number count))))
     ;; Return command description
@@ -453,7 +453,7 @@ TYPE is the motion type."
   (interactive (vimpulse-range t t))
   (let ((length (abs (- beg end))))
     (cond
-     ((eq 'block vimpulse-this-motion-type)
+     ((eq vimpulse-this-motion-type 'block)
       (setq killed-rectangle (extract-rectangle beg end))
       ;; Associate the rectangle with the last entry in the kill-ring
       (unless kill-ring
@@ -464,7 +464,7 @@ TYPE is the motion type."
      (t
       (vimpulse-store-in-current-register beg end)
       (copy-region-as-kill beg end)
-      (unless (eq 'line vimpulse-this-motion-type)
+      (unless (eq vimpulse-this-motion-type 'line)
         (goto-char beg))
       (when (and (eolp) (not (bolp)))
         (backward-char))
@@ -474,17 +474,17 @@ TYPE is the motion type."
   "Delete text from BEG to END.
 If DONT-SAVE is t, just delete it."
   (interactive (vimpulse-range))
-  (let ((length (if (eq 'line vimpulse-this-motion-type)
+  (let ((length (if (eq vimpulse-this-motion-type 'line)
                     (count-lines beg end)
                   (abs (- end beg)))))
     (cond
      (dont-save
       (cond
-       ((eq 'block vimpulse-this-motion-type)
+       ((eq vimpulse-this-motion-type 'block)
         (delete-rectangle beg end))
        (t
         (delete-region beg end))))
-     ((eq 'block vimpulse-this-motion-type)
+     ((eq vimpulse-this-motion-type 'block)
       (let ((orig (make-marker)))
         ;; Associate the rectangle with the last entry in the kill-ring
         (viper-move-marker-locally
@@ -508,7 +508,7 @@ If DONT-SAVE is t, just delete it."
 If DONT-SAVE is non-nil, just delete it."
   (interactive (vimpulse-range))
   (cond
-   ((eq 'block vimpulse-this-motion-type)
+   ((eq vimpulse-this-motion-type 'block)
     (vimpulse-delete beg end dont-save)
     (goto-char
      (vimpulse-visual-create-coords
@@ -516,16 +516,16 @@ If DONT-SAVE is non-nil, just delete it."
       (min vimpulse-visual-point vimpulse-visual-mark)
       (1+ (max vimpulse-visual-point vimpulse-visual-mark))))
     (viper-insert nil))
-   ((eq viper-intermediate-command 'viper-repeat)
+   ((eq 'viper-repeat viper-intermediate-command)
     (if dont-save
         (delete-region beg end)
       (kill-region beg end))
-    (when (eq 'line vimpulse-this-motion-type)
+    (when (eq vimpulse-this-motion-type 'line)
       (save-excursion (newline))
       (when viper-auto-indent
         (indent-according-to-mode)))
     (viper-yank-last-insertion))
-   ((eq 'line vimpulse-this-motion-type)
+   ((eq vimpulse-this-motion-type 'line)
     (setq viper-began-as-replace t)
     (if dont-save
         (delete-region beg end)
@@ -555,24 +555,24 @@ This function respects `viper-change-notification-threshold'."
          (height (or vimpulse-visual-height 1))
          (width (or vimpulse-visual-width 1))
          (type (or type vimpulse-this-motion-type))
-         (length (if (eq 'line type)
+         (length (if (eq type 'line)
                      (or length (count-lines beg end))
                    (or length (abs (- end beg)))))
          (template (replace-regexp-in-string
                     "<N>"
                     (apply 'format
-                           (if (eq 'block type)
+                           (if (eq type 'block)
                                `("%s row%s and %s column%s"
                                  ,height
                                  ,(if (/= 1 (abs height)) "s" "")
                                  ,width
                                  ,(if (/= 1 (abs width)) "s" ""))
-                             `(,(if (eq 'line type)
+                             `(,(if (eq type 'line)
                                     "%s line%s" "%s character%s")
                                ,length
                                ,(if (/= 1 (abs length)) "s" ""))))
                     template)))
-    (when (and (< viper-change-notification-threshold length)
+    (when (and (> length viper-change-notification-threshold)
                (not (viper-is-in-minibuffer)))
       (message template))))
 

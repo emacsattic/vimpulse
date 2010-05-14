@@ -160,9 +160,9 @@ If OFFSET is specified, skip first elements of VECTOR."
   (when (> length (length vector))
     (setq length (length vector)))
   ;; If LENGTH is negative, convert it to the positive equivalent
-  (when (> 0 length)
+  (when (< length 0)
     (setq length (+ (length vector) length)))
-  (when (> 0 length)
+  (when (< length 0)
     (setq length 0))
   (if offset
       (setq length (- length offset))
@@ -204,7 +204,7 @@ LIST may be nested."
   (let ((this (car list))
         (rest (cdr list)))
     (cond
-     ((eq this elt)
+     ((eq elt this)
       t)
      ((and this (listp this)) ; nil is a list
       (vimpulse-memq-recursive elt this))
@@ -223,8 +223,8 @@ tabs are changed to spaces. (FORCE untabifies regardless.)"
   (if (or vimpulse-visual-block-untabify force)
       (move-to-column column t)
     (move-to-column column)
-    (when (or (not dir) (and (numberp dir) (> 1 dir)))
-      (when (< column (current-column))
+    (when (or (not dir) (and (numberp dir) (< dir 1)))
+      (when (> (current-column) column)
         (unless (bolp)
           (backward-char)))))
   (point))
@@ -235,7 +235,7 @@ Both may be nil. Returns position."
   (declare (indent 2))
   `(let ((start (or ,start (point-min)))
          (end   (or ,end   (point-max))))
-     (when (< end start)
+     (when (> start end)
        (setq start (prog1 end
                      (setq end start))))
      (save-restriction
@@ -248,12 +248,12 @@ Both may be nil. Returns position."
 Returns position."
   (declare (indent 2))
   `(let ((dir ,dir) (bounds ,bounds) start end)
-     (setq dir (if (and (numberp dir) (> 0 dir)) -1 1))
+     (setq dir (if (and (numberp dir) (< dir 0)) -1 1))
      (dolist (bound bounds)
        (unless (numberp bound)
          (setq bounds (delq bound bounds))))
      (when bounds
-       (if (> 0 dir)
+       (if (< dir 0)
            (setq start (apply 'min bounds))
          (setq end (apply 'max bounds))))
      (vimpulse-limit start end ,@body)))
@@ -265,10 +265,10 @@ If DIR is positive, move forwards to the end of the regexp match,
 but not beyond any buffer positions listed in BOUNDS.
 If DIR is negative, move backwards to the beginning of the match.
 Returns the new position."
-  (setq dir (if (and (numberp dir) (> 0 dir)) -1 1))
+  (setq dir (if (and (numberp dir) (< dir 0)) -1 1))
   (setq regexp (or regexp ""))
   (vimpulse-skip dir bounds
-    (if (> 0 dir)
+    (if (< dir 0)
         (when (looking-back regexp nil t)
           (goto-char (match-beginning 0)))
       (when (looking-at regexp)
@@ -308,7 +308,7 @@ Returns the new position."
              (condition-case
                  nil (backward-up-list arg)
                (error nil))
-             (when (eq orig (point))
+             (when (eq (point) orig)
                (backward-char)
                (setq orig (point)))))))
 
@@ -372,18 +372,18 @@ BEG and END. Returns nil if region is unchanged."
            (oldmark  (or (mark t) oldpoint))
            (newmark  (min beg end))
            (newpoint (max beg end)))
-      (when (or (and (numberp dir) (> 0 dir))
+      (when (or (and (numberp dir) (< dir 0))
                 (and (not (numberp dir))
                      (< oldpoint oldmark)))
         (setq newpoint (prog1 newmark
                          (setq newmark newpoint))))
       (unless (or (and (numberp dir)
-                       (= (min oldpoint oldmark)
-                          (min newpoint newmark))
-                       (= (max oldpoint oldmark)
-                          (max newpoint newmark)))
-                  (and (= oldpoint newpoint)
-                       (= oldmark  newmark)))
+                       (= (min newpoint newmark)
+                          (min oldpoint oldmark))
+                       (= (max newpoint newmark)
+                          (max oldpoint oldmark)))
+                  (and (= newpoint oldpoint)
+                       (= newmark  oldmark)))
         (set-mark newmark)
         (goto-char newpoint))))))
 
@@ -447,7 +447,7 @@ In XEmacs, change the `end-glyph' property."
 (defun vimpulse-range-p (object)
   "Return t if OBJECT is a pure range (BEG END)."
   (and (listp object)
-       (eq 2 (length object))
+       (eq (length object) 2)
        (numberp (car object))
        (numberp (cadr object))))
 
@@ -501,7 +501,7 @@ See also `vimpulse-block-range', `vimpulse-line-range',
       (vimpulse-block-range from to))
      ((memq type '(linewise line))
       (vimpulse-line-range from to))
-     ((eq 'inclusive type)
+     ((eq type 'inclusive)
       (vimpulse-inclusive-range from to))
      (t
       (vimpulse-exclusive-range from to t)))))

@@ -110,7 +110,7 @@
   (interactive (vimpulse-range nil nil nil nil 'forward-char))
   (let ((length (abs (- end beg))))
     (cond
-     ((eq 'block vimpulse-this-motion-type)
+     ((eq vimpulse-this-motion-type 'block)
       (viper-replace-char 1)
       (let ((char (char-after (point)))
             (length (abs (- (save-excursion
@@ -132,7 +132,7 @@
   "Join the selected lines."
   (interactive (vimpulse-range nil nil t nil 'vimpulse-line))
   (let ((num (count-lines beg end)))
-    (unless (< 2 num)
+    (unless (> num 2)
       (setq num 2))
     (viper-join-lines num)))
 
@@ -162,7 +162,7 @@
   (interactive "P")
   (let ((val (viper-P-val arg))
         (com (viper-getCom arg)))
-    (when (eq ?c com) (setq com ?C))
+    (when (eq com ?c) (setq com ?C))
     (viper-move-marker-locally 'viper-com-point (point))
     (viper-deactivate-mark)
     (push-mark nil t)
@@ -208,7 +208,7 @@
   (let ((str (vimpulse-search-string (point) 'symbol))
         ientry ipos)
     (cond
-     ((string= "" str)
+     ((string= str "")
       (error "No string under cursor"))
      ;; If imenu is available, try it
      ((or (fboundp 'imenu--make-index-alist)
@@ -226,7 +226,7 @@
        ;; imenu found a position, so go there and
        ;; highlight the occurrence
        ((and (markerp ipos)
-             (eq (current-buffer) (marker-buffer ipos)))
+             (eq (marker-buffer ipos) (current-buffer)))
         (vimpulse-search-for-symbol nil ipos str))
        ;; imenu failed, so just go to first occurrence in buffer
        (t
@@ -264,7 +264,7 @@
 (defun vimpulse-downcase (beg end)
   "Convert text to lower case."
   (interactive (vimpulse-range))
-  (if (eq 'block vimpulse-this-motion-type)
+  (if (eq vimpulse-this-motion-type 'block)
       (vimpulse-apply-on-block 'downcase-region beg end)
     (downcase-region beg end))
   (when (and viper-auto-indent
@@ -274,7 +274,7 @@
 (defun vimpulse-upcase (beg end)
   "Convert text to upper case."
   (interactive (vimpulse-range))
-  (if (eq 'block vimpulse-this-motion-type)
+  (if (eq vimpulse-this-motion-type 'block)
       (vimpulse-apply-on-block 'upcase-region beg end)
     (upcase-region beg end)
     (when (and viper-auto-indent
@@ -287,7 +287,7 @@
   (let (char)
     (save-excursion
       (cond
-       ((eq 'block vimpulse-this-motion-type)
+       ((eq vimpulse-this-motion-type 'block)
         (let (vimpulse-this-motion-type)
           (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
        (t
@@ -295,7 +295,7 @@
         (while (< beg end)
           (setq char (following-char))
           (delete-char 1 nil)
-          (if (eq char (upcase char))
+          (if (eq (upcase char) char)
               (insert-char (downcase char) 1)
             (insert-char (upcase char) 1))
           (setq beg (1+ beg))))))
@@ -376,7 +376,7 @@
   (setq search (or search (vimpulse-search-string
                            (point) 'symbol backward t)))
   (cond
-   ((string= "" search)
+   ((string= search "")
     (error "No string under cursor"))
    (t
     (setq viper-s-string  (concat "\\_<" search "\\_>")
@@ -487,10 +487,10 @@ Doesn't indent with a prefix argument."
                       ;; Protect `vimpulse-mark-list'
                       (set-mark-command 0))
                     (setq i (1- i))
-                    (and (= (point) current-pos) (< 0 i))))
+                    (and (= (point) current-pos) (< i 0))))
       ;; Already there?
       (move-marker current-pos (point))
-      (unless (= current-pos (car vimpulse-mark-list))
+      (unless (= (car vimpulse-mark-list) current-pos)
         (setq vimpulse-mark-list
               (cons current-pos vimpulse-mark-list))))))
 
@@ -579,7 +579,7 @@ Search backwards if a match isn't found."
     ;; Expand in same direction as previously,
     ;; initially forward
     (condition-case nil
-        (if (eq this-command last-command)
+        (if (eq last-command this-command)
             (dabbrev-expand nil)
           (setq dabbrev--last-direction -1)
           (dabbrev-expand -1))

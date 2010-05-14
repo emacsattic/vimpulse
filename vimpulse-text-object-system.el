@@ -50,11 +50,11 @@ to handle a negative value, which specifies reverse direction."
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
       (cond
-       ((eq :keys keyword)
+       ((eq keyword :keys)
         (setq keys (vimpulse-unquote (pop body))))
-       ((eq :map keyword)
+       ((eq keyword :map)
         (setq map (vimpulse-unquote (pop body))))
-       ((eq :type keyword)
+       ((eq keyword :type)
         (setq type (vimpulse-unquote (pop body))))
        (t
         (pop body))))
@@ -87,7 +87,7 @@ to handle a negative value, which specifies reverse direction."
              (unless (vimpulse-mark-range range t ,@type)
                ;; Are we stuck (unchanged region)?
                ;; Move forward and try again.
-               (viper-forward-char-carefully (if (> 0 ,count) -1 1))
+               (viper-forward-char-carefully (if (< ,count 0) -1 1))
                (setq range (progn ,@body))
                (vimpulse-mark-range range t ,@type)))
             (t
@@ -110,7 +110,7 @@ argument is specified, it overrides the type of RANGE."
          (beg (apply 'min range))
          (end (apply 'max range)))
     (cond
-     ((eq 'exclusive type)
+     ((eq type 'exclusive)
       (if vimpulse-visual-mode
           (vimpulse-visual-select beg end widen)
         (vimpulse-set-region beg end widen)))
@@ -146,8 +146,8 @@ from the motion types of BACKWARD-FUNC and FORWARD-FUNC."
         vimpulse-this-motion
         vimpulse-this-motion-type)
     (save-excursion
-      (setq count (or (if (eq 0 count) 1 count) 1))
-      (if (> 0 count)
+      (setq count (or (if (eq count 0) 1 count) 1))
+      (if (< count 0)
           (setq backward-range
                 (vimpulse-make-motion-range
                  (abs count) backward-func type t)
@@ -179,14 +179,14 @@ for matching whitespace; the default is \"[ \\f\\t\\n\\r\\v]+\".
 See `vimpulse-object-range' for more details."
   (let (range beg end line-beg line-end mark-active-p)
     (save-excursion
-      (setq count (or (if (eq 0 count) 1 count) 1))
+      (setq count (or (if (eq count 0) 1 count) 1))
       (setq regexp (or regexp "[ \f\t\n\r\v]+"))
       (setq range (vimpulse-motion-range
                    (vimpulse-object-range
                     count backward-func forward-func)))
       ;; Let `end' be the boundary furthest from point,
       ;; based on the direction we are going
-      (if (> 0 count)
+      (if (< count 0)
           (setq beg (cadr range)
                 end (car range))
         (setq beg (car range)
@@ -196,13 +196,13 @@ See `vimpulse-object-range' for more details."
       (unless include-newlines
         (setq line-beg (line-beginning-position)
               line-end (line-end-position))
-        (when (< (max (* count line-beg) (* count line-end))
-                 (* count beg))
+        (when (> (* count beg)
+                 (max (* count line-beg) (* count line-end)))
           (setq count (- count))
           (setq range (vimpulse-motion-range
                        (vimpulse-object-range
                         count backward-func forward-func)))
-          (if (> 0 count)
+          (if (< count 0)
               (setq beg (cadr range)
                     end (car range))
             (setq beg (car range)
@@ -217,7 +217,7 @@ See `vimpulse-object-range' for more details."
       ;; If we are before the object, include leading whitespace;
       ;; if we are inside the object, include trailing whitespace.
       ;; If trailing whitespace inclusion fails, include leading.
-      (setq count (if (> 0 count) -1 1))
+      (setq count (if (< count 0) -1 1))
       (when (or (< (* count (point)) (* count beg))
                 (eq end (setq end (save-excursion
                                     (goto-char end)
@@ -252,7 +252,7 @@ If point is outside the object, it is included in the range.
 To include whitespace, use `vimpulse-an-object-range'.
 See `vimpulse-object-range' for more details."
   (let (range beg end line-beg line-end)
-    (setq count (or (if (eq 0 count) 1 count) 1))
+    (setq count (or (if (eq count 0) 1 count) 1))
     (setq range (vimpulse-motion-range
                  (vimpulse-object-range
                   count backward-func forward-func)))
@@ -260,8 +260,8 @@ See `vimpulse-object-range' for more details."
           end (cadr range))
     (setq line-beg (line-beginning-position)
           line-end (line-end-position))
-    (when (< (max (* count line-beg) (* count line-end))
-             (min (* count beg) (* count end)))
+    (when (> (min (* count beg) (* count end))
+             (max (* count line-beg) (* count line-end)))
       (setq count (- count))
       (setq range (vimpulse-motion-range
                    (vimpulse-object-range
@@ -279,13 +279,13 @@ which must be characters. INCLUDE-PARENTHESES specifies
 whether to include the parentheses in the range."
   (let ((beg (point)) (end (point))
         line-beg line-end)
-    (setq count (if (eq 0 count) 1 (abs count)))
+    (setq count (if (eq count 0) 1 (abs count)))
     (save-excursion
       (setq open  (if (characterp open)
                       (regexp-quote (string open)) "")
             close (if (characterp close)
                       (regexp-quote (string close)) ""))
-      (when (and (not (string= "" open))
+      (when (and (not (string= open ""))
                  (looking-at open))
         (forward-char))
       ;; Find opening and closing paren with
@@ -297,30 +297,30 @@ whether to include the parentheses in the range."
                               (forward-sexp)
                               (when (looking-back close)
                                 (setq end (point))))
-                        (if (<= 0 count)
+                        (if (>= count 0)
                             (setq beg (point))
                           (setq count (1- count)) nil))))))
       (if include-parentheses
           (list beg end)
         (setq beg (prog1 (min (1+ beg) end)
                     (setq end (max (1- end) beg))))
-        ;; Multi-line inner range: select whole lines
-        (if (>= 1 (count-lines beg end))
+        (if (<= (count-lines beg end) 1)
             (list beg end)
+          ;; Multi-line inner range: select whole lines
           (goto-char beg)
           (when (looking-at "[ \f\t\n\r\v]*$")
             (forward-line)
             ;; Include indentation?
             (if (and viper-auto-indent
-                     (not (eq 'vimpulse-delete
-                              vimpulse-this-operator)))
+                     (not (eq vimpulse-this-operator
+                              'vimpulse-delete)))
                 (back-to-indentation)
               (beginning-of-line))
             (setq beg (point)))
           (goto-char end)
           (when (and (looking-back "^[ \f\t\n\r\v]*")
-                     (not (eq 'vimpulse-delete
-                              vimpulse-this-operator)))
+                     (not (eq vimpulse-this-operator
+                              'vimpulse-delete)))
             (setq end (line-end-position 0))
             (goto-char end))
           (list (min beg end) (max beg end)))))))
@@ -333,16 +333,16 @@ specifies whether to include the quote marks in the range."
   (let ((beg (point)) (end (point))
         regexp)
     (save-excursion
-      (setq count (if (eq 0 count) 1 (abs count)))
+      (setq count (if (eq count 0) 1 (abs count)))
       (setq quote (or quote ?\"))
       (setq quote (if (characterp quote)
                       (regexp-quote (string quote)) "")
             regexp (concat "\\([^\\\\]\\|^\\)" quote))
-      (when (and (not (string= "" quote))
+      (when (and (not (string= quote ""))
                  (looking-at quote))
         (forward-char))
       ;; Search forward for a closing quote
-      (while (and (< 0 count)
+      (while (and (> count 0)
                   (re-search-forward regexp nil t))
         (setq count (1- count))
         (setq end (point))
@@ -384,7 +384,7 @@ specifies whether to include the quote marks in the range."
   (vimpulse-line-range
    (point)
    (save-excursion
-     (when (< 0 arg)
+     (when (> arg 0)
        (viper-next-line-carefully arg))
      (point))))
 
