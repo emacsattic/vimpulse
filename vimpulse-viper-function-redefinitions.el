@@ -855,13 +855,15 @@ docstring. The variable becomes buffer-local whenever set.")
       (when (and (not (viper-looking-at-alpha))
                  (not (viper-looking-at-alphasep)))
         (setq val (1+ val))))
-     ((viper-end-of-word-p)
+     ((save-excursion
+        (viper-forward-char-carefully)
+        (memq (char-syntax (char-after)) '(?\  ?- nil)))
       (setq val (1+ val))))
     (viper-loop val
       (viper-end-of-word-kernel)
       (viper-skip-nonseparators 'forward))
     (if com
-        (viper-execute-com 'viper-end-of-word val com)
+        (viper-execute-com 'viper-end-of-Word val com)
       (viper-backward-char-carefully))))
 
 (fset 'viper-end-of-word-kernel 'vimpulse-end-of-word-kernel)
