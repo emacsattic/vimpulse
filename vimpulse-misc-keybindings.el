@@ -82,7 +82,7 @@
 ;;; Insert mode keys
 
 ;; Vim-like completion keys
-(define-key viper-insert-basic-map "\C-p" 'dabbrev-expand)
+(define-key viper-insert-basic-map "\C-p" 'vimpulse-abbrev-expand-before)
 (define-key viper-insert-basic-map "\C-n" 'vimpulse-abbrev-expand-after)
 (define-key viper-insert-basic-map "\C-x\C-p" 'vimpulse-expand-line)
 (define-key viper-insert-basic-map "\C-x\C-n" 'vimpulse-expand-line)
@@ -560,6 +560,14 @@ Doesn't indent with a prefix argument."
   "Map <backspace> to `vimpulse-replace-backspace' in Replace mode."
   (define-key viper-replace-map [backspace] 'vimpulse-replace-backspace))
 
+(defun vimpulse-abbrev-expand-before ()
+  "Expand to the nearest preceding word.
+Search forwards if a match isn't found."
+  (interactive)
+  (if (minibufferp)
+      (minibuffer-complete)
+    (dabbrev-expand nil)))
+
 ;; Getting dabbrev to search forwards first and then backwards
 ;; is tricky, because (dabbrev-expand -1) just fails when it
 ;; doesn't find a following match
@@ -578,20 +586,22 @@ Search backwards if a match isn't found."
                             dabbrev--last-expansion-location)))
     ;; Expand in same direction as previously,
     ;; initially forward
-    (condition-case nil
-        (if (eq last-command this-command)
-            (dabbrev-expand nil)
-          (setq dabbrev--last-direction -1)
-          (dabbrev-expand -1))
-      ;; Restore dabbrev variables if version < 23.2
-      (error (progn
-               (when (version< emacs-version "23.2")
-                 (setq dabbrev--last-abbreviation abbrev
-                       dabbrev--last-abbrev-location abbrev-loc
-                       dabbrev--last-expansion expansion
-                       dabbrev--last-expansion-location expansion-loc))
-               (setq dabbrev--last-direction 1)
-               (dabbrev-expand nil) nil)))))
+    (if (minibufferp)
+        (minibuffer-complete)
+      (condition-case nil
+          (if (eq last-command this-command)
+              (dabbrev-expand nil)
+            (setq dabbrev--last-direction -1)
+            (dabbrev-expand -1))
+        ;; Restore dabbrev variables if version < 23.2
+        (error (progn
+                 (when (version< emacs-version "23.2")
+                   (setq dabbrev--last-abbreviation abbrev
+                         dabbrev--last-abbrev-location abbrev-loc
+                         dabbrev--last-expansion expansion
+                         dabbrev--last-expansion-location expansion-loc))
+                 (setq dabbrev--last-direction 1)
+                 (dabbrev-expand nil) nil))))))
 
 (defun vimpulse-expand-line (&optional arg)
   "Expand a whole line."
