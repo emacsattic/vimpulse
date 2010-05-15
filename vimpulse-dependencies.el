@@ -203,7 +203,6 @@ SYM is unquoted. Returns VAL."
     viper-next-line
     viper-previous-line
     viper-forward-char
-    viper-intercept-ESC-key
     viper-ex)
   "List of Viper \"core\" movement commands.
 These should be present in every mode, to avoid confusion.")
