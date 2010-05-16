@@ -204,6 +204,8 @@ LIST may be nested."
   (let ((this (car list))
         (rest (cdr list)))
     (cond
+     ((not list)
+      nil)
      ((eq elt this)
       t)
      ((and this (listp this)) ; nil is a list
