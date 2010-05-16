@@ -451,7 +451,8 @@ TYPE is the motion type."
 (defun vimpulse-yank (beg end)
   "Yank text from BEG to END."
   (interactive (vimpulse-range t t))
-  (let ((length (abs (- beg end))))
+  (let ((length (abs (- beg end)))
+        last-command)
     (cond
      ((eq vimpulse-this-motion-type 'block)
       (setq killed-rectangle (extract-rectangle beg end))
@@ -476,7 +477,8 @@ If DONT-SAVE is t, just delete it."
   (interactive (vimpulse-range))
   (let ((length (if (eq vimpulse-this-motion-type 'line)
                     (count-lines beg end)
-                  (abs (- end beg)))))
+                  (abs (- end beg))))
+        last-command)
     (cond
      (dont-save
       (cond
@@ -619,7 +621,10 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 (vimpulse-operator-remap 'undo 'viper-nil)
 (vimpulse-operator-remap 'undo-tree-redo 'viper-nil)
 (vimpulse-operator-remap 'redo 'viper-nil)
+(vimpulse-operator-remap 'vimpulse-put-and-indent 'viper-nil)
+(vimpulse-operator-remap 'vimpulse-Put-and-indent 'viper-nil)
 (vimpulse-operator-remap 'viper-Put-back 'viper-nil)
+(vimpulse-operator-remap 'viper-put-back 'viper-nil)
 (vimpulse-operator-remap 'viper-delete-backward-char 'viper-nil)
 (vimpulse-operator-remap 'viper-delete-char 'viper-nil)
 (vimpulse-operator-remap 'viper-insert 'viper-nil)
@@ -627,7 +632,6 @@ If called interactively, read REGISTER and COMMAND from keyboard."
 (vimpulse-operator-remap 'viper-line-to-bottom 'viper-nil)
 (vimpulse-operator-remap 'viper-line-to-middle 'viper-nil)
 (vimpulse-operator-remap 'viper-line-to-top 'viper-nil)
-(vimpulse-operator-remap 'viper-put-back 'viper-nil)
 (vimpulse-operator-remap 'viper-repeat 'viper-nil)
 (vimpulse-operator-remap 'viper-substitute 'viper-nil)
 
