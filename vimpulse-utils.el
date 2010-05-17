@@ -204,11 +204,11 @@ LIST may be nested."
   (let ((this (car list))
         (rest (cdr list)))
     (cond
-     ((not list)
+     ((null list)
       nil)
      ((eq elt this)
       t)
-     ((and this (listp this)) ; nil is a list
+     ((consp this)
       (vimpulse-memq-recursive elt this))
      (rest
       (vimpulse-memq-recursive elt rest)))))
