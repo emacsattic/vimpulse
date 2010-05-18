@@ -305,8 +305,14 @@
 
 (defun vimpulse-invert-char (beg end)
   "Invert case of character."
-  (interactive (vimpulse-range nil nil nil nil 'forward-char))
-  (vimpulse-invert-case beg end))
+  (interactive (vimpulse-range nil nil nil t 'forward-char))
+  (vimpulse-invert-case beg end)
+  (cond
+   (vimpulse-visual-mode
+    (goto-char beg)
+    (vimpulse-visual-mode -1))
+   (t
+    (goto-char end))))
 
 (defun vimpulse-rot13 (beg end)
   "ROT13 encrypt text."
