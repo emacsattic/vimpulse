@@ -297,14 +297,12 @@ This is based on `vimpulse-visual-vars-alist'."
 (defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection.
 See `vimpulse-visual-range'."
-  (apply 'min (vimpulse-motion-range
-               (vimpulse-visual-range mode force))))
+  (vimpulse-range-beginning (vimpulse-visual-range mode force)))
 
 (defun vimpulse-visual-end (&optional mode force)
   "Return end of Visual selection.
 See `vimpulse-visual-range'."
-  (apply 'max (vimpulse-motion-range
-               (vimpulse-visual-range mode force))))
+  (vimpulse-range-end (vimpulse-visual-range mode force)))
 
 (defun vimpulse-visual-range (&optional mode force)
   "Return a Visual motion range (TYPE BEG END).
@@ -367,18 +365,16 @@ the current Visual mode via `vimpulse-visual-beginning' and
   "Expand Emacs region to Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
 exclude that newline from the region."
-  (let ((range (vimpulse-visual-range mode))
-        mark-active)
+  (let* ((range (vimpulse-visual-range mode))
+         (type  (vimpulse-motion-type range))
+         (beg   (vimpulse-range-beginning range))
+         (end   (vimpulse-range-end range))
+         mark-active)
     (when no-trailing-newline
       (save-excursion
-        (goto-char (apply 'max (vimpulse-motion-range range)))
-        (and (bolp) (not (bobp))
-             (setq range
-                   (list (vimpulse-motion-type range)
-                         (apply 'min (vimpulse-motion-range range))
-                         (max (apply 'min
-                                     (vimpulse-motion-range range))
-                              (1- (point))))))))
+        (goto-char end)
+        (when (and (bolp) (not (bobp)))
+          (setq range (list type beg (max beg (1- (point))))))))
     (setq vimpulse-visual-region-expanded t)
     (vimpulse-mark-range range)))
 
@@ -390,7 +386,10 @@ Return nil if selection is unchanged."
   (let ((opoint (point)) (omark (mark t)))
     (setq vimpulse-visual-region-expanded nil)
     (vimpulse-visual-select (region-beginning) (region-end))
-    (when keep-point (goto-char opoint))
+    ;; KEEP-POINT?
+    (when keep-point
+      (goto-char opoint))
+    ;; Was selection changed?
     (not (and (= (point)  opoint)
               (= (mark t) omark)))))
 

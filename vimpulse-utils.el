@@ -184,7 +184,7 @@ This is useful for deriving a \"standard\" key-sequence from
          (setq key (event-to-character key nil t)))
     ;; Any keys bound to `universal-argument', `digit-argument' or
     ;; `negative-argument' or bound in `universal-argument-map'
-    ;; are considered prefix keys.
+    ;; are considered prefix keys
     (while (and (or (memq (key-binding (vector key) t)
                           '(universal-argument
                             digit-argument
@@ -469,6 +469,14 @@ In XEmacs, change the `end-glyph' property."
    (t
     (list (point) (point)))))
 
+(defun vimpulse-range-beginning (range)
+  "Return the beginning of RANGE."
+  (apply 'min (vimpulse-motion-range range)))
+
+(defun vimpulse-range-end (range)
+  "Return the end of RANGE."
+  (apply 'max (vimpulse-motion-range range)))
+
 (defun vimpulse-motion-type (object &optional raw)
   "Return motion type of OBJECT.
 The type is one of `exclusive', `inclusive', `line' and `block'.
@@ -481,6 +489,12 @@ Defaults to `exclusive' unless RAW is specified."
     (if raw
         type
       (or type 'exclusive))))
+
+(defun vimpulse-make-motion-range (range &optional type)
+  "Return motion range."
+  (setq type  (or type (vimpulse-motion-type range))
+        range (vimpulse-motion-range range))
+  (cons type range))
 
 ;; This implements section 1 of motion.txt (Vim Reference Manual)
 (defun vimpulse-normalize-motion-range (range &optional type)
