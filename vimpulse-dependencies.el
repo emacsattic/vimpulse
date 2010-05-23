@@ -218,6 +218,14 @@ These should be present in every mode, to avoid confusion.")
  In other words, a sort of \"reverse mark ring\": marks that are
  popped off the mark ring, are collected here.")
 
+(viper-deflocalvar vimpulse-local-marks-alist nil
+  "Association list of local marks.
+Entries have the format (CHAR FILE MARKER).")
+
+(defvar vimpulse-global-marks-alist nil
+  "Association list of global marks.
+Entries have the format (CHAR FILE MARKER).")
+
 (viper-deflocalvar vimpulse-replace-alist nil
   "Alist of characters overwritten in Replace mode.
  Used by `vimpulse-replace-backspace' to restore text.

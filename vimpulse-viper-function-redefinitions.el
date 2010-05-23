@@ -34,6 +34,141 @@
   (remove-hook 'viper-replace-state-hook
                'viper-restore-cursor-type))
 
+;;; Marks
+
+;; The following makes lowercase marks buffer-local.
+(defun vimpulse-mark-point ()
+  "Set Vimpulse mark at point."
+  (interactive)
+  (let ((char (read-char)))
+    (cond
+     ;; Local marks
+     ((and (<= ?a char) (<= char ?z))
+      (vimpulse-mark char))
+     ;; Global marks
+     ((and (<= ?A char) (<= char ?Z))
+      (vimpulse-mark char t))
+     ;; < > . , ^
+     (t
+      (add-to-list 'unread-command-events char)
+      (viper-mark-point)))))
+
+(defun vimpulse-mark (char &optional global)
+  "Set mark CHAR at point.
+Mark is buffer-local unless GLOBAL."
+  (let* ((marks-alist (if global
+                          'vimpulse-global-marks-alist
+                        'vimpulse-local-marks-alist))
+         (mark  (assq char (symbol-value marks-alist)))
+         (value (cons buffer-file-name (point-marker))))
+    (if mark
+        (setcdr mark value)
+      (set marks-alist (cons (cons char value)
+                             (symbol-value marks-alist)))))
+  (add-hook 'kill-buffer-hook 'vimpulse-mark-swap-out nil t))
+
+(defun vimpulse-mark-swap-out ()
+  "Cf. `register-swap-out'."
+  (and buffer-file-name
+       (dolist (marks-alist '(vimpulse-local-marks-alist
+                              vimpulse-global-marks-alist))
+         (dolist (elt (symbol-value marks-alist))
+           (and (markerp (cddr elt))
+                (eq (marker-buffer (cddr elt)) (current-buffer))
+                (setcdr (cdr elt) (marker-position (cddr elt))))))))
+
+(defun vimpulse-get-mark (char)
+  (or (cdr (assq char (if (< char ?Z)
+                          vimpulse-global-marks-alist
+                        vimpulse-local-marks-alist)))
+      (error "No such mark: %c" char)))
+
+(defun vimpulse-goto-mark (arg)
+  "Go to mark."
+  (interactive "P")
+  (let ((char (read-char))
+        (com (viper-getcom arg)))
+    (vimpulse-goto-mark-subr char com nil)))
+
+(defun vimpulse-goto-mark-and-skip-white (arg)
+  "Go to mark and skip to first non-white character on line."
+  (interactive "P")
+  (let ((char (read-char))
+        (com (viper-getCom arg)))
+    (vimpulse-goto-mark-subr char com t)))
+
+(defun vimpulse-goto-mark-subr (char com skip-white)
+  (cond
+   ((viper-valid-register char '(letter Letter))
+    (let* ((buff (current-buffer))
+           (pos (vimpulse-get-mark char))
+           (file (car pos))
+           (marker (cdr pos)))
+      (if (and file (equal buffer-file-name file))
+          (goto-char marker)
+        (if (null file)
+            (if (marker-buffer marker)
+                (progn (switch-to-buffer (marker-buffer marker))
+                       (goto-char marker))
+              (error "Cannot jump to non-existent buffer"))
+          (and (or (find-buffer-visiting file)
+                   (y-or-n-p (format "Visit file %s again? " file)))
+               (find-file file)
+               (goto-char marker))))
+      (when com
+        (viper-move-marker-locally 'viper-com-point (point)))
+      (if (and (viper-same-line (point) viper-last-jump)
+               (= (point) viper-last-jump-ignore))
+          (push-mark viper-last-jump t)
+        (push-mark nil t))
+      (setq viper-last-jump (point-marker))
+      (when skip-white
+        (back-to-indentation)
+        (setq viper-last-jump-ignore (point)))
+      (when com
+        (if (equal buff (current-buffer))
+            (viper-execute-com (if skip-white
+                                   'viper-goto-mark-and-skip-white
+                                 'viper-goto-mark)
+                               nil com)
+          (switch-to-buffer buff)
+          (goto-char viper-com-point)
+          (viper-change-state-to-vi)
+          (error "Viper bell")))))
+   ((and (not skip-white) (viper= char ?`))
+    (when com
+      (viper-move-marker-locally 'viper-com-point (point)))
+    (when (and (viper-same-line (point) viper-last-jump)
+               (= (point) viper-last-jump-ignore))
+      (goto-char viper-last-jump))
+    (when (null (mark t))
+      (error "Mark is not set in this buffer"))
+    (when (= (point) (mark t))
+      (pop-mark))
+    (exchange-point-and-mark)
+    (setq viper-last-jump (point-marker)
+          viper-last-jump-ignore 0)
+    (when com
+      (viper-execute-com 'viper-goto-mark nil com)))
+   ((and skip-white (viper= char ?'))
+    (when com
+      (viper-move-marker-locally 'viper-com-point (point)))
+    (when (and (viper-same-line (point) viper-last-jump)
+               (= (point) viper-last-jump-ignore))
+      (goto-char viper-last-jump))
+    (when (= (point) (mark t))
+      (pop-mark))
+    (exchange-point-and-mark)
+    (setq viper-last-jump (point))
+    (back-to-indentation)
+    (setq viper-last-jump-ignore (point))
+    (when com
+      (viper-execute-com 'viper-goto-mark-and-skip-white nil com)))
+   (t
+    (error viper-InvalidTextmarker char))))
+
+(fset 'viper-goto-mark-subr 'vimpulse-goto-mark-subr)
+
 ;;; Code for adding extra states
 
 ;; State index variables: for keeping track of which modes
