@@ -173,9 +173,11 @@ from the keyboard. This has no effect on Visual behavior."
             range (vimpulse-motion-range range))
       (if (eq vimpulse-this-motion-type 'block)
           (vimpulse-visual-block-rotate
-           'upper-left (apply 'min range) (apply 'max range))
-        (goto-char (apply 'min range))
-        (set-mark  (apply 'max range)))
+           'upper-left
+           (vimpulse-range-beginning range)
+           (vimpulse-range-end range))
+        (goto-char (vimpulse-range-beginning range))
+        (set-mark  (vimpulse-range-end range)))
       ;; Disable selection
       (setq vimpulse-this-motion 'vimpulse-visual-reselect)
       (unless keep-visual
@@ -235,13 +237,13 @@ from the keyboard. This has no effect on Visual behavior."
                          '(line inclusive)))
           (setq type 'exclusive))
         ;; Calculate motion range
-        (setq range (vimpulse-make-motion-range
+        (setq range (vimpulse-calculate-motion-range
                      vimpulse-this-count vimpulse-this-motion type))
         (setq vimpulse-this-motion-type (vimpulse-motion-type range)
               range (vimpulse-motion-range range))
         ;; Go to beginning of range
         (unless dont-move-point
-          (goto-char (apply 'min range))
+          (goto-char (vimpulse-range-beginning range))
           (when (and viper-auto-indent
                      (looking-back "^[ \f\t\v]*"))
             (back-to-indentation)))
@@ -258,7 +260,7 @@ from the keyboard. This has no effect on Visual behavior."
     ;; Return range
     range))
 
-(defun vimpulse-make-motion-range (count motion &optional type refresh)
+(defun vimpulse-calculate-motion-range (count motion &optional type refresh)
   "Derive motion range (TYPE BEG END) from MOTION and COUNT.
 MOTION can move point or select some text (a text object).
 TYPE may specify the motion type for normalizing the resulting
@@ -269,7 +271,7 @@ range. If REFRESH is t, this function changes point,
    ((not refresh)
     (let (viper-com-point vimpulse-this-motion-type)
       (save-excursion
-        (vimpulse-make-motion-range count motion type t))))
+        (vimpulse-calculate-motion-range count motion type t))))
    (t
     (let ((current-prefix-arg count)
           (viper-intermediate-command 'viper-command-argument)
@@ -424,13 +426,14 @@ COM is discarded."
 (defun vimpulse-operator-apply (operator motion count &optional type)
   "Apply OPERATOR on MOTION. COUNT is the motion count.
 TYPE is the motion type."
-  (let* ((vimpulse-this-operator operator)
-         (vimpulse-this-motion motion)
-         (range (vimpulse-make-motion-range count motion type))
-         (vimpulse-this-motion-type (vimpulse-motion-type range))
-         (range (vimpulse-motion-range range))
-         (beg (apply 'min range))
-         (end (apply 'max range)))
+  (let ((vimpulse-this-operator operator)
+        (vimpulse-this-motion motion)
+        (vimpulse-this-motion-type (or type vimpulse-this-motion-type))
+        beg end range)
+    (setq range (vimpulse-calculate-motion-range count motion type)
+          beg   (vimpulse-range-beginning range)
+          end   (vimpulse-range-end range)
+          vimpulse-this-motion-type (vimpulse-motion-type range))
     (funcall operator beg end)))
 
 (defun vimpulse-region-cmd-p (cmd)
@@ -552,8 +555,8 @@ BEG and END are the range of text. If you specify LENGTH,
 they are ignored.
 
 This function respects `viper-change-notification-threshold'."
-  (let* ((beg (or beg (apply 'min (vimpulse-visual-range)) 1))
-         (end (or end (apply 'max (vimpulse-visual-range)) 1))
+  (let* ((beg (or beg (vimpulse-visual-beginning) 1))
+         (end (or end (vimpulse-visual-end) 1))
          (height (or vimpulse-visual-height 1))
          (width (or vimpulse-visual-width 1))
          (type (or type vimpulse-this-motion-type))

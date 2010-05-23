@@ -107,8 +107,8 @@ If WIDEN is non-nil, expands existing region. If the TYPE
 argument is specified, it overrides the type of RANGE."
   (let* ((type  (or type (vimpulse-motion-type range)))
          (range (vimpulse-motion-range range))
-         (beg (apply 'min range))
-         (end (apply 'max range)))
+         (beg (vimpulse-range-beginning range))
+         (end (vimpulse-range-end range)))
     (cond
      ((eq type 'exclusive)
       (if vimpulse-visual-mode
@@ -149,16 +149,16 @@ from the motion types of BACKWARD-FUNC and FORWARD-FUNC."
       (setq count (or (if (eq count 0) 1 count) 1))
       (if (< count 0)
           (setq backward-range
-                (vimpulse-make-motion-range
+                (vimpulse-calculate-motion-range
                  (abs count) backward-func type t)
                 forward-range
-                (vimpulse-make-motion-range
+                (vimpulse-calculate-motion-range
                  (abs count) forward-func type t))
         (setq forward-range
-              (vimpulse-make-motion-range
+              (vimpulse-calculate-motion-range
                (abs count) forward-func type t)
               backward-range
-              (vimpulse-make-motion-range
+              (vimpulse-calculate-motion-range
                (abs count) backward-func type t)))
       (setq beg (apply 'min (vimpulse-motion-range backward-range))
             end (apply 'max (vimpulse-motion-range forward-range)))
