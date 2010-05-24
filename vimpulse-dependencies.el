@@ -220,11 +220,13 @@ These should be present in every mode, to avoid confusion.")
 
 (viper-deflocalvar vimpulse-local-marks-alist nil
   "Association list of local marks.
-Entries have the format (CHAR FILE MARKER).")
+Entries have the form (CHAR (FILE . POS)) where POS is a marker
+or a character position.")
 
 (defvar vimpulse-global-marks-alist nil
   "Association list of global marks.
-Entries have the format (CHAR FILE MARKER).")
+Entries have the form (CHAR (FILE . POS)) where POS is a marker
+or a character position.")
 
 (viper-deflocalvar vimpulse-replace-alist nil
   "Alist of characters overwritten in Replace mode.
