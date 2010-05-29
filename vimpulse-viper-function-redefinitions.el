@@ -167,8 +167,6 @@ Mark is buffer-local unless GLOBAL."
    (t
     (error viper-InvalidTextmarker char))))
 
-(fset 'viper-goto-mark-subr 'vimpulse-goto-mark-subr)
-
 ;;; Code for adding extra states
 
 ;; State index variables: for keeping track of which modes
