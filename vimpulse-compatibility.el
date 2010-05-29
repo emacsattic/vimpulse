@@ -268,6 +268,7 @@ Disable anyway if FORCE is t."
      (let ((map help-mode-map))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
+       (define-key map "q" 'View-quit)
        (viper-modify-major-mode 'help-mode 'vi-state map))))
 
 ;;; ElDoc
