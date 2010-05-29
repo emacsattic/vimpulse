@@ -171,16 +171,17 @@ from the keyboard. This has no effect on Visual behavior."
       (setq range (vimpulse-visual-range))
       (setq vimpulse-this-motion-type (vimpulse-motion-type range)
             range (vimpulse-motion-range range))
-      (if (eq vimpulse-this-motion-type 'block)
-          (vimpulse-visual-block-rotate
-           'upper-left
-           (vimpulse-range-beginning range)
-           (vimpulse-range-end range))
-        (goto-char (vimpulse-range-beginning range))
-        (set-mark  (vimpulse-range-end range)))
-      ;; Disable selection
       (setq vimpulse-this-motion 'vimpulse-visual-reselect)
-      (unless keep-visual
+      (if keep-visual
+          (vimpulse-visual-contract-region)
+        (if (eq vimpulse-this-motion-type 'block)
+            (vimpulse-visual-block-rotate
+             'upper-left
+             (vimpulse-range-beginning range)
+             (vimpulse-range-end range))
+          (goto-char (vimpulse-range-beginning range))
+          (set-mark  (vimpulse-range-end range)))
+        ;; Disable selection
         (if (and vimpulse-visual-mode
                  (fboundp 'vimpulse-visual-mode))
             (vimpulse-visual-mode -1)
