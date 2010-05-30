@@ -259,7 +259,7 @@
 ;; If the same mock is frequently reused, put it in a fixture or
 ;; define a function for it and call that function in the test. Just
 ;; ensure that it is never called outside a test, otherwise it will
-;; not be released.
+;; not be released (unless wrapped in `with-mocks-and-stubs').
 
 ;;; Code:
 
@@ -325,7 +325,7 @@
                 (and (boundp 'current-suites)
                      current-suites))
                (current-suite ',suite)
-               suite-passed
+               (suite-passed t)
                stubs mocks-alist)
            (add-to-list 'current-suites ',suite)
            (with-mocks-and-stubs
@@ -457,8 +457,7 @@ test is done."
                                 (condition-case err
                                     (progn
                                       ,@body
-                                      (setq test-passed t
-                                            suite-passed t))
+                                      (setq test-passed t))
                                   (error (progn
                                            (setq suite-passed nil)
                                            (test-message
@@ -771,6 +770,26 @@ is specified."
      (without-mocks-and-stubs
        (unless (/= actual expected)
          (error "%sassert-/= for %s failed:\n\texpected not %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
+
+(defassert assert-string= (doc actual expected)
+  "Verify that ACTUAL is `string=' to EXPECTED."
+  `(let ((actual ,actual)
+         (expected ,expected))
+     (without-mocks-and-stubs
+       (unless (string= actual expected)
+         (error "%sassert-string= for %s failed:\n\texpected %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
+
+(defassert assert-not-string= (doc actual expected)
+  "Verify that ACTUAL is not `string=' to EXPECTED."
+  `(let ((actual ,actual)
+         (expected ,expected))
+     (without-mocks-and-stubs
+       (when (string= actual expected)
+         (error "%sassert-not-string= for %s failed:\n\texpected %s, was %s\n"
                 ,(if (stringp doc) (concat doc "\n\t") "")
                 ',actual expected actual)))))
 
@@ -1098,24 +1117,28 @@ This line is not included in the report."
 (defsuite test-visual-suite
   "Test suite for vimpulse-visual-mode.el."
   :fixture vimpulse-test-buffer
-  (test-temp-buffer
-   "Does `vimpulse-test-buffer' work?"
-   ;; Executing keyboard macros is usually sufficient, but not always:
-   ;; command loop hooks are not executed.
-   (execute-kbd-macro "wd2w")
-   (assert (looking-at "is")))
-  (test-delete-line
+  (test-visual-delete-word
+   "Visually delete a word."
+   (execute-kbd-macro "wved")
+   (assert-string=
+     (buffer-substring 1 47)
+     ";;  buffer is for notes you don't want to save"))
+  (test-visual-delete-line
    "Visually delete a line."
    (execute-kbd-macro "Vdw")
-   (assert (looking-at "If")))
-  (test-delete-block
+   (assert-string=
+     (buffer-string)
+     ";; If you want to create a file, visit that file with C-x C-f,
+;; then enter the text in that file's own buffer.\n"))
+  (test-visual-delete-block
    "Visually delete `;; ' prefix."
    (execute-kbd-macro "\C-vjjlld")
-   (assert (looking-at "This"))
-   (execute-kbd-macro "j")
-   (assert (looking-at "If"))
-   (execute-kbd-macro "j")
-   (assert (looking-at "then"))))
+   (assert-string=
+     (buffer-string)
+     "This buffer is for notes you don't want to save, and for \
+Lisp evaluation.
+If you want to create a file, visit that file with C-x C-f,
+then enter the text in that file's own buffer.\n")))
 
 (provide 'vimpulse-test)
 
