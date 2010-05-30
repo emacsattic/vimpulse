@@ -316,10 +316,10 @@ range. If REFRESH is t, this function changes point,
              ;; Otherwise, range is defined by `viper-com-point'
              ;; and point (Viper type motion)
              (t
-              (setq range (vimpulse-normalize-motion-range
-                           (list (or type vimpulse-this-motion-type)
-                                 (marker-position viper-com-point)
-                                 (point)))))))
+              (setq range (vimpulse-make-motion-range
+                           (marker-position viper-com-point)
+                           (point)
+                           (or type vimpulse-this-motion-type) t)))))
         (vimpulse-transient-restore))
       range))))
 

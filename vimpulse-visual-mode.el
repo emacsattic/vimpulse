@@ -329,7 +329,7 @@ See also `vimpulse-visual-beginning' and `vimpulse-visual-end'."
      ((and (not force)
            (or (not vimpulse-visual-mode)
                vimpulse-visual-region-expanded))
-      (list mode (min mark point) (max mark point)))
+      (vimpulse-make-motion-range mark point mode))
      ((eq mode 'block)
       (vimpulse-block-range mark point))
      ((eq mode 'line)
@@ -374,7 +374,8 @@ exclude that newline from the region."
       (save-excursion
         (goto-char end)
         (when (and (bolp) (not (bobp)))
-          (setq range (list type beg (max beg (1- (point))))))))
+          (setq range (vimpulse-make-motion-range
+                       beg (max beg (1- (point))) type)))))
     (setq vimpulse-visual-region-expanded t)
     (vimpulse-mark-range range)))
 

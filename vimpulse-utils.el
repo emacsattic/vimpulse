@@ -490,11 +490,15 @@ Defaults to `exclusive' unless RAW is specified."
         type
       (or type 'exclusive))))
 
-(defun vimpulse-make-motion-range (range &optional type)
-  "Return motion range."
-  (setq type  (or type (vimpulse-motion-type range))
-        range (vimpulse-motion-range range))
-  (cons type range))
+(defun vimpulse-make-motion-range (beg end &optional type normalize)
+  "Return motion range (TYPE BEG END).
+If NORMALIZE is non-nil, normalize the range with
+`vimpulse-normalize-motion-range'."
+  (let* ((range (list (min beg end) (max beg end)))
+         (type (or type 'exclusive)))
+    (if normalize
+        (vimpulse-normalize-motion-range range type)
+      (cons type range))))
 
 ;; This implements section 1 of motion.txt (Vim Reference Manual)
 (defun vimpulse-normalize-motion-range (range &optional type)
@@ -544,20 +548,20 @@ the last column is included."
          ((eolp)
           (goto-char beg)
           (if (eolp)
-              (list 'block beg end)
-            (list 'block (1+ beg) end)))
+              (vimpulse-make-motion-range beg end 'block)
+            (vimpulse-make-motion-range (1+ beg) end 'block)))
          (t
-          (list 'block beg (1+ end)))))
+          (vimpulse-make-motion-range beg (1+ end) 'block))))
        ((< beg-col end-col)
         (goto-char end)
         (if (eolp)
-            (list 'block beg end)
-          (list 'block beg (1+ end))))
+            (vimpulse-make-motion-range beg end 'block)
+          (vimpulse-make-motion-range beg (1+ end) 'block)))
        (t
         (goto-char beg)
         (if (eolp)
-            (list 'block beg end)
-          (list 'block (1+ beg) end)))))))
+            (vimpulse-make-motion-range beg end 'block)
+          (vimpulse-make-motion-range (1+ beg) end 'block)))))))
 
 (defun vimpulse-line-range (mark point)
   "Return a linewise motion range (LINE BEG END)."
@@ -565,13 +569,14 @@ the last column is included."
          (mark  (or mark point))
          (beg (min mark point))
          (end (max mark point)))
-    (list 'line
-          (save-excursion
-            (goto-char beg)
-            (line-beginning-position))
-          (save-excursion
-            (goto-char end)
-            (line-beginning-position 2)))))
+    (vimpulse-make-motion-range
+     (save-excursion
+       (goto-char beg)
+       (line-beginning-position))
+     (save-excursion
+       (goto-char end)
+       (line-beginning-position 2))
+     'line)))
 
 (defun vimpulse-inclusive-range (mark point)
   "Return an inclusive motion range (INCLUSIVE BEG END).
@@ -584,7 +589,7 @@ That is, the last character is included."
       (goto-char end)
       (unless (or (eobp) (and (eolp) (not (bolp))))
         (setq end (1+ end)))
-      (list 'inclusive beg end))))
+      (vimpulse-make-motion-range beg end 'inclusive))))
 
 (defun vimpulse-exclusive-range (mark point &optional normalize)
   "Return an exclusive motion range (EXCLUSIVE BEG END).
@@ -614,10 +619,10 @@ Thus, this function may return, e.g., (LINE BEG END) instead."
          ((save-excursion
             (goto-char beg)
             (looking-back "^[ \f\t\v]*"))
-          (vimpulse-normalize-motion-range (list 'line beg end)))
+          (vimpulse-make-motion-range beg end 'line t))
          (t
-          (list 'inclusive beg end))))
+          (vimpulse-make-motion-range beg end 'inclusive))))
        (t
-        (list 'exclusive beg end))))))
+        (vimpulse-make-motion-range beg end 'exclusive))))))
 
 (provide 'vimpulse-utils)
