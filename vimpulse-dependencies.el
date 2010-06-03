@@ -177,6 +177,8 @@ SYM is unquoted. Returns VAL."
 (defvar ex-token-alist)
 (defvar viper-mode-string)
 
+(defvar vimpulse-window-map)
+
 (defvar vimpulse-viper-movement-cmds
   '(viper-backward-Word viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
