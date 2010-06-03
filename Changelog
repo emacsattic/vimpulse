@@ -1,5 +1,28 @@
 ;;; Change Log:
 
+;; Version 0.4+git [2010-06-??]
+;;  [vegard_oye at hotmail.com:]
+;;  - [NEW] :undolist or :ul shows the undo history as a tree. This
+;;    uses undo-tree.el, which replaces redo.el for undo/redo.
+;;    Get undo-tree.el from: http://www.emacswiki.org/emacs/UndoTree
+;;  - [NEW] / and ? use isearch. Matches are highlighted while typing;
+;;    also, isearch keystrokes applies, like C-w to yank the text
+;;    under cursor. See `isearch-forward' for more details.
+;;  - [NEW] If `viper-auto-indent' is t, RET extends the comment
+;;    prefix to the next line (with `comment-indent-new-line' from
+;;    newcomment.el).
+;;  - [NEW] gi inserts at previous location.
+;;  - [NEW] C-w has its own prefix map, `vimpulse-window-map'.
+;;  - [NEW] Lower-case marks are buffer-local -- thanks, Štěpán Němec.
+;;  - [FIX] Replace mode's appearance is now more similar to Vim's.
+;;  - [FIX] Byte compilation errors.
+;;  - [FIX] Various bugs submitted to the mailing list --
+;;    thanks, everyone.
+;;  - To pacify the compiler, all variables are initially defined
+;;    in one place.
+;;  - For readability and consistency, "Yoda conditions" are
+;;    universally banned: e.g., (= var 0), not (= 0 var).
+;;
 ;; Version 0.4 [2010-04-26]
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] Operator-Pending mode: the cursor's appearance
