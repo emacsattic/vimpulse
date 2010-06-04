@@ -173,7 +173,9 @@ from the keyboard. This has no effect on Visual behavior."
             range (vimpulse-motion-range range))
       (setq vimpulse-this-motion 'vimpulse-visual-reselect)
       (if keep-visual
-          (vimpulse-visual-contract-region)
+          (if (eq vimpulse-visual-mode 'line)
+              (vimpulse-visual-restore)
+            (vimpulse-visual-contract-region))
         (if (eq vimpulse-this-motion-type 'block)
             (vimpulse-visual-block-rotate
              'upper-left
