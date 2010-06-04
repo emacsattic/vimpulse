@@ -111,16 +111,21 @@
 (defun vimpulse-replace (beg end)
   "Replace all selected characters with ARG."
   (interactive (vimpulse-range nil t nil t 'forward-char))
-  (let (char endpos length visual-p)
+  (let (endpos length visual-p)
     (setq endpos (max beg (1- end)))
-    (unwind-protect
-        (progn
-          (vimpulse-set-replace-cursor-type)
-          (setq char (read-char)))
-      (viper-restore-cursor-type)
-      (when vimpulse-visual-mode
-        (vimpulse-visual-mode -1)
-        (setq endpos beg)))
+    (unless (and (eq viper-intermediate-command 'viper-repeat)
+                 viper-d-char)
+      (unwind-protect
+          (progn
+            (vimpulse-set-replace-cursor-type)
+            (save-excursion
+              (viper-special-read-and-insert-char))
+            (setq viper-d-char (char-after))
+            (delete-char 1))
+        (viper-restore-cursor-type)
+        (when vimpulse-visual-mode
+          (vimpulse-visual-mode -1)
+          (setq endpos beg))))
     (cond
      ((eq vimpulse-this-motion-type 'block)
       (setq length (abs (- (save-excursion
@@ -133,7 +138,7 @@
        (lambda (beg end)
          (goto-char beg)
          (delete-region beg end)
-         (insert (make-string length char)))
+         (insert (make-string length viper-d-char)))
        beg end))
      (t
       (goto-char beg)
@@ -141,7 +146,7 @@
         (if (looking-at "\n")
             (forward-char)
           (delete-char 1)
-          (insert-char char 1)))
+          (insert-char viper-d-char 1)))
       (goto-char endpos)))))
 
 (defun vimpulse-join (beg end)

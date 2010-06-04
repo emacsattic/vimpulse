@@ -318,7 +318,7 @@
        ;; Define suite variable
        (defvar ,suite ',tests ,doc)
        ;; Define suite function
-       (defun ,suite ()
+       (defun ,suite (&optional fixture setup teardown)
          ,doc
          (interactive)
          (let ((current-suites
@@ -328,11 +328,12 @@
                (suite-passed t)
                stubs mocks-alist)
            (add-to-list 'current-suites ',suite)
-           (with-mocks-and-stubs
-             (dolist (func ,suite)
-               (unless (memq func current-suites)
-                 (funcall func ',suite-fixture
-                          ',suite-setup ',suite-teardown))))
+           (dolist (func ,suite)
+             (unless (memq func current-suites)
+               (run-test (lambda ()
+                           (funcall func ',suite-fixture
+                                    ',suite-setup ',suite-teardown))
+                         fixture setup teardown)))
            (and suite-passed
                 (called-interactively-p)
                 (message "Test suite passed!"))))
@@ -1125,7 +1126,7 @@ This line is not included in the report."
      ";;  buffer is for notes you don't want to save"))
   (test-visual-delete-line
    "Visually delete a line."
-   (execute-kbd-macro "Vdw")
+   (execute-kbd-macro "Vd")
    (assert-string=
      (buffer-string)
      ";; If you want to create a file, visit that file with C-x C-f,
@@ -1140,13 +1141,24 @@ Lisp evaluation.
 If you want to create a file, visit that file with C-x C-f,
 then enter the text in that file's own buffer.\n"))
   (test-visual-replace
-   "Visually replace parts of two lines."
+   "Replace with Visual selection."
    (execute-kbd-macro "wvjra")
    (assert-string=
+     "Visually replace parts of two lines."
      (buffer-string)
      ";; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaf you want to create a file, visit that file with C-x C-f,
-;; then enter the text in that file's own buffer.\n")))
+;; then enter the text in that file's own buffer.\n")
+   (execute-kbd-macro "jjvral.l.")
+   (assert-string=
+     "Replace a character and repeat for subsequent characters."
+     (buffer-substring 141 191)
+     ";; aaan enter the text in that file's own buffer.\n")
+   (execute-kbd-macro "$ra")
+   (assert-string=
+     "Replace at end of line."
+     (buffer-substring 141 191)
+     ";; aaan enter the text in that file's own buffera\n")))
 
 (provide 'vimpulse-test)
 
