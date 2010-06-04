@@ -242,14 +242,6 @@ Disable anyway if FORCE is t."
        (add-to-list 'ex-token-alist '("d" (epa-dired-do-decrypt)))
        (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
-;; ERC
-(eval-after-load 'erc
-  '(let ((map erc-mode-map))
-     (define-key map [remap viper-autoindent] 'erc-send-current-line)
-     (define-key map [remap vimpulse-autoindent] 'erc-send-current-line)
-     (define-key map (kbd "RET") 'erc-send-current-line)
-     (viper-modify-major-mode 'erc-mode 'insert-state map)))
-
 ;; Info
 (eval-after-load 'info
   '(when vimpulse-want-vi-keys-in-Info
