@@ -360,11 +360,16 @@ the current Visual mode via `vimpulse-visual-beginning' and
     (vimpulse-set-region
      (min beg end) (max beg end) widen))))
 
-(defun vimpulse-visual-expand-region
-  (&optional mode no-trailing-newline)
-  "Expand Emacs region to Visual selection.
+;;; Functions for Visual selection <--> Emacs region transformation
+
+;; In Vim, Visual-mode selection always includes the character position under
+;; the cursor (i.e. "at point" or "following point" in Emacs-speak), so the
+;; former is invariably larger than the latter -- thus "expand" and "contract".
+(defun vimpulse-visual-expand-region (&optional mode no-trailing-newline)
+  "Transform the current Emacs region to the equivalent Visual selection.
 If NO-TRAILING-NEWLINE is t and selection ends with a newline,
-exclude that newline from the region."
+exclude that newline from the region.
+Cf. `vimpulse-visual-contract-region' for the reverse operation."
   (let* ((range (vimpulse-visual-range mode))
          (type  (vimpulse-motion-type range))
          (beg   (vimpulse-range-beginning range))
@@ -380,10 +385,10 @@ exclude that newline from the region."
     (vimpulse-mark-range range)))
 
 (defun vimpulse-visual-contract-region (&optional keep-point)
-  "Opposite of `vimpulse-visual-expand-region'.
-I.e., the resulting Visual selection is equivalent to the former
-Emacs region. If KEEP-POINT is t, does not move point.
-Return nil if selection is unchanged."
+  "Transform the current Visual selection to the equivalent Emacs region.
+If KEEP-POINT is t, do not move point.
+Return nil if selection is unchanged.
+Cf. `vimpulse-visual-expand-region' for the reverse operation."
   (let ((opoint (point)) (omark (mark t)))
     (setq vimpulse-visual-region-expanded nil)
     (vimpulse-visual-select (region-beginning) (region-end))
