@@ -245,7 +245,7 @@ Saves the previous state of Transient Mark mode in
       (vimpulse-transient-remember)
       (cond
        ((and (fboundp 'cua-mode)
-             (and (vimpulse-visual-before (eq cua-mode t)))
+             (vimpulse-visual-before (eq cua-mode t))
              (or (not cua-mode) (numberp arg)))
         (cua-mode 1))
        ((and (fboundp 'transient-mark-mode)
@@ -274,17 +274,19 @@ Saves the previous state of Transient Mark mode in
  Also restores Cua mode."
   (when vimpulse-visual-vars-alist
     (when (boundp 'transient-mark-mode)
-      (if (and (vimpulse-visual-before transient-mark-mode))
+      (if (vimpulse-visual-before transient-mark-mode)
           (transient-mark-mode 1)
         (transient-mark-mode -1)))
     (when (boundp 'cua-mode)
-      (if (and (vimpulse-visual-before cua-mode))
+      (if (vimpulse-visual-before cua-mode)
           (cua-mode 1)
         (cua-mode -1)))
     (when (boundp 'zmacs-regions)
-      (let ((oldval (and (vimpulse-visual-before zmacs-regions))))
+      (let ((oldval (vimpulse-visual-before zmacs-regions)))
         (setq zmacs-regions oldval)))))
 
+;; Should be replaced with something more readable,
+;; like (vimpulse-visual-historical-value 'transient-mark-mode).
 (defmacro vimpulse-visual-before (&rest body)
   "Evaluate BODY with original system values from before Visual mode.
 This is based on `vimpulse-visual-vars-alist'."
@@ -360,14 +362,14 @@ the current Visual mode via `vimpulse-visual-beginning' and
     (vimpulse-set-region
      (min beg end) (max beg end) widen))))
 
-;;; Functions for Visual selection <--> Emacs region transformation
+;;; Functions for Visual selection <=> Emacs region transformation
 
 ;; In Vim, Visual-mode selection always includes the character position under
-;; the cursor (i.e. "at point" or "following point" in Emacs-speak), so the
+;; the cursor (i.e., "at point" or "following point" in Emacs-speak), so the
 ;; former is invariably larger than the latter -- thus "expand" and "contract".
 (defun vimpulse-visual-expand-region (&optional mode no-trailing-newline)
   "Transform the current Emacs region to the equivalent Visual selection.
-If NO-TRAILING-NEWLINE is t and selection ends with a newline,
+If NO-TRAILING-NEWLINE is t and the selection ends with a newline,
 exclude that newline from the region.
 Cf. `vimpulse-visual-contract-region' for the reverse operation."
   (let* ((range (vimpulse-visual-range mode))
@@ -386,7 +388,8 @@ Cf. `vimpulse-visual-contract-region' for the reverse operation."
 
 (defun vimpulse-visual-contract-region (&optional keep-point)
   "Transform the current Visual selection to the equivalent Emacs region.
-If KEEP-POINT is t, do not move point.
+If KEEP-POINT is t, do not move point (transformation may be incomplete
+if mark < point).
 Return nil if selection is unchanged.
 Cf. `vimpulse-visual-expand-region' for the reverse operation."
   (let ((opoint (point)) (omark (mark t)))
@@ -399,6 +402,10 @@ Cf. `vimpulse-visual-expand-region' for the reverse operation."
     (not (and (= (point)  opoint)
               (= (mark t) omark)))))
 
+;; While there is a one-to-one relationship between Vim-like, "inclusive"
+;; selections and Emacs-like, "exclusive" regions, line selection is a
+;; one-way operation -- multiple selections can produce the same number
+;; of lines. Line "contraction" is therefore based on memory.
 (defun vimpulse-visual-restore ()
   "Restore previous selection.
 This selects a specific range of text in the buffer.
