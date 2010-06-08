@@ -89,8 +89,8 @@
 (define-key viper-insert-basic-map "\C-n" 'vimpulse-abbrev-expand-after)
 (define-key viper-insert-basic-map "\C-x\C-p" 'vimpulse-expand-line)
 (define-key viper-insert-basic-map "\C-x\C-n" 'vimpulse-expand-line)
-(define-key viper-insert-basic-map [delete] 'delete-char) ;; delete key
-                                        ; make ^[ work
+(define-key viper-insert-basic-map [delete] 'delete-char) ; <delete> key
+;; Make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
 ;; My code (Alessandro)
