@@ -196,7 +196,7 @@ SYM is unquoted. Returns VAL."
     vimpulse-goto-first-line vimpulse-goto-definition
     vimpulse-goto-line vimpulse-search-backward-for-symbol-at-point
     vimpulse-search-forward-for-symbol-at-point vimpulse-jump-backward
-    vimpulse-jump-forward vimpulse-visual-toggle-normal
+    vimpulse-jump-forward vimpulse-visual-toggle-char
     vimpulse-visual-toggle-line vimpulse-visual-toggle-block)
   "List of Viper/Vimpulse movement commands.")
 
@@ -305,7 +305,7 @@ Used by `vimpulse-operator-repeat'.")
      'remap-alist 'vimpulse-visual-remap-alist)
 
 (viper-deflocalvar vimpulse-visual-mode nil
-  "Current Visual mode: may be nil, `normal', `line' or `block'.")
+  "Current Visual mode: may be nil, `char', `line' or `block'.")
 
 (viper-deflocalvar vimpulse-visual-global-vars nil
   "List of variables that were global.")
@@ -323,7 +323,7 @@ Used by `vimpulse-operator-repeat'.")
 
 (viper-deflocalvar vimpulse-visual-last nil
   "Last active Visual mode.
-May be `normal', `line', `block' or nil.")
+May be `char', `line', `block' or nil.")
 
 (viper-deflocalvar vimpulse-visual-previous-state 'viper-state
   "Previous state before enabling Visual mode.
@@ -384,7 +384,7 @@ NLINES is the number of lines in the region.")
     vimpulse-visual-block-rotate vimpulse-visual-exchange-corners
     vimpulse-visual-reselect vimpulse-visual-restore
     vimpulse-visual-toggle-block vimpulse-visual-toggle-line
-    vimpulse-visual-toggle-normal viper-backward-Word
+    vimpulse-visual-toggle-char viper-backward-Word
     viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
     viper-beginning-of-line viper-digit-argument viper-end-of-Word

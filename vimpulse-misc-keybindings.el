@@ -53,7 +53,7 @@
 (define-key viper-vi-basic-map "\"" 'vimpulse-read-register)
 
 ;; Visual bindings
-(define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-normal)
+(define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-char)
 (define-key viper-vi-basic-map "V" 'vimpulse-visual-toggle-line)
 (define-key viper-vi-basic-map "\C-v" 'vimpulse-visual-toggle-block)
 (define-key viper-vi-basic-map "gv" 'vimpulse-visual-restore)
