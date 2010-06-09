@@ -42,7 +42,7 @@ selection on each line."
             vi-state)
   (cond
    ((eq new-state 'visual-state)
-    (unless (memq vimpulse-visual-mode '(normal line block))
+    (unless (memq vimpulse-visual-mode '(char line block))
       (vimpulse-visual-mode 1)))
    (t
     (vimpulse-visual-mode -1))))
@@ -54,7 +54,7 @@ selection on each line."
 
 ;; Visual mode comprises three "submodes": characterwise, linewise
 ;; and blockwise selection. We implement this by setting the mode
-;; variable `vimpulse-visual-mode' to either `normal', `line'
+;; variable `vimpulse-visual-mode' to either `char', `line'
 ;; or `block'.
 (define-minor-mode vimpulse-visual-mode
   "Toggles Visual mode in Viper."
@@ -63,8 +63,8 @@ selection on each line."
   :group 'vimpulse-visual
   (cond
    (vimpulse-visual-mode
-    (unless (memq vimpulse-visual-mode '(normal line block))
-      (vimpulse-visual-activate 'normal)))
+    (unless (memq vimpulse-visual-mode '(char line block))
+      (vimpulse-visual-activate 'char)))
    (t
     ;; This is executed when we do (vimpulse-visual-mode -1).
     ;; It must run without error even if Visual mode is not active.
@@ -98,9 +98,9 @@ selection on each line."
   (fset 'vimpulse-activate-mark 'vimpulse-activate-region))
 
 (defun vimpulse-visual-activate (&optional mode)
-  "Activate Visual mode. MODE is `normal', `line' or `block'.
+  "Activate Visual mode. MODE is `char', `line' or `block'.
 May also be used to change the Visual mode."
-  (unless (memq vimpulse-visual-mode '(normal line block))
+  (unless (memq vimpulse-visual-mode '(char line block))
     ;; We are activating Visual mode for the first time
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
@@ -142,7 +142,7 @@ May also be used to change the Visual mode."
         (vimpulse-activate-mark (point))))
       (vimpulse-visual-highlight))))
   ;; Set the Visual mode
-  (setq mode (or mode 'normal))
+  (setq mode (or mode 'char))
   (setq vimpulse-visual-mode mode
         vimpulse-visual-last mode)
   (viper-change-state 'visual-state)
@@ -163,11 +163,11 @@ Otherwise disable Visual mode."
       (vimpulse-visual-mode -1)
     (vimpulse-visual-activate mode)))
 
-(defun vimpulse-visual-activate-normal ()
-  "Enable Visual selection."
+(defun vimpulse-visual-activate-char ()
+  "Enable Visual Character selection."
   (interactive)
   (let (message-log-max)
-    (vimpulse-visual-activate 'normal)
+    (vimpulse-visual-activate 'char)
     (message "-- VISUAL --")))
 
 (defun vimpulse-visual-activate-line ()
@@ -184,11 +184,11 @@ Otherwise disable Visual mode."
     (vimpulse-visual-activate 'block)
     (message "-- VISUAL BLOCK --")))
 
-(defun vimpulse-visual-toggle-normal ()
-  "Toggle Visual selection."
+(defun vimpulse-visual-toggle-char ()
+  "Toggle Visual Character selection."
   (interactive)
   (let (message-log-max)
-    (vimpulse-visual-toggle 'normal)
+    (vimpulse-visual-toggle 'char)
     (when vimpulse-visual-mode
       (message "-- VISUAL --"))))
 
@@ -312,9 +312,9 @@ TYPE is the Visual mode.
 
 The range depends on `point', `mark' and `vimpulse-visual-mode'.
 The Visual mode may be specified explicitly with MODE, which must
-be one of `normal', `line' and `block'.
+be one of `char', `line' and `block'.
 
-In Normal mode, returns region plus one character.
+In Character mode, returns region plus one character.
 In Line mode, returns region as whole lines.
 In Block mode, returns rectangle plus one column.
 
@@ -426,8 +426,8 @@ See also `vimpulse-visual-reselect'."
           (vimpulse-visual-activate-line))
          ((eq last 'block)
           (vimpulse-visual-activate-block))
-         (t                             ; normal
-          (vimpulse-visual-activate-normal))))
+         (t                             ; char
+          (vimpulse-visual-activate-char))))
       (set-mark vimpulse-visual-mark)
       (goto-char vimpulse-visual-point)
       (vimpulse-visual-contract-region)
@@ -460,13 +460,13 @@ See also `vimpulse-visual-restore'."
       (move-to-column width)))
    ((eq mode 'line)
     (viper-next-line-carefully (1- height)))
-   (t                                   ; normal
+   (t                                   ; char
     (viper-forward-char-carefully (1- width)))))
 
 (defun vimpulse-visual-markers (&optional point mark)
   "Refresh `vimpulse-visual-point' and `vimpulse-visual-mark'."
-  (setq mark  (vimpulse-visual-beginning 'normal)
-        point (vimpulse-visual-end 'normal))
+  (setq mark  (vimpulse-visual-beginning 'char)
+        point (vimpulse-visual-end 'char))
   (when (< (point) (mark t))
     (setq mark (prog1 point
                  (setq point mark))))
@@ -519,7 +519,7 @@ With negative ARG, removes highlighting."
       (when (eq (viper-overlay-get overlay 'face) (vimpulse-region-face))
         (vimpulse-delete-overlay overlay))))
    ((eq vimpulse-visual-mode 'block)
-    ;; Remove any normal/line highlighting
+    ;; Remove any char/line highlighting
     (when (viper-overlay-live-p vimpulse-visual-overlay)
       (vimpulse-delete-overlay vimpulse-visual-overlay))
     ;; Block highlighting isn't perfect
@@ -528,7 +528,7 @@ With negative ARG, removes highlighting."
          (vimpulse-visual-beginning)
          (vimpulse-visual-end))
       (error nil)))
-   (vimpulse-visual-mode                ; normal or line
+   (vimpulse-visual-mode                ; char or line
     (let ((beg (vimpulse-visual-beginning))
           (end (vimpulse-visual-end)))
       ;; Remove any block highlighting
@@ -747,7 +747,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
         (kill-new replaced-text t)
         (kill-new inserted-text))
       (vimpulse-delete (region-beginning) (region-end) t)
-      (when (and (eq mode 'normal)
+      (when (and (eq mode 'char)
                  (not (bolp))
                  (viper-end-with-a-newline-p inserted-text))
         (newline))
@@ -1123,7 +1123,7 @@ in the lower right (see fig.), this function puts mark in
 the upper right corner and point in the lower left."
   (interactive)
   (cond
-   ((memq vimpulse-visual-mode '(normal line))
+   ((memq vimpulse-visual-mode '(char line))
     (exchange-point-and-mark))
    ((eq vimpulse-visual-mode 'block)
     (let ((mark-col (save-excursion
@@ -1254,7 +1254,7 @@ Returns the insertion point."
 
 ;;; Key bindings
 
-(define-key vimpulse-visual-basic-map "v" 'vimpulse-visual-toggle-normal)
+(define-key vimpulse-visual-basic-map "v" 'vimpulse-visual-toggle-char)
 (define-key vimpulse-visual-basic-map "V" 'vimpulse-visual-toggle-line)
 (define-key vimpulse-visual-basic-map "\C-v" 'vimpulse-visual-toggle-block)
 (define-key vimpulse-visual-basic-map "x" 'vimpulse-delete)

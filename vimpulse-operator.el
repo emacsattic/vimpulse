@@ -150,7 +150,7 @@ CUSTOM-MOTION: predefined motion to use in vi state.
 If CUSTOM-MOTION is specified, the command will not read a motion
 from the keyboard. This has no effect on Visual behavior."
   (let ((range (list (point) (point)))
-        (type-alist '((vimpulse-visual-toggle-normal . inclusive)
+        (type-alist '((vimpulse-visual-toggle-char . inclusive)
                       (vimpulse-visual-toggle-line . line)
                       (vimpulse-visual-toggle-block . block)))
         (type (when whole-lines 'line))

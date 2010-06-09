@@ -79,7 +79,7 @@ to handle a negative value, which specifies reverse direction."
              (when (< (point) (mark t))
                (setq ,count (- ,count)))
              (when (memq vimpulse-visual-mode '(line block))
-               (vimpulse-visual-activate 'normal))
+               (vimpulse-visual-activate 'char))
              (when (and vimpulse-visual-mode
                         (not vimpulse-visual-region-expanded))
                (vimpulse-visual-expand-region))
@@ -117,7 +117,7 @@ argument is specified, it overrides the type of RANGE."
      (t
       (when vimpulse-visual-mode
         (unless (memq type '(line block))
-          (setq type 'normal))
+          (setq type 'char))
         (unless (eq type vimpulse-visual-mode)
           (vimpulse-visual-activate type)))
       (vimpulse-visual-select beg end widen)))))
