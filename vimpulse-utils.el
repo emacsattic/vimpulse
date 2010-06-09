@@ -198,20 +198,14 @@ This is useful for deriving a \"standard\" key-sequence from
            (setq key (event-to-character key nil t))))
     (vimpulse-truncate temp-sequence length offset)))
 
-(defun vimpulse-memq-recursive (elt list)
-  "Return t if ELT is an element of LIST.
-LIST may be nested."
-  (let ((this (car list))
-        (rest (cdr list)))
-    (cond
-     ((null list)
-      nil)
-     ((eq elt this)
-      t)
-     ((consp this)
-      (vimpulse-memq-recursive elt this))
-     (rest
-      (vimpulse-memq-recursive elt rest)))))
+(defun vimpulse-memq-recursive (elt tree)
+  "Return non-nil if TREE contains ELT.
+Test for equivalence using `eq'."
+  (cond ((null tree) nil)
+        ((eq (car tree) elt) tree)
+        ((consp (car tree)) (or (vimpulse-memq-recursive elt (car tree))
+                                (vimpulse-memq-recursive elt (cdr tree))))
+        (t (vimpulse-memq-recursive elt (cdr tree)))))
 
 ;;; Movement
 
