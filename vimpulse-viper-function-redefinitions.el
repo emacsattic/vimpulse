@@ -396,17 +396,17 @@ Normally, this would be called from a hook to a major mode or
 on a per buffer basis.
 Usage:
       (viper-add-local-keys state '((key-str . func) (key-str . func)...))"
-  (let (local-user-map need-local-user-map)
+  (let (local-user-map need-local-map)
     (setq local-user-map (cdr (assq state vimpulse-state-vars-alist)))
     (when local-user-map
-      (setq need-local-user-map
-            (cdr (assq 'need-local-user-map local-user-map)))
+      (setq need-local-map
+            (cdr (assq 'need-local-map local-user-map)))
       (setq local-user-map
             (cdr (assq 'local-user-map local-user-map)))
-      (when (eval need-local-user-map)
+      (when (symbol-value need-local-map)
         (set local-user-map (make-sparse-keymap))
-        (set need-local-user-map nil))
-      (viper-modify-keymap (eval local-user-map) alist)
+        (set need-local-map nil))
+      (viper-modify-keymap (symbol-value local-user-map) alist)
       (viper-normalize-minor-mode-map-alist)
       (viper-set-mode-vars-for viper-current-state))))
 
