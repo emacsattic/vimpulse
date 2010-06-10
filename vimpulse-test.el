@@ -1102,7 +1102,8 @@ This line is not included in the report."
      (vimpulse-memq-recursive 'a '(a b c))
      (vimpulse-memq-recursive 'a '(a b c))
      (vimpulse-memq-recursive 'a '(b (a) c))
-     (vimpulse-memq-recursive 'a '((a) b c a)))
+     (vimpulse-memq-recursive 'a '((a) b c a))
+     (vimpulse-memq-recursive 'a '((b c) a)))
    (assert
      "Find nil."
      (vimpulse-memq-recursive nil '(nil b c a))
