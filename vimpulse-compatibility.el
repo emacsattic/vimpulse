@@ -271,6 +271,13 @@ Disable anyway if FORCE is t."
        (define-key map "q" 'View-quit)
        (viper-modify-major-mode 'help-mode 'vi-state map))))
 
+;; Slime
+(eval-after-load 'slime
+  '(defadvice slime-popup-buffer-mode (after vimpulse activate)
+     (when slime-popup-buffer-mode
+       (viper-add-local-keys
+        'vi-state '(([?q] . slime-popup-buffer-quit-function))))))
+
 ;;; ElDoc
 
 (eval-after-load 'eldoc
