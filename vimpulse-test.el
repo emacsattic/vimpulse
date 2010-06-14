@@ -263,26 +263,32 @@
 
 ;;; Code:
 
-(eval-when-compile (require 'cl))
+(eval-when-compile
+  (require 'cl)
+  (require 'advice))
 
-(defvar current-suites nil)
-(defvar test-passed nil)
-(defvar suite-passed nil)
+(eval-and-compile
+  (defvar current-suites nil)
+  (defvar test-passed nil)
+  (defvar suite-passed nil)
+  (defvar deftest-macros nil
+    "Macros that shadow global definitions inside `deftest'."))
 
 ;;; Test suite macro: `defsuite'
 
 (defmacro defsuite (suite &rest body)
   "Define a test suite."
   (declare (indent defun))
-  (let ((parents (and (boundp 'current-suite)
-                      current-suite
-                      (list current-suite)))
-        doc form keyword result run
-        suite-fixture suite-setup suite-teardown suite-wrap tests)
-    ;; Collect docstring
+  (let* ((parents (and (boundp 'current-suite)
+                       current-suite
+                       (list current-suite)))
+         (current-suite suite)
+         doc form keyword lambda result run
+         suite-fixture suite-setup suite-teardown suite-wrap tests)
+    ;; Collect docstring.
     (when (stringp (car body))
       (setq doc (pop body)))
-    ;; Collect keywords
+    ;; Collect keywords.
     (while (keywordp (car body))
       (setq keyword (pop body))
       (cond
@@ -297,13 +303,13 @@
        ((eq keyword :setup)
         (setq suite-setup (pop body)))
        ((eq keyword :teardown)
-        (setq teardown (pop body)))
+        (setq suite-teardown (pop body)))
        ((memq keyword '(:advice :wrap))
         (setq suite-wrap (pop body)))
        (t
         (pop body))))
     ;; Collect "abbreviated" forms -- that is, test definitions
-    ;; lacking the `deftest' symbol and/or a test name
+    ;; lacking the `deftest' symbol and/or a test name.
     (while (setq form (pop body))
       (cond
        ((symbolp form)
@@ -315,9 +321,9 @@
        (t
         (add-to-list 'result (append '(deftest) form)))))
     `(progn
-       ;; Define suite variable
+       ;; Define suite variable.
        (defvar ,suite ',tests ,doc)
-       ;; Define suite function
+       ;; Define suite function.
        (defun ,suite (&optional fixture setup teardown)
          ,doc
          (interactive)
@@ -335,7 +341,7 @@
                                     ',suite-setup ',suite-teardown))
                          fixture setup teardown)))
            (and suite-passed
-                (called-interactively-p)
+                (called-interactively-p 'any)
                 (message "Test suite passed!"))))
        ;; :wrap function?
        ,@(when suite-wrap
@@ -348,22 +354,17 @@
            `((mapc (lambda (suite)
                      (add-to-suite ',suite suite))
                    ',parents)))
-       ;; The rest is just a `let' environment with `current-suite'
-       ;; bound to the suite. `deftest' calls can pick up on this to
-       ;; assign themselves to the containing suite.
-       (let ((current-suite ',suite)
-             (suite-fixture ',suite-fixture)
-             (suite-setup ',suite-setup)
-             (suite-teardown ',suite-teardown))
-         ,@result)
-       ;; :run suite
+       ;; Expand `deftest' calls right now, so that they can pick up
+       ;; on the local value of `current-suite'.
+       ,@(mapcar 'macroexpand result)
+       ;; :run suite.
        ,@(when run
            `((,suite))))))
 
 (defun add-to-suite (suite test)
   "Add TEST to SUITE."
   (eval `(defvar ,suite nil))
-  ;; Suites are basically hooks
+  ;; Suites are basically hooks.
   (add-hook suite test))
 
 (defun run-test (test &optional fixture setup teardown)
@@ -397,28 +398,29 @@ test is done."
   (declare (indent defun))
   ;; A wee bit of duplication, here. Suites and tests have the same
   ;; keyword arguments, though the internals differ.
-  (let ((suites (and (boundp 'current-suite)
-                     current-suite
-                     (list current-suite)))
-        (suite-fixture (when (boundp 'suite-fixture)
-                         suite-fixture))
-        (suite-setup (when (boundp 'suite-setup)
-                       suite-setup))
-        (suite-teardown (when (boundp 'suite-teardown)
-                          suite-teardown))
-        doc keyword run fixture setup teardown wrap)
+  (let* ((suites (and (boundp 'current-suite)
+                      current-suite
+                      (list current-suite)))
+         (current-suite (car suites))
+         (suite-fixture (when (boundp 'suite-fixture)
+                          suite-fixture))
+         (suite-setup (when (boundp 'suite-setup)
+                        suite-setup))
+         (suite-teardown (when (boundp 'suite-teardown)
+                           suite-teardown))
+         doc keyword lambda run fixture setup teardown wrap)
     ;; If TEST is not a name, move it into BODY
     ;; (a nil name creates an anonymous function).
     (unless (symbolp test)
       (setq body (append (list test) body)
             test nil))
-    ;; Collect parent suite
+    ;; Collect parent suite.
     (when (symbolp (car body))
       (add-to-list 'suites (pop body)))
-    ;; Collect docstring
+    ;; Collect docstring.
     (when (stringp (car body))
       (setq doc (pop body)))
-    ;; Collect keywords
+    ;; Collect keywords.
     (while (keywordp (car body))
       (setq keyword (pop body))
       (cond
@@ -438,22 +440,22 @@ test is done."
         (setq wrap (pop body)))
        (t
         (pop body))))
-    ;; Create function body
+    ;; Create function body.
     (setq lambda
           `(lambda (&optional fixture setup teardown)
              ,@(when doc `(,doc))
              (interactive)
              (with-mocks-and-stubs
-               (let* ((current-suite
-                       (and (boundp 'current-suite)
-                            current-suite))
-                      test-passed)
+               (let ((current-suite (or (and (boundp 'current-suite)
+                                             current-suite)
+                                        ',current-suite))
+                     test-passed)
                  ;; Run suite fixtures (defaulting to the fixtures of
-                 ;; the parent suite, if any)
+                 ;; the parent suite, if any).
                  (run-test
                   (lambda ()
                     ;; Run test fixtures (hard-coded into the test
-                    ;; function)
+                    ;; function).
                     (run-test (lambda ()
                                 (condition-case err
                                     (progn
@@ -471,7 +473,7 @@ test is done."
                   (or fixture ',suite-fixture)
                   (or setup ',suite-setup)
                   (or teardown ',suite-teardown))
-                 (when (and test-passed (called-interactively-p))
+                 (when (and test-passed (called-interactively-p 'any))
                    (message "Test passed!"))))))
     (if test
         `(macrolet ,deftest-macros
@@ -566,26 +568,26 @@ is specified."
         (pop body))))
     (if (memq '&rest args)
         ;; If &rest is specified, just make a `let' wrapper for the
-        ;; documentation argument
+        ;; documentation argument.
         (setq body-var (car (last args))
               args (nbutlast args 2)
               doc-var (or (pop args) 'doc)
               result
               ;; This is an expression for calculating the macro
               ;; definition, which in turn is evaluated to get the
-              ;; macro expansion
+              ;; macro expansion.
               `(let ((,doc-var
                       (when (and (> (length ,body-var) 1)
                                  (stringp (car ,body-var)))
                         (pop ,body-var))))
                  ,@body))
-      ;; Repeatable argument list: iterate through the arguments
+      ;; Repeatable argument list: iterate through the arguments.
       (setq body-var 'body
             doc-var (or (when (> (length args) 1)
                           (pop args)) 'doc)
             result
             ;; Like above, code for making code for making the
-            ;; expansion
+            ;; expansion.
             `(let ((result '(progn)) ,doc-var)
                (if (and (> (length ,body-var) 0)
                         ,@(when (> (length args) 1)
@@ -595,7 +597,7 @@ is specified."
                         (stringp ,(car args)))
                    ;; Grab first argument as docstring if appropriate,
                    ;; then store the remaining in `body-var' for
-                   ;; iteration
+                   ;; iteration.
                    (setq ,doc-var ,(car args)
                          ,@(when (cdr args)
                              `(,body-var (append (list ,@(cdr args))
@@ -612,40 +614,32 @@ is specified."
                  (add-to-list 'result (progn ,@body) t))
                result)))
     `(progn
-       ;; Define assertion macro unless :shadow is t
+       ;; Define assertion macro unless :shadow is t.
        ,@(unless shadow
            `((defmacro ,name (,@args &rest ,body-var)
                ,@docstring
                (declare (indent defun))
                ,result)))
-       ;; Add to `deftest-macros' for good measure
-       (add-to-list 'deftest-macros
-                    '(,name (,@args &rest ,body-var) ,result)))))
-
-;; Since `assert' is a standard macro defined by cl.el, don't redefine
-;; it; just shadow it with `macrolet', using the :shadow keyword
-(defvar deftest-macros nil
-  "Macros that shadow global definitions inside `deftest'.")
-
-(defvar assert-macros
-  '((eq (obj1 obj2)
-        `(progn (assert-eq doc ,obj1 ,obj2) t)))
-  "Macros that shadow global definitions inside `assert'.")
+       ;; Add to `deftest-macros' for good measure.
+       (eval-and-compile
+         (add-to-list 'deftest-macros
+                      '(,name (,@args &rest ,body-var) ,result))))))
 
 ;; assert { 2.0 }-like display of arguments and their evaluated
 ;; values. Is this sufficient, or should I use `macrolet' to remap
 ;; (assert (eq foo bar)) to (assert-eq foo bar)?
-(defun assert-expand (form &optional prefix)
-  "Return evalutions for arguments in function call FORM."
-  (setq prefix (or prefix ""))
-  (apply 'concat
-         (mapcar
-          (lambda (exp)
-            (format "\n%s%s => %s"
-                    prefix exp (eval exp)))
-          (and (listp form)
-               (and (functionp (car form)))
-               (cdr form)))))
+(eval-and-compile
+  (defun assert-expand (form &optional prefix)
+    "Return evalutions for arguments in function call FORM."
+    (setq prefix (or prefix ""))
+    (apply 'concat
+           (mapcar
+            (lambda (exp)
+              (format "\n%s%s => %s"
+                      prefix exp (eval exp)))
+            (and (listp form)
+                 (and (functionp (car form)))
+                 (cdr form))))))
 
 (defassert assert (doc form)
   "Verify that FORM returns non-nil."
@@ -673,7 +667,7 @@ is specified."
 (put 'assert-not 'lisp-indent-function 'defun)
 
 ;; `assert'-derivatives, on the other hand, can be defined
-;; straightforwardly
+;; straightforwardly.
 (defassert assert-that (doc form)
   "Verify that FORM returns non-nil."
   `(let ((form ,form))
@@ -874,7 +868,7 @@ FORM must be quoted."
 (defvar mocks-global-alist nil
   "Alist of all mocks in all contexts.")
 
-;; Stubs are made with advice, so the number of arguments is unchanged
+;; Stubs are made with advice, so the number of arguments is unchanged.
 (defmacro stub (func &rest body)
   "Stub out FUNC.
 A stub is a temporary function advice shadowing the real
@@ -928,7 +922,7 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
   `(let (stubs-global)        ; stubs are contingent on `stubs-global'
      ,@body))
 
-;; Mocks are temporary function rebindings
+;; Mocks are temporary function rebindings.
 (defmacro mock (func args &rest body)
   "Mock FUNC.
 A mock is a temporary function redefinition, released with
@@ -984,14 +978,6 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
        (unless mocked-already
          (setq mocks-global-alist nil)))))
 
-(defmacro with-mocks (&rest body)
-  "Run BODY without mocks, restoring mocks afterwards."
-  (declare (indent 0))
-  `(let (mocks-alist)
-     (unwind-protect
-         (progn ,@body)
-       (release-mocks))))
-
 (defmacro without-mocks (&rest body)
   "Run BODY without mocks."
   (declare (indent 0))
@@ -1014,8 +1000,8 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
      (without-stubs
        ,@body)))
 
-(fset 'with-stubs-and-mocks 'with-mocks-and-stubs)
-(fset 'without-stubs-and-mocks 'without-mocks-and-stubs)
+(defalias 'with-stubs-and-mocks 'with-mocks-and-stubs)
+(defalias 'without-stubs-and-mocks 'without-mocks-and-stubs)
 
 ;;; Highlighting
 
