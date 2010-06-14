@@ -388,11 +388,11 @@ BEG and END. Returns nil if region is unchanged."
 (eval-and-compile
   (cond
    ((featurep 'xemacs)                   ; XEmacs
-    (fset 'vimpulse-delete-overlay 'delete-extent)
-    (fset 'vimpulse-overlays-at 'extents-at))
+    (defalias 'vimpulse-delete-overlay 'delete-extent)
+    (defalias 'vimpulse-overlays-at 'extents-at))
    (t                                    ; GNU Emacs
-    (fset 'vimpulse-delete-overlay 'delete-overlay)
-    (fset 'vimpulse-overlays-at 'overlays-at))))
+    (defalias 'vimpulse-delete-overlay 'delete-overlay)
+    (defalias 'vimpulse-overlays-at 'overlays-at))))
 
 ;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
 ;; and REAR-ADVANCE properly in XEmacs

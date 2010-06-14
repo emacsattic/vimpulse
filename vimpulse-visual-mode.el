@@ -94,8 +94,8 @@ selection on each line."
 ;;; Activation
 
 (eval-and-compile
-  (fset 'viper-deactivate-mark 'vimpulse-deactivate-mark)
-  (fset 'vimpulse-activate-mark 'vimpulse-activate-region))
+  (defalias 'viper-deactivate-mark 'vimpulse-deactivate-mark)
+  (defalias 'vimpulse-activate-mark 'vimpulse-activate-region))
 
 (defun vimpulse-visual-activate (&optional mode)
   "Activate Visual mode. MODE is `char', `line' or `block'.
@@ -1250,7 +1250,7 @@ Returns the insertion point."
   ;; Update undo-list
   (vimpulse-connect-undos))
 
-(fset 'viper-exit-insert-state 'vimpulse-exit-insert-state)
+(defalias 'viper-exit-insert-state 'vimpulse-exit-insert-state)
 
 ;;; Key bindings
 

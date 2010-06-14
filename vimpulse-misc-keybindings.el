@@ -479,7 +479,7 @@ Doesn't indent with a prefix argument."
   (unless arg
     (indent-region (region-beginning) (region-end))))
 
-(fset 'viper-autoindent 'vimpulse-autoindent)
+(defalias 'viper-autoindent 'vimpulse-autoindent)
 
 ;;; C-o, C-i
 
