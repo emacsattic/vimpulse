@@ -201,9 +201,9 @@ Disable anyway if FORCE is t."
   (remove-hook 'pre-command-hook 'vimpulse-flash-hook))
 
 (when vimpulse-incremental-search
-  (fset 'viper-search-backward 'vimpulse-search-backward)
-  (fset 'viper-search-forward 'vimpulse-search-forward)
-  (fset 'viper-flash-search-pattern 'vimpulse-flash-search-pattern))
+  (defalias 'viper-search-backward 'vimpulse-search-backward)
+  (defalias 'viper-search-forward 'vimpulse-search-forward)
+  (defalias 'viper-flash-search-pattern 'vimpulse-flash-search-pattern))
 
 ;;; Add vi navigation to help buffers
 

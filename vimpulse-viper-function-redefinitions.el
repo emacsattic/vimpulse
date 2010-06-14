@@ -384,7 +384,7 @@ Vi or Insert state by default."
     (viper-normalize-minor-mode-map-alist)
     (viper-set-mode-vars-for viper-current-state)))
 
-(fset 'viper-modify-major-mode 'vimpulse-modify-major-mode)
+(defalias 'viper-modify-major-mode 'vimpulse-modify-major-mode)
 
 (defun vimpulse-add-local-keys (state alist)
   "Override some vi-state or insert-state bindings in the current buffer.
@@ -410,7 +410,7 @@ Usage:
       (viper-normalize-minor-mode-map-alist)
       (viper-set-mode-vars-for viper-current-state))))
 
-(fset 'viper-add-local-keys 'vimpulse-add-local-keys)
+(defalias 'viper-add-local-keys 'vimpulse-add-local-keys)
 
 (eval-and-compile
   (defun vimpulse-unquote (exp)
@@ -955,7 +955,7 @@ docstring. The variable becomes buffer-local whenever set.")
                     viper-command-argument))
             (viper-flash-search-pattern)))))
 
-(fset 'viper-search 'vimpulse-search)
+(defalias 'viper-search 'vimpulse-search)
 
 ;; e/E bug: on a single-letter word, ce may change two words
 (defun vimpulse-end-of-word-kernel ()
@@ -1009,8 +1009,8 @@ docstring. The variable becomes buffer-local whenever set.")
         (viper-execute-com 'viper-end-of-Word val com)
       (viper-backward-char-carefully))))
 
-(fset 'viper-end-of-word-kernel 'vimpulse-end-of-word-kernel)
-(fset 'viper-end-of-word 'vimpulse-end-of-word)
-(fset 'viper-end-of-Word 'vimpulse-end-of-Word)
+(defalias 'viper-end-of-word-kernel 'vimpulse-end-of-word-kernel)
+(defalias 'viper-end-of-word 'vimpulse-end-of-word)
+(defalias 'viper-end-of-Word 'vimpulse-end-of-Word)
 
 (provide 'vimpulse-viper-function-redefinitions)
