@@ -1,6 +1,6 @@
 ;;;; Ex commands
 
-;; All this code is taken from Brad Beveridge's extended viper
+;; All this code is taken from Brad Beveridge's extended viper.
 (defvar vimpulse-extra-ex-commands
   '(("b" "buffer")
     ("bdelete" (vimpulse-kill-current-buffer))
@@ -12,7 +12,7 @@
     ("quit" (save-buffers-kill-emacs))
     ("split" (split-window))
     ("syntax" (global-font-lock-mode))
-    ;; Emacs and Vim use inverted naming conventions for splits
+    ;; Emacs and Vim use inverted naming conventions for splits.
     ("vsplit" (split-window-horizontally)))
   "Extra Ex commands, added to `ex-token-alist' when Vimpulse loads.")
 

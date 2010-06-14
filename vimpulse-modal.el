@@ -129,7 +129,7 @@
 
 ;; For XEmacs, construct a wrap-around advice of the current command
 ;; shadowing the read-only command loop variables with a
-;; `let' binding
+;; `let' binding.
 (defmacro vimpulse-advice-command (command)
   "Make wrap-around advice for shadowing `last-command-event'.
 XEmacs does not allow us to change its command loop variables
@@ -185,7 +185,7 @@ non-nil, advice DEF by means of `vimpulse-advice-command'."
          (eq (aref temp-sequence (1- (length temp-sequence))) t)
          (setq temp-sequence (vimpulse-truncate temp-sequence -1)))
     ;; The following is from
-    ;; http://tracker.xemacs.org/XEmacs/its/msg2021
+    ;; http://tracker.xemacs.org/XEmacs/its/msg2021.
     (unless (keymapp submap)
       (setq submap (make-sparse-keymap)))
     (when (fboundp 'set-keymap-default-binding)
@@ -216,7 +216,7 @@ the binding is listed in `vimpulse-modal-alist'."
 ;; If the current command is a default key binding made by the modal
 ;; binding functions, we need to unread the last input events and
 ;; change some command loop variables to give the command the
-;; impression of its "old" binding
+;; impression of its "old" binding.
 (defun vimpulse-modal-pre-hook ()
   "Update `vimpulse-last-command-event' and `unread-command-events'.
 If the current key-sequence defaults to a shorter key-sequence,
@@ -225,12 +225,12 @@ via the `last-command-event' variable and the `read-char'
 functions, respectively."
   (setq vimpulse-last-command-event nil)
   (let ((key-sequence (vconcat (this-command-keys))))
-    ;; If XEmacs, get rid of the event object type
+    ;; If XEmacs, get rid of the event object type.
     (when (featurep 'xemacs)
       (setq key-sequence (events-to-keys key-sequence)))
     (while (and (> (length key-sequence) 1)
                 (vimpulse-modal-check key-sequence))
-      ;; Unread last event
+      ;; Unread last event.
       (setq vimpulse-last-command-event
             (elt key-sequence (1- (length key-sequence))))
       (when (featurep 'xemacs)
@@ -249,9 +249,9 @@ functions, respectively."
       (setq key-sequence
             (vimpulse-truncate key-sequence -1)))))
 
-;;; hook run after each command
+;;; Hook run after each command
 
-;; This merely ensures `vimpulse-last-command-event' is reset
+;; This merely ensures `vimpulse-last-command-event' is reset.
 (defun vimpulse-modal-post-hook ()
   "Erase `vimpulse-last-command-event'."
   (setq vimpulse-last-command-event nil))
@@ -304,20 +304,20 @@ only if called in the same state. The functions `vimpulse-map',
         (setq key-vector key)))
     (setq key-vector (vconcat key-vector))
     (cond
-     ;; nil unbinds the key-sequence
+     ;; nil unbinds the key-sequence.
      ((not def)
       (funcall define-func keymap key-vector def)
       (while (and (> (length key-vector) 1)
                   (not (lookup-key keymap key-vector)))
         (vimpulse-modal-remove key-vector t)
         (setq key-vector (vimpulse-truncate key-vector -1))))
-     ;; undefined also unbinds, but less forcefully
+     ;; `undefined' also unbinds, but less forcefully.
      ((eq def 'undefined)
       (if (keymapp (lookup-key keymap key-vector))
           (vimpulse-default-binding keymap key-vector nil t define-func)
         (funcall define-func keymap key-vector def))
       (vimpulse-modal-remove key-vector))
-     ;; Regular binding: convert previous bindings to default bindings
+     ;; Regular binding: convert previous bindings to default bindings.
      (t
       (dotimes (i (1- (length key-vector)))
         (setq temp-sequence (vimpulse-truncate key-vector (1+ i)))

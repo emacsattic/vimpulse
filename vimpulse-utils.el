@@ -75,7 +75,7 @@ in MAP."
   (vimpulse-add-vi-bindings map vimpulse-viper-movement-cmds replace))
 
 ;; The default for this function is to replace rather than augment,
-;; as core navigation should be present everywhere
+;; as core navigation should be present everywhere.
 (defun vimpulse-add-core-movement-cmds (map &optional augment)
   "Add \"core\" movement commands to MAP, forcefully.
 The commands are taken from `vimpulse-core-movement-cmds'.
@@ -103,7 +103,7 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
 The commands are taken from `vimpulse-viper-movement-cmds'.
 If REPLACE is non-nil, may overwrite bindings in MAP."
   (let ((cmds vimpulse-viper-movement-cmds))
-    ;; Remove core movement commands
+    ;; Remove core movement commands.
     (dolist (cmd vimpulse-core-movement-cmds)
       (setq cmds (delq cmd cmds)))
     (vimpulse-inhibit-cmds map cmds replace)))
@@ -156,10 +156,10 @@ in vi state and bind them to TO in KEYMAP."
   "Return a copy of VECTOR truncated to LENGTH.
 If LENGTH is negative, skip last elements of VECTOR.
 If OFFSET is specified, skip first elements of VECTOR."
-  ;; If LENGTH is too large, trim it
+  ;; If LENGTH is too large, trim it.
   (when (> length (length vector))
     (setq length (length vector)))
-  ;; If LENGTH is negative, convert it to the positive equivalent
+  ;; If LENGTH is negative, convert it to the positive equivalent.
   (when (< length 0)
     (setq length (+ (length vector) length)))
   (when (< length 0)
@@ -179,12 +179,12 @@ This is useful for deriving a \"standard\" key-sequence from
          (temp-sequence (vconcat key-sequence))
          (key (aref temp-sequence offset))
          (length (length temp-sequence)))
-    ;; If XEmacs, get rid of the event object type
+    ;; If XEmacs, get rid of the event object type.
     (and (featurep 'xemacs) (eventp key)
          (setq key (event-to-character key nil t)))
     ;; Any keys bound to `universal-argument', `digit-argument' or
     ;; `negative-argument' or bound in `universal-argument-map'
-    ;; are considered prefix keys
+    ;; are considered prefix keys.
     (while (and (or (memq (key-binding (vector key) t)
                           '(universal-argument
                             digit-argument
@@ -270,7 +270,7 @@ Returns the new position."
       (when (looking-at regexp)
         (goto-char (match-end 0))))))
 
-;; XEmacs only has `looking-at'
+;; XEmacs only has `looking-at'.
 (unless (fboundp 'looking-back)
   (defun looking-back (regexp &optional limit greedy)
     "Return t if text before point matches regular expression REGEXP."
@@ -395,7 +395,7 @@ BEG and END. Returns nil if region is unchanged."
     (defalias 'vimpulse-overlays-at 'overlays-at))))
 
 ;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
-;; and REAR-ADVANCE properly in XEmacs
+;; and REAR-ADVANCE properly in XEmacs.
 (defun vimpulse-make-overlay
   (beg end &optional buffer front-advance rear-advance)
   "Create a new overlay with range BEG to END in BUFFER.
@@ -494,7 +494,7 @@ If NORMALIZE is non-nil, normalize the range with
         (vimpulse-normalize-motion-range range type)
       (cons type range))))
 
-;; This implements section 1 of motion.txt (Vim Reference Manual)
+;; This implements section 1 of motion.txt (Vim Reference Manual).
 (defun vimpulse-normalize-motion-range (range &optional type)
   "Normalize the beginning and end of a motion range (TYPE FROM TO).
 Returns the normalized range.

@@ -13,7 +13,7 @@
     ad-do-it)
    (t
     ;; We don't want Viper's Replace mode when changing text;
-    ;; just delete and enter Insert state
+    ;; just delete and enter Insert state.
     (setq viper-began-as-replace t)
     (kill-region beg end)
     (viper-change-state-to-insert))))
@@ -42,10 +42,10 @@
   (interactive)
   (let ((char (read-char)))
     (cond
-     ;; Local marks
+     ;; Local marks.
      ((and (<= ?a char) (<= char ?z))
       (vimpulse-mark char))
-     ;; Global marks
+     ;; Global marks.
      ((and (<= ?A char) (<= char ?Z))
       (vimpulse-mark char t))
      ;; < > . , ^
@@ -170,7 +170,7 @@ Mark is buffer-local unless GLOBAL."
 ;;; Code for adding extra states
 
 ;; State index variables: for keeping track of which modes
-;; belong to which states, et cetera
+;; belong to which states, et cetera.
 (defvar vimpulse-state-vars-alist
   '((vi-state
      (id . viper-vi-state-id)
@@ -284,13 +284,13 @@ The first modes get the highest priority.")
 Entries have the form (MODE . MAP-EXPR), where MAP-EXPR is an
 expression for determining the keymap of MODE.")
 
-;; State-changing code: this uses the variables above
+;; State-changing code: this uses the variables above.
 (defadvice viper-normalize-minor-mode-map-alist
   (after vimpulse-states activate)
   "Normalize Vimpulse state maps."
   (let (temp mode map alists toggle toggle-alist)
     ;; Determine which of `viper--key-maps' and
-    ;; `minor-mode-map-alist' to normalize
+    ;; `minor-mode-map-alist' to normalize.
     (cond
      ((featurep 'xemacs)
       (setq alists '(viper--key-maps minor-mode-map-alist)))
@@ -299,7 +299,7 @@ expression for determining the keymap of MODE.")
      (t
       (setq alists '(minor-mode-map-alist))))
     ;; Normalize the modes in the order
-    ;; they are toggled by the current state
+    ;; they are toggled by the current state.
     (dolist (entry (reverse (cdr (assq viper-current-state
                                        vimpulse-state-modes-alist))))
       (setq mode (car entry)
@@ -326,19 +326,19 @@ expression for determining the keymap of MODE.")
 (defadvice viper-set-mode-vars-for (after vimpulse-states activate)
   "Toggle Vimpulse state modes."
   (let (enable disable)
-    ;; Determine which modes to enable
+    ;; Determine which modes to enable.
     (setq enable (cdr (assq state vimpulse-state-modes-alist)))
     (when enable
-      ;; Determine which modes to disable
+      ;; Determine which modes to disable.
       (dolist (entry vimpulse-state-modes-alist)
         (dolist (mode (mapcar 'car (cdr entry)))
           (unless (assq mode enable)
             (add-to-list 'disable mode t))))
-      ;; Enable modes
+      ;; Enable modes.
       (dolist (entry enable)
         (when (boundp (car entry))
           (set (car entry) (eval (cdr entry)))))
-      ;; Disable modes
+      ;; Disable modes.
       (dolist (entry disable)
         (when (boundp entry)
           (set entry nil))))))
@@ -475,7 +475,7 @@ of `viper-change-state'. :advice specifies the advice type
         local-user-map local-user-mode modifier-alist modifier-mode
         name name-string need-local-map prefix prefixed-name-string
         state-name state-name-string)
-    ;; Collect keywords
+    ;; Collect keywords.
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
       (cond
@@ -548,9 +548,9 @@ of `viper-change-state'. :advice specifies the advice type
     (unless (and change-func (symbolp change-func))
       (setq change-func
             (intern (concat prefix "change-state-to-" name-string))))
-    ;; Macro expansion
+    ;; Macro expansion.
     `(progn
-       ;; Define change function
+       ;; Define change function.
        (defun ,change-func ()
          ,(format "Change Viper state to %s." state-name)
          (viper-change-state ',state-name))
@@ -682,7 +682,7 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
               enable-modes-alist enable-states-alist
               modes-alist vars-alist)
          (put need-local-map 'permanent-local t)
-         ;; Remove old index entries
+         ;; Remove old index entries.
          (dolist (entry (list basic-mode
                               diehard-mode
                               modifier-mode
@@ -696,7 +696,7 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
                (assq-delete-all state-name vimpulse-state-modes-alist))
          (setq vimpulse-state-vars-alist
                (assq-delete-all state-name vimpulse-state-vars-alist))
-         ;; Index keymaps
+         ;; Index keymaps.
          (add-to-list 'vimpulse-state-maps-alist
                       (cons basic-mode basic-map))
          (add-to-list 'vimpulse-state-maps-alist
@@ -728,7 +728,7 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
              (when (and mode (symbolp mode))
                (add-to-list 'enable-modes-alist (cons mode val) t))))
          ;; Then add the state's own modes to the front
-         ;; if they're not already there
+         ;; if they're not already there.
          (dolist (mode (list (cons basic-mode t)
                              (cons diehard-mode
                                    '(not (or viper-want-emacs-keys-in-vi
@@ -741,12 +741,12 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
            (unless (assq (car mode) enable-modes-alist)
              (add-to-list 'enable-modes-alist mode)))
          ;; Add the result to `vimpulse-state-modes-alist'
-         ;; and update any state references therein
+         ;; and update any state references therein.
          (add-to-list 'vimpulse-state-modes-alist
                       (cons state-name enable-modes-alist) t)
          (vimpulse-refresh-state-modes-alist)
          (viper-normalize-minor-mode-map-alist)
-         ;; Index state variables
+         ;; Index state variables.
          (setq vars-alist
                (list (cons 'id id)
                      (cons 'hook hook)
@@ -768,7 +768,7 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
                      (cons 'intercept-map intercept-map)))
          (add-to-list 'vimpulse-state-vars-alist
                       (cons state-name vars-alist) t)
-         ;; Make toggle-advice
+         ;; Make toggle-advice.
          (eval `(defadvice viper-change-state (,advice ,state-name activate)
                   ,(format "Toggle %s." state-name)
                   ,',@body
@@ -843,7 +843,7 @@ create a buffer-local variable. Returns the result."
 ;; `viper-deflocalvar's definition lacks a `declare' statement,
 ;; so Emacs tends to mess up the indentation. Luckily, the
 ;; relevant symbol properties can be set up with `put'.
-;; TODO: E-mail Michael Kifer about updating the definition
+;; TODO: E-mail Michael Kifer about updating the definition.
 (put 'viper-deflocalvar 'lisp-indent-function 'defun)
 (put 'viper-loop 'lisp-indent-function 'defun)
 (put 'viper-deflocalvar 'function-documentation
@@ -859,7 +859,7 @@ docstring. The variable becomes buffer-local whenever set.")
       (2 font-lock-variable-name-face nil t))
      ("(\\(viper-loop\\)\\>" 1 font-lock-keyword-face))))
 
-;; Search bug: `viper-search' flashes twice when search wraps
+;; Search bug: `viper-search' flashes twice when search wraps.
 (defun vimpulse-search
   (string forward arg
           &optional no-offset init-point fail-if-not-found dont-flash)
@@ -870,7 +870,7 @@ docstring. The variable becomes buffer-local whenever set.")
             (case-fold-search viper-case-fold-search)
             (start-point (or init-point (point))))
         (viper-deactivate-mark)
-        ;; Smartcase searching: upper-case chars disable case folding
+        ;; Smartcase searching: upper-case chars disable case folding.
         (when search-upper-case
           (setq case-fold-search
                 (and case-fold-search
@@ -901,20 +901,20 @@ docstring. The variable becomes buffer-local whenever set.")
                      (viper-search string forward (cons 1 com)
                                    t start-point 'fail)
                      (setq dont-flash t)
-                     ;; don't wait in macros
+                     ;; Don't wait in macros.
                      (or executing-kbd-macro
                          (memq viper-intermediate-command
                                '(viper-repeat
                                  viper-digit-argument
                                  viper-command-argument))
                          (sit-for 2))
-                     ;; delete the wrap-around message
+                     ;; Delete the wrap-around message.
                      (message ""))
                  (goto-char start-point)
                  (error "`%s': %s not found"
                         string
                         (if viper-re-search "Pattern" "String")))))
-          ;; backward
+          ;; Backward.
           (condition-case nil
               (progn
                 (if viper-re-search
@@ -930,23 +930,23 @@ docstring. The variable becomes buffer-local whenever set.")
                    (viper-search string forward (cons 1 com)
                                  t start-point 'fail)
                    (setq dont-flash t)
-                   ;; don't wait in macros
+                   ;; Don't wait in macros.
                    (or executing-kbd-macro
                        (memq viper-intermediate-command
                              '(viper-repeat
                                viper-digit-argument
                                viper-command-argument))
                        (sit-for 2))
-                   ;; delete the wrap-around message
+                   ;; Delete the wrap-around message.
                    (message ""))
                (goto-char start-point)
                (error "`%s': %s not found"
                       string
                       (if viper-re-search "Pattern" "String"))))))
-        ;; pull up or down if at top/bottom of window
+        ;; Pull up or down if at top/bottom of window.
         (viper-adjust-window)
-        ;; highlight the result of search
-        ;; don't wait and don't highlight in macros
+        ;; Highlight the result of search.
+        ;; Don't wait and don't highlight in macros.
         (or dont-flash
             executing-kbd-macro
             (memq viper-intermediate-command
@@ -957,7 +957,7 @@ docstring. The variable becomes buffer-local whenever set.")
 
 (defalias 'viper-search 'vimpulse-search)
 
-;; e/E bug: on a single-letter word, ce may change two words
+;; e/E bug: on a single-letter word, ce may change two words.
 (defun vimpulse-end-of-word-kernel ()
   (when (viper-looking-at-separator)
     (viper-skip-all-separators-forward))
