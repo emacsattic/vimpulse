@@ -13,14 +13,14 @@
 ;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
 ;; in your .emacs before loading Vimpulse.
 
-;; Load and enable paren.el if available
+;; Load and enable paren.el if available.
 (unless (featurep 'paren)
   (condition-case nil
       (require 'paren)
     (error nil)))
 (and (fboundp 'show-paren-mode)
      (not (vimpulse-custom-value-p 'show-paren-mode))
-     ;; Fast paren-matching
+     ;; Fast paren-matching.
      (vimpulse-setq show-paren-delay 0)
      (show-paren-mode 1))
 
@@ -76,7 +76,7 @@ nil otherwise."
     (viper-overlay-put ovl 'face face)
     (viper-move-overlay ovl pos (1+ pos))))
 
-;; FIXME: this description sucks
+;; FIXME: this description sucks.
 (defun vimpulse-paren-highlight-pair (&optional pos)
   "Highlight paren pair.
 Highlights the paren at point (or POS) and eventual matching
@@ -100,7 +100,7 @@ or mismatched paren."
 
 (defadvice show-paren-function (around vimpulse-paren activate)
   "Use custom highlighting if `vimpulse-enhanced-paren-matching' is t."
-  ;; Define overlays if they don't exist
+  ;; Define overlays if they don't exist.
   (cond
    (vimpulse-enhanced-paren-matching
     (unless (viper-overlay-live-p vimpulse-paren-overlay-open)
@@ -111,21 +111,21 @@ or mismatched paren."
       (vimpulse-delete-overlay vimpulse-paren-overlay-open)
       (vimpulse-delete-overlay vimpulse-paren-overlay-close))
     (cond
-     ;; Viper not in Insert, Replace or Emacs state
+     ;; Viper not in Insert, Replace or Emacs state.
      ((and (not (eq viper-current-state 'insert-state))
            (not (eq viper-current-state 'replace-state))
            (not (eq viper-current-state 'emacs-state))
            show-paren-mode viper-mode)
       ;; Safely delete the overlays used by `show-paren-function'
-      ;; and call our custom function instead
+      ;; and call our custom function instead.
       (and (viper-overlay-live-p show-paren-overlay)
            (vimpulse-delete-overlay show-paren-overlay))
       (and (viper-overlay-live-p show-paren-overlay-1)
            (vimpulse-delete-overlay show-paren-overlay-1))
       (vimpulse-paren-highlight-pair))
-     ;; Viper in Insert mode
+     ;; Viper in Insert mode.
      (t
-      ;; Delete the overlays used by our custom function
+      ;; Delete the overlays used by our custom function.
       (vimpulse-delete-overlay vimpulse-paren-overlay-open)
       (vimpulse-delete-overlay vimpulse-paren-overlay-close)
       ad-do-it)))

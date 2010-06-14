@@ -66,7 +66,7 @@
   "Update isearch history."
   (isearch-update-ring string viper-re-search))
 
-;; If `viper-search-wrap-around' is t, we want the search to wrap
+;; If `viper-search-wrap-around' is t, we want the search to wrap.
 (defun vimpulse-search-fun-function (&optional regexp forward)
   "Return a wrapping search function.
 Based on `viper-re-search' and `viper-s-forward'."
@@ -178,7 +178,7 @@ Searches for regular expression if `viper-re-search' is t."
 Disable anyway if FORCE is t."
   (when (or force
             ;; To avoid flicker, don't disable highlighting if the
-            ;; next command is also a search command
+            ;; next command is also a search command.
             (not (memq this-command
                        '(viper-exec-mapped-kbd-macro
                          viper-search
@@ -207,7 +207,7 @@ Disable anyway if FORCE is t."
 
 ;;; Add vi navigation to help buffers
 
-;; Apropos
+;; Apropos.
 (eval-after-load 'apropos
   '(when vimpulse-want-vi-keys-in-apropos
      (add-to-list 'viper-vi-state-mode-list 'apropos-mode)
@@ -216,7 +216,7 @@ Disable anyway if FORCE is t."
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'apropos-mode 'vi-state map))))
 
-;; Buffer-menu
+;; Buffer-menu.
 (eval-after-load "buff-menu"
   '(when vimpulse-want-vi-keys-in-buffmenu
      (setq viper-emacs-state-mode-list
@@ -227,7 +227,7 @@ Disable anyway if FORCE is t."
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'Buffer-menu-mode 'vi-state map))))
 
-;; Dired
+;; Dired.
 (eval-after-load 'dired
   '(when vimpulse-want-vi-keys-in-dired
      (setq viper-emacs-state-mode-list
@@ -242,7 +242,7 @@ Disable anyway if FORCE is t."
        (add-to-list 'ex-token-alist '("d" (epa-dired-do-decrypt)))
        (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
-;; Info
+;; Info.
 (eval-after-load 'info
   '(when vimpulse-want-vi-keys-in-Info
      (setq viper-emacs-state-mode-list
@@ -259,7 +259,7 @@ Disable anyway if FORCE is t."
        (define-key map [backspace] 'Info-scroll-down)
        (viper-modify-major-mode 'Info-mode 'vi-state map))))
 
-;; Help
+;; Help.
 (eval-after-load 'help-mode
   '(when vimpulse-want-vi-keys-in-help
      (setq viper-emacs-state-mode-list
@@ -271,7 +271,7 @@ Disable anyway if FORCE is t."
        (define-key map "q" 'View-quit)
        (viper-modify-major-mode 'help-mode 'vi-state map))))
 
-;; Slime
+;; Slime.
 (eval-after-load 'slime
   '(defadvice slime-popup-buffer-mode (after vimpulse activate)
      (when slime-popup-buffer-mode

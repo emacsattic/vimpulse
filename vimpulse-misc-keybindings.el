@@ -52,13 +52,13 @@
 (define-key viper-vi-basic-map "~" 'vimpulse-invert-char)
 (define-key viper-vi-basic-map "\"" 'vimpulse-read-register)
 
-;; Visual bindings
+;; Visual bindings.
 (define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-char)
 (define-key viper-vi-basic-map "V" 'vimpulse-visual-toggle-line)
 (define-key viper-vi-basic-map "\C-v" 'vimpulse-visual-toggle-block)
 (define-key viper-vi-basic-map "gv" 'vimpulse-visual-restore)
 
-;; Map undo and redo
+;; Map undo and redo.
 (define-key viper-vi-basic-map "u" 'undo)
 (cond
  ((fboundp 'undo-tree-redo)
@@ -66,7 +66,7 @@
  ((fboundp 'redo)
   (define-key viper-vi-basic-map "\C-r" 'redo)))
 
-;; Window manipulation
+;; Window manipulation.
 (define-prefix-command 'vimpulse-window-map)
 (define-key viper-vi-basic-map "\C-w" 'vimpulse-window-map)
 (define-key vimpulse-window-map "\C-w" 'vimpulse-cycle-windows)
@@ -84,23 +84,23 @@
 
 ;;; Insert mode keys
 
-;; Vim-like completion keys
+;; Vim-like completion keys.
 (define-key viper-insert-basic-map "\C-p" 'vimpulse-abbrev-expand-before)
 (define-key viper-insert-basic-map "\C-n" 'vimpulse-abbrev-expand-after)
 (define-key viper-insert-basic-map "\C-x\C-p" 'vimpulse-expand-line)
 (define-key viper-insert-basic-map "\C-x\C-n" 'vimpulse-expand-line)
 (define-key viper-insert-basic-map [delete] 'delete-char) ; <delete> key
-;; Make ^[ work
+;; Make ^[ work.
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
-;; My code (Alessandro)
+;; My code (Alessandro).
 (defun vimpulse-indent-lines (count)
   (save-excursion
     (dotimes (i count)
       (indent-according-to-mode)
       (forward-line))))
 
-;; His code (Brad)
+;; His code (Brad).
 (defun vimpulse-cycle-windows ()
   "Cycle point to another window."
   (interactive)
@@ -231,7 +231,7 @@
     (cond
      ((string= str "")
       (error "No string under cursor"))
-     ;; If imenu is available, try it
+     ;; If imenu is available, try it.
      ((or (fboundp 'imenu--make-index-alist)
           (load "imenu" t))
       (setq ientry
@@ -245,14 +245,14 @@
         (setq ipos (cadr ientry)))
       (cond
        ;; imenu found a position, so go there and
-       ;; highlight the occurrence
+       ;; highlight the occurrence.
        ((and (markerp ipos)
              (eq (marker-buffer ipos) (current-buffer)))
         (vimpulse-search-for-symbol nil ipos str))
-       ;; imenu failed, so just go to first occurrence in buffer
+       ;; imenu failed, so just go to first occurrence in buffer.
        (t
         (vimpulse-search-for-symbol nil (point-min)))))
-     ;; No imenu, so just go to first occurrence in buffer
+     ;; No imenu, so just go to first occurrence in buffer.
      (t
       (vimpulse-search-for-symbol nil (point-min))))))
 
@@ -380,13 +380,13 @@
     (goto-char pos)
     (let ((str (thing-at-point thing)))
       ;; If there's nothing under point, go forwards
-      ;; (or backwards) to find it
+      ;; (or backwards) to find it.
       (while (and (not str) (or (and backward (not (bobp)))
                                 (and (not backward) (not (eobp)))))
         (if backward (backward-char) (forward-char))
         (setq str (thing-at-point 'symbol)))
       (setq str (or str ""))
-      ;; No text properties, thank you very much
+      ;; No text properties, thank you very much.
       (set-text-properties 0 (length str) nil str)
       (when regexp
         (setq str (regexp-quote str)))
@@ -444,7 +444,7 @@
     (if viper-preserve-indent
         (setq viper-preserve-indent nil)
       (setq viper-current-indent col))
-    ;; Don't leave whitespace lines around
+    ;; Don't leave whitespace lines around.
     (if (memq last-command
               '(viper-autoindent
                 viper-open-line viper-Open-line
@@ -507,11 +507,11 @@ Doesn't indent with a prefix argument."
       (add-to-list 'vimpulse-mark-list current-pos))
     (dotimes (arg arg)
       (setq current-pos (make-marker))
-      ;; Skip past duplicate entries in the mark ring
+      ;; Skip past duplicate entries in the mark ring.
       (setq i (length mark-ring))
       (while (progn (move-marker current-pos (point))
                     (let (vimpulse-mark-list)
-                      ;; Protect `vimpulse-mark-list'
+                      ;; Protect `vimpulse-mark-list'.
                       (set-mark-command 0))
                     (setq i (1- i))
                     (and (= (point) current-pos) (> i 0))))
@@ -530,7 +530,7 @@ Doesn't indent with a prefix argument."
       (setq current-pos (car vimpulse-mark-list)
             next-pos (cadr vimpulse-mark-list))
       (when next-pos
-        ;; Protect `vimpulse-mark-list'
+        ;; Protect `vimpulse-mark-list'.
         (let (vimpulse-mark-list)
           (push-mark current-pos t nil))
         (goto-char next-pos)
@@ -556,7 +556,7 @@ Doesn't indent with a prefix argument."
     (unless (assq (point) vimpulse-replace-alist)
       (add-to-list 'vimpulse-replace-alist
                    (cons (point) (char-after)))))
-   ;; If not in Replace mode, remove itself
+   ;; If not in Replace mode, remove itself.
    (t
     (remove-hook 'pre-command-hook 'vimpulse-replace-pre-command))))
 
@@ -597,12 +597,12 @@ Search forwards if a match isn't found."
 
 ;; Getting dabbrev to search forwards first and then backwards
 ;; is tricky, because (dabbrev-expand -1) just fails when it
-;; doesn't find a following match
+;; doesn't find a following match.
 (defun vimpulse-abbrev-expand-after ()
   "Expand to the nearest following word.
 Search backwards if a match isn't found."
   (interactive)
-  ;; Back up global variables
+  ;; Back up global variables.
   (let ((abbrev (and (boundp 'dabbrev--last-abbreviation)
                      dabbrev--last-abbreviation))
         (abbrev-loc (and (boundp 'dabbrev--last-abbrev-location)
@@ -612,7 +612,7 @@ Search backwards if a match isn't found."
         (expansion-loc (and (boundp 'dabbrev--last-expansion-location)
                             dabbrev--last-expansion-location)))
     ;; Expand in same direction as previously,
-    ;; initially forward
+    ;; initially forward.
     (if (minibufferp)
         (minibuffer-complete)
       (condition-case nil
@@ -620,7 +620,7 @@ Search backwards if a match isn't found."
               (dabbrev-expand nil)
             (setq dabbrev--last-direction -1)
             (dabbrev-expand -1))
-        ;; Restore dabbrev variables if version < 23.2
+        ;; Restore dabbrev variables if version < 23.2.
         (error (progn
                  (when (version< emacs-version "23.2")
                    (setq dabbrev--last-abbreviation abbrev
