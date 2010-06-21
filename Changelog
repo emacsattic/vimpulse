@@ -11,7 +11,7 @@
 ;;  - [NEW] If `viper-auto-indent' is t, RET extends the comment
 ;;    prefix to the next line (with `comment-indent-new-line' from
 ;;    newcomment.el).
-;;  - [NEW] gi inserts at previous location.
+;;  - [NEW] Keys: gi, g$, g0.
 ;;  - [NEW] C-w has its own prefix map, `vimpulse-window-map'.
 ;;  - [NEW] Lower-case marks are buffer-local -- thanks, Štěpán Němec.
 ;;  - [FIX] Replace mode's appearance is now more similar to Vim's.

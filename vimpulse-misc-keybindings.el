@@ -25,6 +25,8 @@
 (define-key viper-vi-basic-map "gu" 'vimpulse-downcase)
 (define-key viper-vi-basic-map "gw" 'vimpulse-fill)
 (define-key viper-vi-basic-map "g~" 'vimpulse-invert-case)
+(define-key viper-vi-basic-map "g0" 'vimpulse-beginning-of-visual-line)
+(define-key viper-vi-basic-map "g$" 'vimpulse-end-of-visual-line)
 (define-key viper-vi-basic-map "J" 'vimpulse-join)
 (define-key viper-vi-basic-map "K" 'woman)
 (define-key viper-vi-basic-map "m" 'vimpulse-mark-point)
@@ -175,6 +177,28 @@
   (interactive (vimpulse-range))
   (let ((nlines (count-lines beg end)))
     (viper-next-line (cons (1- nlines) ?>))))
+
+;;; g0, g$
+
+(defun vimpulse-beginning-of-visual-line (arg)
+  "Go to beginning of `visual-line-mode' line."
+  (interactive "p")
+  (if (and (boundp 'visual-line-mode) visual-line-mode)
+      (beginning-of-visual-line arg)
+    ;; Using `move-beginning-of-line' instead of `beginning-of-line'
+    ;; handles longlines-mode properly.
+    (move-beginning-of-line arg)))
+
+(defun vimpulse-end-of-visual-line (arg)
+  "Go to end of `visual-line-mode' line."
+  (interactive "p")
+  (if (and (boundp 'visual-line-mode) visual-line-mode)
+      (end-of-visual-line arg)
+    ;; Using `move-end-of-line' instead of `end-of-line'
+    ;; handles longlines-mode properly.
+    (move-end-of-line arg))
+  (unless (bolp)
+    (backward-char)))
 
 ;;; gg
 

@@ -753,6 +753,7 @@ type TYPE. A custom function body may be specified via BODY."
 ;; Set up motion types for remaining Viper motions.
 (put 'vimpulse-goto-first-line 'motion-type 'line)
 (put 'vimpulse-goto-mark-and-skip-white 'motion-type 'line)
+(put 'vimpulse-end-of-visual-line 'motion-type 'inclusive)
 (put 'viper-backward-Word 'motion-type 'exclusive)
 (put 'viper-backward-char 'motion-type 'exclusive)
 (put 'viper-backward-paragraph 'motion-type 'exclusive)
