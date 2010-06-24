@@ -2,7 +2,7 @@
 type Header ^
      INSTALL ^
      README ^
-     Changelog ^
+     NEWS ^
      Acknowledgements ^
      BUGS ^
      TODO ^

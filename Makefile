@@ -1,7 +1,7 @@
 .PHONY: all
 all: vimpulse-big.el
 
-vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
+vimpulse-big.el: Header INSTALL README NEWS Acknowledgements \
                  BUGS TODO LICENSE vimpulse-dependencies.el \
                  vimpulse-viper-function-redefinitions.el \
                  vimpulse-utils.el vimpulse-misc-keybindings.el \
