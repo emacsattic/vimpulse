@@ -14,7 +14,7 @@ vimpulse-big.el: Header INSTALL README Changelog Acknowledgements \
 	    Header \
 	    INSTALL \
 	    README \
-	    Changelog \
+	    NEWS \
 	    Acknowledgements \
 	    BUGS \
 	    TODO \
