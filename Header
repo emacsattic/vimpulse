@@ -15,8 +15,9 @@
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el
 ;; Git and bug tracker: http://www.assembla.com/spaces/vimpulse/
-;;      Send patches to http://trac-git.assembla.com/vimpulse/report/1
-;; Mailing list: <implementations-list at lists.ourproject.org>
+;;                      http://trac-git.assembla.com/vimpulse/report/1
+;; You can also send patches and bug reports to the mailing list:
+;;      <implementations-list at lists.ourproject.org>
 ;;      http://tinyurl.com/implementations-list
 ;;      You don't have to subscribe.  We usually reply within a few
 ;;      days and CC our replies back to you.
