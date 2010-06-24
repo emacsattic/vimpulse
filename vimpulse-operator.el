@@ -214,8 +214,10 @@ from the keyboard. This has no effect on Visual behavior."
                                          type-alist))))))
         ;; Motion reading done: clear echo area.
         (message oldmsg)
-        ;; Return current line motion if operator calls itself.
-        (if (eq vimpulse-this-motion vimpulse-this-operator)
+        ;; With doubled operator ("gqgq" or "gqq"), set motion to current line.
+        (if (or (eq vimpulse-this-motion vimpulse-this-operator)
+                (member (this-command-keys)
+                        '("g??" "gUU" "gqq" "guu" "gww" "g~~")))
             (setq vimpulse-this-motion 'vimpulse-line)
           (setq vimpulse-this-motion
                 (vimpulse-operator-remapping vimpulse-this-motion))))
