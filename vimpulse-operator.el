@@ -124,8 +124,7 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
       (error nil))))
 
 (defun vimpulse-range
-  (&optional no-repeat dont-move-point whole-lines keep-visual
-             custom-motion)
+  (&optional no-repeat dont-move-point whole-lines keep-visual custom-motion)
   "Read a motion and return a range (BEG END).
 In Visual mode, returns the beginning and end of the selection.
 This can be used in the `interactive' form of a command:
@@ -135,7 +134,7 @@ This can be used in the `interactive' form of a command:
       ;; Do foo from BEG to END
       )
 
-When this command is called interactively, a motion is read from
+When such a command is called interactively, a motion is read from
 the keyboard and the resulting range is stored in BEG and END.
 The command then proceeds to do whatever it wants to do on the
 text between those buffer positions. The optional arguments allow
@@ -143,12 +142,12 @@ for some customization:
 
 NO-REPEAT: don't let \\[viper-repeat] repeat the command.
 DONT-MOVE-POINT: don't move to beginning of range in vi state.
-WHOLE-LINES: extend range to whole lines.
+WHOLE-LINES: extend the range to include whole lines.
 KEEP-VISUAL: don't disable Visual selection.
 CUSTOM-MOTION: predefined motion to use in vi state.
 
 If CUSTOM-MOTION is specified, the command will not read a motion
-from the keyboard. This has no effect on Visual behavior."
+from the keyboard. This has no effect in Visual mode."
   (let ((range (list (point) (point)))
         (type-alist '((vimpulse-visual-toggle-char . inclusive)
                       (vimpulse-visual-toggle-line . line)
@@ -162,7 +161,6 @@ from the keyboard. This has no effect on Visual behavior."
     (cond
      ;; If text is selected, use selection boundaries as range.
      ((or vimpulse-visual-mode (region-active-p))
-      ;; Extend range to whole lines.
       (when (and whole-lines
                  (not (eq vimpulse-visual-mode 'line)))
         (vimpulse-visual-activate 'line)
@@ -212,7 +210,7 @@ from the keyboard. This has no effect on Visual behavior."
                  (when (assq vimpulse-this-motion type-alist)
                    (setq type (cdr (assq vimpulse-this-motion
                                          type-alist))))))
-        ;; Motion reading done: clear echo area.
+        ;; Motion reading done: restore the echo area.
         (message oldmsg)
         ;; With doubled operator ("gqgq" or "gqq"), set motion to current line.
         (if (or (eq vimpulse-this-motion vimpulse-this-operator)
@@ -224,9 +222,7 @@ from the keyboard. This has no effect on Visual behavior."
       (cond
        ;; Quit if motion reading failed.
        ((or (not vimpulse-this-motion)
-            (memq vimpulse-this-motion
-                  '(viper-nil
-                    keyboard-quit))
+            (memq vimpulse-this-motion '(viper-nil keyboard-quit))
             (vimpulse-operator-cmd-p vimpulse-this-motion))
         (save-excursion (viper-change-state-to-vi))
         (setq quit-flag t))
@@ -241,12 +237,10 @@ from the keyboard. This has no effect on Visual behavior."
                    (memq (vimpulse-motion-type vimpulse-this-motion)
                          '(line inclusive)))
           (setq type 'exclusive))
-        ;; Calculate motion range.
         (setq range (vimpulse-calculate-motion-range
                      vimpulse-this-count vimpulse-this-motion type))
         (setq vimpulse-this-motion-type (vimpulse-motion-type range)
               range (vimpulse-motion-range range))
-        ;; Go to beginning of range.
         (unless dont-move-point
           (goto-char (vimpulse-range-beginning range))
           (when (and viper-auto-indent
@@ -448,8 +442,7 @@ TYPE is the motion type."
 
 (defun vimpulse-operator-cmd-p (cmd)
   "Return t if CMD is an operator command."
-  (vimpulse-memq-recursive 'vimpulse-range
-                           (interactive-form cmd)))
+  (vimpulse-memq-recursive 'vimpulse-range (interactive-form cmd)))
 
 ;;; Operators (yank, delete, change)
 
