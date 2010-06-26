@@ -1,3 +1,5 @@
+;;; News:
+
 ;; Version 0.4+git [2010-06-??]
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] :undolist or :ul shows the undo history as a tree. This
