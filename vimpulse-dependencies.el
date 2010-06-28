@@ -240,14 +240,14 @@ or a character position.")
 
 (defvar vimpulse-last-command-event nil
   "Value for overwriting `last-command-event'.
-Used by `vimpulse-modal-pre-hook'.")
+Used by `vimpulse-careful-pre-hook'.")
 
-(defvar vimpulse-modal-alist nil
-  "Key bindings for which `vimpulse-modal-pre-hook' is active.
+(defvar vimpulse-careful-alist nil
+  "Key bindings for which `vimpulse-careful-pre-hook' is active.
 That is, `last-command-event' and `read-char' work differently
 for these bindings. The format is (KEY-VECTOR . COMMAND).")
 
-(defvar vimpulse-modal-map (make-sparse-keymap)
+(defvar vimpulse-careful-map (make-sparse-keymap)
   "Keymap of bindings overwritten by `vimpulse-map' et al.")
 
 (defvar vimpulse-paren-overlay-open nil
@@ -413,6 +413,17 @@ the region acted on.")
 
 (defvar vimpulse-search-prompt nil
   "String to use for vi-like searching.")
+
+(defvar vimpulse-auxiliary-modes-alist
+  '((vi-state . viper-vi-auxiliary-modes)
+    (insert-state . viper-insert-auxiliary-modes)
+    (replace-state . viper-replace-auxiliary-modes)
+    (emacs-state . viper-emacs-auxiliary-modes)))
+
+(defvar viper-vi-auxiliary-modes nil)
+(defvar viper-insert-auxiliary-modes nil)
+(defvar viper-replace-auxiliary-modes nil)
+(defvar viper-emacs-auxiliary-modes nil)
 
 ;;; Carefully set Viper/woman variables
 

@@ -1,9 +1,9 @@
 ;;;; Modal keybinding functions
 
 ;; This provides the functions `vimpulse-map', `vimpulse-imap',
-;; `vimpulse-vmap' and `vimpulse-omap', which mimic :map, :imap,
-;; :vmap and :omap in Vim, as well as `vimpulse-define-key', a
-;; general-purpose function for binding keys in a "careful" way.
+;; `vimpulse-vmap' and `vimpulse-omap', which mimic :map, :imap, :vmap
+;; and :omap in Vim, as well as `vimpulse-careful-binding', which
+;; makes bindings "on top of" previous bindings.
 ;;
 ;; BACKGROUND
 ;;
@@ -32,7 +32,7 @@
 ;; new key bindings "on top of" previous bindings. They are
 ;; `vimpulse-map', `vimpulse-imap', `vimpulse-vmap' and
 ;; `vimpulse-omap', which mimic Vim's commands, and
-;; `vimpulse-define-key', a general function for specifying the
+;; `vimpulse-careful-binding', a general function for specifying the
 ;; keymap. Returning to the example:
 ;;
 ;;     (vimpulse-imap "aa" 'foo)
@@ -43,13 +43,13 @@
 ;; sequence may be specified as a string, like above, as a vector
 ;; (like [?a ?b ?c]), or as a call to `kbd' (like (kbd "a b c")).
 ;;
-;; To make a binding in vi (command) mode, use `vimpulse-map';
-;; in Insert mode, `vimpulse-imap'; in Visual mode, `vimpulse-vmap';
-;; in Operator-Pending mode, `vimpulse-omap'. The more general
-;; `vimpulse-define-key' function lets one specify the keymap to store
-;; the binding in, as when using `define-key':
+;; To make a binding in vi (command) mode, use `vimpulse-map'; in
+;; Insert mode, `vimpulse-imap'; in Visual mode, `vimpulse-vmap'; in
+;; Operator-Pending mode, `vimpulse-omap'. The more general
+;; `vimpulse-careful-binding' function lets one specify the keymap to
+;; store the binding in, as when using `define-key':
 ;;
-;;     (vimpulse-define-key keymap "abc" 'command)
+;;     (vimpulse-careful-binding keymap "abc" 'command)
 ;;
 ;; IMPLEMENTATION
 ;;
@@ -66,10 +66,10 @@
 ;; and so on. For more on default key bindings, see the GNU Emacs
 ;; Lisp Reference Manual, chapter 22.3: "Format of Keymaps".
 ;;
-;; What is done by functions like `vimpulse-define-key' and
+;; What is done by functions like `vimpulse-careful-binding' and
 ;; `vimpulse-map' (which depends on the former) is to generate these
 ;; default bindings automatically. If "AB" is already bound to `foo'
-;; and we modally bind "ABC" to `bar', the old binding is first
+;; and we carefully bind "ABC" to `bar', the old binding is first
 ;; replaced by a default binding, as if we issued the following:
 ;;
 ;;     (global-set-key (kbd "A B") nil) ; delete old binding
@@ -85,7 +85,7 @@
 ;; Viper binds "d" to the general command `viper-command-argument',
 ;; which, depending on the next key-presses, deletes a line, two
 ;; words, or any motion entered by the user. What happens if we decide
-;; to modally bind, say, "dq" to a custom command `foo' of our own?
+;; to carefully bind, say, "dq" to a custom command `foo' of our own?
 ;;
 ;;     (global-set-key (kbd "d") nil) ; delete old binding
 ;;     (global-set-key (kbd "d <t>") 'viper-command-argument)
@@ -101,22 +101,23 @@
 ;;
 ;; So, we need to find a way to pass "d" and "w" along in the proper
 ;; manner; that is, to make the default binding appear the same as the
-;; old binding it replaces. This is done by `vimpulse-modal-pre-hook',
+;; old binding it replaces. This is done by `vimpulse-careful-pre-hook',
 ;; which unreads "w" (so it can be read again) and changes
 ;; `last-command-event' to "d". Of course, this behavior is only
 ;; needed for default key bindings, and only for default key bindings
-;; made by the modal binding functions. To that end, every time
-;; `vimpulse-define-key' makes a default binding, the binding is
-;; listed in `vimpulse-modal-alist' for future reference. Checking
-;; against the list, `vimpulse-modal-pre-hook' only does its thing if
-;; the current binding comes back positive.
+;; made by careful bindings. To that end, every time
+;; `vimpulse-careful-binding' makes a default binding, the binding is
+;; listed in `vimpulse-careful-alist' for future reference. Checking
+;; against the list, `vimpulse-careful-pre-hook' only does its thing
+;; if the current binding comes back positive.
 ;;
 ;; XEmacs is somewhat fuzzy about its command loop variables, not
 ;; allowing direct modification of `last-command-event'. However,
 ;; shadowing it with a `let' binding is possible, and a wrap-around
 ;; advice of the current command is employed to accomplish this. Also,
 ;; XEmacs does not have default key bindings in quite the same way as
-;; GNU Emacs; `vimpulse-default-binding' takes care of the differences.
+;; GNU Emacs; `vimpulse-default-binding' takes care of the
+;; differences.
 ;;
 ;; LIMITATIONS
 ;;
@@ -134,7 +135,7 @@
   "Make wrap-around advice for shadowing `last-command-event'.
 XEmacs does not allow us to change its command loop variables
 directly, but shadowing them with a `let' binding works."
-  `(defadvice ,command (around vimpulse-modal activate)
+  `(defadvice ,command (around vimpulse-careful activate)
      "Shadow `last-command-event' with a `let' binding."
      (cond
       (vimpulse-last-command-event
@@ -149,37 +150,38 @@ directly, but shadowing them with a `let' binding works."
 
 ;;; General functions
 
-(defun vimpulse-modal-check (key-sequence)
+(defun vimpulse-careful-check (key-sequence)
   "Return t if KEY-SEQUENCE defaults to `this-command',
-but only for bindings listed in `vimpulse-modal-alist'."
+but only for bindings listed in `vimpulse-careful-alist'."
   (let ((temp-sequence (vimpulse-strip-prefix key-sequence)))
     (setq temp-sequence (vimpulse-truncate temp-sequence -1))
     (and this-command ; may be nil
          (not (key-binding key-sequence)) ; only default bindings
-         (eq (cdr (assoc temp-sequence vimpulse-modal-alist))
+         (eq (cdr (assoc temp-sequence vimpulse-careful-alist))
              this-command))))
 
-(defun vimpulse-modal-remove (key-vector &optional recursive)
-  "Delete entry with KEY-VECTOR from `vimpulse-modal-alist'.
+(defun vimpulse-careful-remove (key-vector &optional recursive)
+  "Delete entry with KEY-VECTOR from `vimpulse-careful-alist'.
 If RECURSIVE is non-nil, also delete entries whose key-vectors
 start with KEY-VECTOR."
   (if recursive
-      (dolist (entry vimpulse-modal-alist)
+      (dolist (entry vimpulse-careful-alist)
         (when (equal (vimpulse-truncate (car entry)
                                         (length key-vector))
                      key-vector)
-          (setq vimpulse-modal-alist
-                (delq entry vimpulse-modal-alist))))
-    (assq-delete-all key-vector vimpulse-modal-alist)))
+          (setq vimpulse-careful-alist
+                (delq entry vimpulse-careful-alist))))
+    (setq vimpulse-careful-alist
+          (assq-delete-all key-vector vimpulse-careful-alist))))
 
 (defun vimpulse-xemacs-def-binding
-  (keymap key def &optional modal-binding define-func)
-  "Make a default binding in XEmacs. If MODAL-BINDING is
+  (keymap key def &optional careful-binding define-func)
+  "Make a default binding in XEmacs. If CAREFUL-BINDING is
 non-nil, advice DEF by means of `vimpulse-advice-command'."
   (let ((temp-sequence (vconcat key))
         (submap (lookup-key keymap key)))
     (unless define-func (setq define-func 'define-key))
-    (and modal-binding (commandp def)
+    (and careful-binding (commandp def)
          (eval `(vimpulse-advice-command ,def)))
     (and (> (length temp-sequence) 1)
          (eq (aref temp-sequence (1- (length temp-sequence))) t)
@@ -193,31 +195,31 @@ non-nil, advice DEF by means of `vimpulse-advice-command'."
     (funcall define-func keymap temp-sequence submap)))
 
 (defun vimpulse-default-binding
-  (keymap key def &optional modal-binding define-func)
+  (keymap key def &optional careful-binding define-func)
   "Make a default binding in GNU Emacs or XEmacs,
-whichever is appropriate. If MODAL-BINDING is non-nil,
-the binding is listed in `vimpulse-modal-alist'."
+whichever is appropriate. If CAREFUL-BINDING is non-nil,
+the binding is listed in `vimpulse-careful-alist'."
   (let ((temp-sequence (vconcat key)))
     (unless define-func (setq define-func 'define-key))
     (cond
      ((featurep 'xemacs)
       (vimpulse-xemacs-def-binding
-       keymap temp-sequence def modal-binding define-func))
+       keymap temp-sequence def careful-binding define-func))
      (t
       (unless (eq (aref temp-sequence (1- (length temp-sequence))) t)
         (setq temp-sequence (vconcat temp-sequence [t])))
       (funcall define-func keymap temp-sequence def)))
-    (when modal-binding
-      (add-to-list 'vimpulse-modal-alist
+    (when careful-binding
+      (add-to-list 'vimpulse-careful-alist
                    (cons (vimpulse-truncate temp-sequence -1) def)))))
 
 ;;; Hook run before each command
 
-;; If the current command is a default key binding made by the modal
-;; binding functions, we need to unread the last input events and
-;; change some command loop variables to give the command the
+;; If the current command is a default key binding made by
+;; `vimpulse-careful-binding', we need to unread the last input events
+;; and change some command loop variables to give the command the
 ;; impression of its "old" binding.
-(defun vimpulse-modal-pre-hook ()
+(defun vimpulse-careful-pre-hook ()
   "Update `vimpulse-last-command-event' and `unread-command-events'.
 If the current key-sequence defaults to a shorter key-sequence,
 the difference is stored in these two variables, to be passed on
@@ -229,7 +231,7 @@ functions, respectively."
     (when (featurep 'xemacs)
       (setq key-sequence (events-to-keys key-sequence)))
     (while (and (> (length key-sequence) 1)
-                (vimpulse-modal-check key-sequence))
+                (vimpulse-careful-check key-sequence))
       ;; Unread last event.
       (setq vimpulse-last-command-event
             (elt key-sequence (1- (length key-sequence))))
@@ -252,19 +254,19 @@ functions, respectively."
 ;;; Hook run after each command
 
 ;; This merely ensures `vimpulse-last-command-event' is reset.
-(defun vimpulse-modal-post-hook ()
+(defun vimpulse-careful-post-hook ()
   "Erase `vimpulse-last-command-event'."
   (setq vimpulse-last-command-event nil))
 
-(add-hook 'pre-command-hook  'vimpulse-modal-pre-hook)
-(add-hook 'post-command-hook 'vimpulse-modal-post-hook)
+(add-hook 'pre-command-hook  'vimpulse-careful-pre-hook)
+(add-hook 'post-command-hook 'vimpulse-careful-post-hook)
 
 ;;; Modal binding functions
 
-;; `vimpulse-define-key' is general; `vimpulse-map', `vimpulse-imap'
-;; and `vimpulse-vmap' imitate Vim's :map, :imap and :vmap,
-;; respectively.
-(defun vimpulse-define-key
+;; `vimpulse-careful-binding' is general; `vimpulse-map',
+;; `vimpulse-imap', `vimpulse-vmap' and `vimpulse-omap' imitate
+;; Vim's :map, :imap, :vmap and :omap, respectively.
+(defun vimpulse-careful-binding
   (keymap key def &optional dont-list define-func)
   "Carefully bind KEY to DEF in KEYMAP.
 \"Carefully\" means that if a subset of the key sequence is already
@@ -277,7 +279,7 @@ overwrite the old. E.g., if we want to carefully bind \"A B C\" to
 
 which means that \"A B D\", for example, defaults to `bar'. (For
 more on default bindings, see `define-key'.) The default binding
-gets listed in `vimpulse-modal-alist', so that, with regard to
+gets listed in `vimpulse-careful-alist', so that, with regard to
 command loop variables, it appears exactly the same as the
 binding it replaced. To override this, use DONT-LIST.
 DEFINE-FUNC specifies a function to be used in place of
@@ -309,14 +311,14 @@ only if called in the same state. The functions `vimpulse-map',
       (funcall define-func keymap key-vector def)
       (while (and (> (length key-vector) 1)
                   (not (lookup-key keymap key-vector)))
-        (vimpulse-modal-remove key-vector t)
+        (vimpulse-careful-remove key-vector t)
         (setq key-vector (vimpulse-truncate key-vector -1))))
      ;; `undefined' also unbinds, but less forcefully.
      ((eq def 'undefined)
       (if (keymapp (lookup-key keymap key-vector))
           (vimpulse-default-binding keymap key-vector nil t define-func)
         (funcall define-func keymap key-vector def))
-      (vimpulse-modal-remove key-vector))
+      (vimpulse-careful-remove key-vector))
      ;; Regular binding: convert previous bindings to default bindings.
      (t
       (dotimes (i (1- (length key-vector)))
@@ -326,10 +328,10 @@ only if called in the same state. The functions `vimpulse-map',
           (setq current-binding
                 (or (key-binding temp-sequence t) previous-binding)))
         (setq previous-binding current-binding)
-        ;; If `current-binding' is a keymap, do nothing, since our modal
-        ;; binding can exist happily as part of that keymap. However, if
-        ;; `current-binding' is a command, we need to make room for the
-        ;; modal binding by creating a default binding.
+        ;; If `current-binding' is a keymap, do nothing, since our
+        ;; careful binding can exist happily as part of that keymap.
+        ;; However, if `current-binding' is a command, we need to make
+        ;; room for the careful binding by creating a default binding.
         (unless (keymapp current-binding)
           (setq temp-sequence (vconcat temp-sequence [t]))
           (setq current-binding (lookup-key keymap temp-sequence t))
@@ -350,47 +352,100 @@ only if called in the same state. The functions `vimpulse-map',
            keymap key-vector def (not dont-list) define-func)
         (funcall define-func keymap key def))))))
 
-(define-minor-mode vimpulse-modal-minor-mode
+(define-minor-mode vimpulse-careful-minor-mode
   "Minor mode of bindings overwritten by `vimpulse-map' et al."
-  :keymap vimpulse-modal-map
-  (dolist (entry vimpulse-modal-alist)
-    (unless (lookup-key vimpulse-modal-map (car entry))
-      (define-key vimpulse-modal-map (car entry) (cdr entry))))
-  (when vimpulse-modal-minor-mode
+  :keymap vimpulse-careful-map
+  (dolist (entry vimpulse-careful-alist)
+    (unless (lookup-key vimpulse-careful-map (car entry))
+      (define-key vimpulse-careful-map (car entry) (cdr entry))))
+  (when vimpulse-careful-minor-mode
     (viper-normalize-minor-mode-map-alist)))
 
 (add-to-list 'vimpulse-state-maps-alist
-             (cons 'vimpulse-modal-minor-mode 'vimpulse-modal-map))
+             (cons 'vimpulse-careful-minor-mode 'vimpulse-careful-map))
+
+(defun vimpulse-modal-binding (mode state key def &optional careful)
+  "Modally bind KEY to DEF in STATE for MODE.
+STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
+If CAREFUL is non-nil, make a careful binding with
+`vimpulse-careful-binding'."
+  (let* ((entry (cdr (assq state vimpulse-auxiliary-modes-alist)))
+         (aux   (cdr (assq mode (symbol-value entry))))
+         (map   (eval (cdr (assq aux vimpulse-state-maps-alist)))))
+    ;; If no auxiliary mode exists, create one.
+    (unless (keymapp map)
+      (setq aux (intern (format "vimpulse-%s-%s" state mode))
+            map (intern (format "vimpulse-%s-%s-map" state mode)))
+      (eval `(viper-deflocalvar ,aux nil
+               ,(format "Auxiliary %s mode for `%s'." state mode)))
+      (eval `(viper-deflocalvar ,map (make-sparse-keymap)
+               ,(format "Auxiliary %s keymap for `%s'." state mode)))
+      (add-to-list 'vimpulse-state-maps-alist (cons aux map) t)
+      (add-to-list entry (cons mode aux) t)
+      (setq map (eval map)))
+    ;; Define key.
+    (if careful
+        (vimpulse-careful-binding map key def)
+      (define-key map key def))))
+
+(defun vimpulse-major-modal-binding (mode state key def &optional careful)
+  "Modally bind KEY to DEF in STATE for major mode MODE.
+STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
+If CAREFUL is non-nil, make a careful binding with
+`vimpulse-careful-binding'."
+  (let ((modifier-map (vimpulse-modifier-map state mode)))
+    (if careful
+        (vimpulse-with-state state
+          (vimpulse-careful-binding modifier-map key def))
+      (define-key modifier-map key def))
+    (viper-modify-major-mode mode state modifier-map)))
+
+(defalias 'vimpulse-minor-modal-binding 'vimpulse-modal-binding)
+
+(defun vimpulse-modal-set-key (state key def &optional local)
+  "Modally bind KEY to DEF in STATE.
+STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
+If LOCAL is non-nil, make a buffer-local binding; otherwise,
+the binding is seen in all buffers."
+  (let* ((map (cdr (assq state vimpulse-state-vars-alist)))
+         (global-user-map (eval (cdr (assq 'global-user-map map)))))
+    (if local
+        (viper-add-local-keys state `((,key . ,def)))
+      (define-key global-user-map key def))))
+
+(defun vimpulse-modal-set-key-carefully (state key def &optional local)
+  "Modally bind KEY to DEF in STATE, carefully.
+STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
+If LOCAL is non-nil, make a buffer-local binding; otherwise,
+the binding is seen in all buffers."
+  (let* ((map (cdr (assq state vimpulse-state-vars-alist)))
+         (global-user-map (eval (cdr (assq 'global-user-map map)))))
+    (if local
+        (viper-add-local-keys state `((,key . ,def)))
+      (vimpulse-with-state state
+        (vimpulse-careful-binding global-user-map key def)))))
+
+(defalias 'modal-set-key 'vimpulse-modal-set-key)
+(defalias 'modal-set-key-carefully 'vimpulse-modal-set-key-carefully)
 
 (defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.
 Don't use this function directly; see `vimpulse-map',
 `vimpulse-imap', `vimpulse-vmap' and `vimpulse-omap' instead."
-  (let* ((old-state viper-current-state)
-         (map (cdr (assq state vimpulse-state-vars-alist)))
-         (basic-map (eval (cdr (assq 'basic-map map))))
-         (global-user-map (eval (cdr (assq 'global-user-map map)))))
-    (viper-set-mode-vars-for state)
-    (let ((viper-current-state state))
-      (viper-normalize-minor-mode-map-alist))
-    (cond
-     (modes
-      (dolist (mode modes)
-        (if (eq mode t)
-            (vimpulse-define-key global-user-map key def)
-          (setq map (vimpulse-modifier-map state mode))
-          (vimpulse-define-key map key def)
-          (viper-modify-major-mode mode state map))))
-     (t
-      (vimpulse-define-key basic-map key def)))
-    (viper-set-mode-vars-for old-state)
-    (viper-normalize-minor-mode-map-alist)))
+  (let* ((map (cdr (assq state vimpulse-state-vars-alist)))
+         (basic-map (eval (cdr (assq 'basic-map map)))))
+    (if modes
+        (dolist (mode modes)
+          (if (eq mode t)
+              (vimpulse-modal-set-key 'vi-state key def)
+            (vimpulse-major-modal-binding mode 'vi-state key def t)))
+      (vimpulse-careful-binding basic-map key def))))
 
 (defun vimpulse-map-state-local (state key def)
   "Make a buffer-local binding for KEY and DEF in STATE.
 Don't use this function directly; see `vimpulse-map-local',
 `vimpulse-imap-local' and `vimpulse-vmap-local' instead."
-  (viper-add-local-keys state `((,key . ,def))))
+  (vimpulse-modal-set-key-carefully state key def t))
 
 (defun vimpulse-map (key def &rest modes)
   "Modally bind KEY to DEF in vi (command) state.

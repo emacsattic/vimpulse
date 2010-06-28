@@ -150,6 +150,27 @@ in vi state and bind them to TO in KEYMAP."
                (vimpulse-get-vi-bindings from)))
     (define-key viper-vi-basic-map `[remap ,from] to)))
 
+;;; States
+
+(defmacro vimpulse-with-state (state &rest body)
+  "Execute BODY with Viper state STATE, then restore previous state."
+  (declare (indent defun))
+  `(let ((new-viper-state ,state)
+         (old-viper-state viper-current-state))
+     (unwind-protect
+         (progn
+           (viper-set-mode-vars-for new-viper-state)
+           (let ((viper-current-state new-viper-state))
+             (viper-normalize-minor-mode-map-alist)
+             ,@body))
+       (viper-set-mode-vars-for old-viper-state)
+       (viper-normalize-minor-mode-map-alist))))
+
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords
+   'emacs-lisp-mode
+   '(("(\\(vimpulse-with-state\\)\\>" 1 font-lock-keyword-face))))
+
 ;;; Vector tools
 
 (defun vimpulse-truncate (vector length &optional offset)
@@ -174,7 +195,7 @@ If OFFSET is specified, skip first elements of VECTOR."
 (defun vimpulse-strip-prefix (key-sequence)
   "Strip any prefix argument keypresses from KEY-SEQUENCE.
 This is useful for deriving a \"standard\" key-sequence from
-`this-command-keys', to be looked up in `vimpulse-modal-alist'."
+`this-command-keys', to be looked up in `vimpulse-careful-alist'."
   (let* ((offset 0)
          (temp-sequence (vconcat key-sequence))
          (key (aref temp-sequence offset))
