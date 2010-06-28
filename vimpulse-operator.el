@@ -24,8 +24,8 @@
 ;;
 ;; When the latter command above is run in vi state, `vimpulse-range'
 ;; will query the user for a motion and determine the resulting range
-;; to pass on to the command's arguments. Note that if any text is
-;; selected, it simply uses the selection boundaries (no querying).
+;; to pass on to the command's arguments. Note that in Visual mode,
+;; however, it simply uses the selection boundaries (no querying).
 ;;
 ;; While a motion is read from the keyboard, a temporary Viper state,
 ;; Operator-Pending mode, is entered. This state inherits bindings
