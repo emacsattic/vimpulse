@@ -66,12 +66,12 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
   :hook '(vimpulse-set-operator-cursor-type)
   :enable '(vimpulse-operator-remap-minor-mode
             (viper-vi-kbd-minor-mode nil)
-            vi-state vimpulse-modal-minor-mode)
+            vi-state vimpulse-careful-minor-mode)
   (cond
    ((eq viper-current-state 'operator-state)
-    (vimpulse-modal-minor-mode 1))
+    (vimpulse-careful-minor-mode 1))
    (t
-    (vimpulse-modal-minor-mode -1))))
+    (vimpulse-careful-minor-mode -1))))
 
 ;; This is a short-lived state, only used for calculating
 ;; motion ranges. If anything goes wrong and we enter the
@@ -153,7 +153,10 @@ from the keyboard. This has no effect in Visual mode."
                       (vimpulse-visual-toggle-line . line)
                       (vimpulse-visual-toggle-block . block)))
         (type (when whole-lines 'line))
-        (oldmsg (current-message)))
+        ;; For restoration of the echo area. We bind `message-log-max' to nil
+        ;; to prevent `oldmsg' from messing up the *Messages* buffer.
+        (oldmsg (current-message))
+        message-log-max)
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
           vimpulse-this-motion nil
@@ -289,7 +292,9 @@ range. If REFRESH is t, this function changes point,
       ;; Whatever happens next, we must restore Transient Mark mode
       ;; to its original state afterwards!
       (unwind-protect
-          (let (vimpulse-visual-vars-alist) ; used for restoring
+          ;; `vimpulse-visual-vars-alist' is used for restoring,
+          ;; so protect it.
+          (let (vimpulse-visual-vars-alist)
             (if (commandp motion)
                 (call-interactively motion)
               (funcall motion count))
