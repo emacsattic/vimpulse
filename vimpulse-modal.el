@@ -2,7 +2,7 @@
 
 ;; This provides the functions `vimpulse-map', `vimpulse-imap',
 ;; `vimpulse-vmap' and `vimpulse-omap', which mimic :map, :imap, :vmap
-;; and :omap in Vim, as well as `vimpulse-careful-binding', which
+;; and :omap in Vim, as well as `vimpulse-make-careful-binding', which
 ;; makes bindings "on top of" previous bindings.
 ;;
 ;; BACKGROUND
@@ -32,8 +32,8 @@
 ;; new key bindings "on top of" previous bindings. They are
 ;; `vimpulse-map', `vimpulse-imap', `vimpulse-vmap' and
 ;; `vimpulse-omap', which mimic Vim's commands, and
-;; `vimpulse-careful-binding', a general function for specifying the
-;; keymap. Returning to the example:
+;; `vimpulse-make-careful-binding', a general function for specifying
+;; the keymap. Returning to the example:
 ;;
 ;;     (vimpulse-imap "aa" 'foo)
 ;;     (vimpulse-imap "aaa" 'bar)
@@ -46,10 +46,10 @@
 ;; To make a binding in vi (command) mode, use `vimpulse-map'; in
 ;; Insert mode, `vimpulse-imap'; in Visual mode, `vimpulse-vmap'; in
 ;; Operator-Pending mode, `vimpulse-omap'. The more general
-;; `vimpulse-careful-binding' function lets one specify the keymap to
-;; store the binding in, as when using `define-key':
+;; `vimpulse-make-careful-binding' function lets one specify the
+;; keymap to store the binding in, as when using `define-key':
 ;;
-;;     (vimpulse-careful-binding keymap "abc" 'command)
+;;     (vimpulse-make-careful-binding keymap "abc" 'command)
 ;;
 ;; IMPLEMENTATION
 ;;
@@ -66,7 +66,7 @@
 ;; and so on. For more on default key bindings, see the GNU Emacs
 ;; Lisp Reference Manual, chapter 22.3: "Format of Keymaps".
 ;;
-;; What is done by functions like `vimpulse-careful-binding' and
+;; What is done by functions like `vimpulse-make-careful-binding' and
 ;; `vimpulse-map' (which depends on the former) is to generate these
 ;; default bindings automatically. If "AB" is already bound to `foo'
 ;; and we carefully bind "ABC" to `bar', the old binding is first
@@ -101,15 +101,15 @@
 ;;
 ;; So, we need to find a way to pass "d" and "w" along in the proper
 ;; manner; that is, to make the default binding appear the same as the
-;; old binding it replaces. This is done by `vimpulse-careful-pre-hook',
-;; which unreads "w" (so it can be read again) and changes
-;; `last-command-event' to "d". Of course, this behavior is only
-;; needed for default key bindings, and only for default key bindings
-;; made by careful bindings. To that end, every time
-;; `vimpulse-careful-binding' makes a default binding, the binding is
-;; listed in `vimpulse-careful-alist' for future reference. Checking
-;; against the list, `vimpulse-careful-pre-hook' only does its thing
-;; if the current binding comes back positive.
+;; old binding it replaces. This is done by
+;; `vimpulse-careful-pre-hook', which unreads "w" (so it can be read
+;; again) and changes `last-command-event' to "d". Of course, this
+;; behavior is only needed for default key bindings, and only for
+;; default key bindings made by careful bindings. To that end, every
+;; time `vimpulse-make-careful-binding' makes a default binding, the
+;; binding is listed in `vimpulse-careful-alist' for future reference.
+;; Checking against the list, `vimpulse-careful-pre-hook' only does
+;; its thing if the current binding comes back positive.
 ;;
 ;; XEmacs is somewhat fuzzy about its command loop variables, not
 ;; allowing direct modification of `last-command-event'. However,
@@ -216,9 +216,9 @@ the binding is listed in `vimpulse-careful-alist'."
 ;;; Hook run before each command
 
 ;; If the current command is a default key binding made by
-;; `vimpulse-careful-binding', we need to unread the last input events
-;; and change some command loop variables to give the command the
-;; impression of its "old" binding.
+;; `vimpulse-make-careful-binding', we need to unread the last input
+;; events and change some command loop variables to give the command
+;; the impression of its "old" binding.
 (defun vimpulse-careful-pre-hook ()
   "Update `vimpulse-last-command-event' and `unread-command-events'.
 If the current key-sequence defaults to a shorter key-sequence,
@@ -263,10 +263,10 @@ functions, respectively."
 
 ;;; Modal binding functions
 
-;; `vimpulse-careful-binding' is general; `vimpulse-map',
-;; `vimpulse-imap', `vimpulse-vmap' and `vimpulse-omap' imitate
-;; Vim's :map, :imap, :vmap and :omap, respectively.
-(defun vimpulse-careful-binding
+;; `vimpulse-make-careful-binding' is general; `vimpulse-map',
+;; `vimpulse-imap', `vimpulse-vmap' and `vimpulse-omap' imitate Vim's
+;; :map, :imap, :vmap and :omap, respectively.
+(defun vimpulse-make-careful-binding
   (keymap key def &optional dont-list define-func)
   "Carefully bind KEY to DEF in KEYMAP.
 \"Carefully\" means that if a subset of the key sequence is already
@@ -364,11 +364,17 @@ only if called in the same state. The functions `vimpulse-map',
 (add-to-list 'vimpulse-state-maps-alist
              (cons 'vimpulse-careful-minor-mode 'vimpulse-careful-map))
 
-(defun vimpulse-modal-binding (mode state key def &optional careful)
+(defun vimpulse-define-key (mode state key def &optional careful)
   "Modally bind KEY to DEF in STATE for MODE.
-STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
+MODE is an Emacs mode (minor or major), while STATE is one of
+`vi-state', `insert-state', `visual-state' or `operator-state'.
+For example:
+
+    (vimpulse-define-key 'text-mode 'vi-state \"a\" 'foo)
+    (vimpulse-define-key 'visual-line-mode 'visual-state \"b\" 'bar)
+
 If CAREFUL is non-nil, make a careful binding with
-`vimpulse-careful-binding'."
+`vimpulse-make-careful-binding'."
   (let* ((entry (cdr (assq state vimpulse-auxiliary-modes-alist)))
          (aux   (cdr (assq mode (symbol-value entry))))
          (map   (eval (cdr (assq aux vimpulse-state-maps-alist)))))
@@ -378,55 +384,48 @@ If CAREFUL is non-nil, make a careful binding with
             map (intern (format "vimpulse-%s-%s-map" state mode)))
       (eval `(viper-deflocalvar ,aux nil
                ,(format "Auxiliary %s mode for `%s'." state mode)))
-      (eval `(viper-deflocalvar ,map (make-sparse-keymap)
+      (eval `(defvar ,map (make-sparse-keymap)
                ,(format "Auxiliary %s keymap for `%s'." state mode)))
       (add-to-list 'vimpulse-state-maps-alist (cons aux map) t)
       (add-to-list entry (cons mode aux) t)
       (setq map (eval map)))
     ;; Define key.
     (if careful
-        (vimpulse-careful-binding map key def)
+        (vimpulse-make-careful-binding map key def)
       (define-key map key def))))
 
-(defun vimpulse-major-modal-binding (mode state key def &optional careful)
+;; This modifies the major mode extension keymap, i.e., it's
+;; a reuseable front-end to `viper-modify-major-mode'.
+;; (By itself, `viper-modify-major-mode' discards the previous keymap.)
+(defun vimpulse-define-major-key (mode state key def &optional careful)
   "Modally bind KEY to DEF in STATE for major mode MODE.
-STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
-If CAREFUL is non-nil, make a careful binding with
-`vimpulse-careful-binding'."
+STATE is one of `vi-state', `insert-state', `visual-state' or
+`operator-state'. If CAREFUL is non-nil, make a careful binding
+with `vimpulse-make-careful-binding'."
   (let ((modifier-map (vimpulse-modifier-map state mode)))
     (if careful
         (vimpulse-with-state state
-          (vimpulse-careful-binding modifier-map key def))
+          (vimpulse-make-careful-binding modifier-map key def))
       (define-key modifier-map key def))
     (viper-modify-major-mode mode state modifier-map)))
 
-(defalias 'vimpulse-minor-modal-binding 'vimpulse-modal-binding)
+(defalias 'vimpulse-define-minor-key 'vimpulse-define-key)
 
-(defun vimpulse-modal-set-key (state key def &optional local)
+(defun vimpulse-global-set-key (state key def &optional careful)
   "Modally bind KEY to DEF in STATE.
 STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
-If LOCAL is non-nil, make a buffer-local binding; otherwise,
-the binding is seen in all buffers."
+If CAREFUL is non-nil, don't overwrite previous bindings."
   (let* ((map (cdr (assq state vimpulse-state-vars-alist)))
          (global-user-map (eval (cdr (assq 'global-user-map map)))))
-    (if local
-        (viper-add-local-keys state `((,key . ,def)))
+    (if careful
+        (vimpulse-with-state state
+          (vimpulse-make-careful-binding global-user-map key def))
       (define-key global-user-map key def))))
 
-(defun vimpulse-modal-set-key-carefully (state key def &optional local)
-  "Modally bind KEY to DEF in STATE, carefully.
-STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'.
-If LOCAL is non-nil, make a buffer-local binding; otherwise,
-the binding is seen in all buffers."
-  (let* ((map (cdr (assq state vimpulse-state-vars-alist)))
-         (global-user-map (eval (cdr (assq 'global-user-map map)))))
-    (if local
-        (viper-add-local-keys state `((,key . ,def)))
-      (vimpulse-with-state state
-        (vimpulse-careful-binding global-user-map key def)))))
-
-(defalias 'modal-set-key 'vimpulse-modal-set-key)
-(defalias 'modal-set-key-carefully 'vimpulse-modal-set-key-carefully)
+(defun vimpulse-local-set-key (state key def)
+  "Modally bind KEY to DEF in STATE, locally.
+STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'."
+  (viper-add-local-keys state `((,key . ,def))))
 
 (defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.
@@ -437,15 +436,11 @@ Don't use this function directly; see `vimpulse-map',
     (if modes
         (dolist (mode modes)
           (if (eq mode t)
-              (vimpulse-modal-set-key 'vi-state key def)
-            (vimpulse-major-modal-binding mode 'vi-state key def t)))
-      (vimpulse-careful-binding basic-map key def))))
+              (vimpulse-global-set-key 'vi-state key def t)
+            (vimpulse-define-major-key mode 'vi-state key def t)))
+      (vimpulse-make-careful-binding basic-map key def))))
 
-(defun vimpulse-map-state-local (state key def)
-  "Make a buffer-local binding for KEY and DEF in STATE.
-Don't use this function directly; see `vimpulse-map-local',
-`vimpulse-imap-local' and `vimpulse-vmap-local' instead."
-  (vimpulse-modal-set-key-carefully state key def t))
+(defalias 'vimpulse-map-state-local 'vimpulse-local-set-key)
 
 (defun vimpulse-map (key def &rest modes)
   "Modally bind KEY to DEF in vi (command) state.
