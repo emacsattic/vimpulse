@@ -217,7 +217,7 @@ from the keyboard. This has no effect in Visual mode."
         (message oldmsg)
         ;; With doubled operator ("gqgq" or "gqq"), set motion to current line.
         (if (or (eq vimpulse-this-motion vimpulse-this-operator)
-                (member (this-command-keys)
+                (member (vimpulse-strip-prefix (this-command-keys) t)
                         '("g??" "gUU" "gqq" "guu" "gww" "g~~")))
             (setq vimpulse-this-motion 'vimpulse-line)
           (setq vimpulse-this-motion
