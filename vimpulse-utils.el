@@ -192,14 +192,16 @@ If OFFSET is specified, skip first elements of VECTOR."
     (dotimes (idx length result)
       (aset result idx (aref vector (+ idx offset))))))
 
-(defun vimpulse-strip-prefix (key-sequence)
+;; This is useful for deriving a "standard" key-sequence from
+;; `this-command-keys', to be looked up in `vimpulse-careful-alist'.
+(defun vimpulse-strip-prefix (key-sequence &optional string)
   "Strip any prefix argument keypresses from KEY-SEQUENCE.
-This is useful for deriving a \"standard\" key-sequence from
-`this-command-keys', to be looked up in `vimpulse-careful-alist'."
+If STRING is t, output a string; otherwise output a vector."
   (let* ((offset 0)
          (temp-sequence (vconcat key-sequence))
          (key (aref temp-sequence offset))
-         (length (length temp-sequence)))
+         (length (length temp-sequence))
+         temp-string)
     ;; If XEmacs, get rid of the event object type.
     (and (featurep 'xemacs) (eventp key)
          (setq key (event-to-character key nil t)))
@@ -217,7 +219,9 @@ This is useful for deriving a \"standard\" key-sequence from
       (setq key (aref temp-sequence offset))
       (and (featurep 'xemacs) (eventp key)
            (setq key (event-to-character key nil t))))
-    (vimpulse-truncate temp-sequence length offset)))
+    (if string
+        (concat "" (vimpulse-truncate temp-sequence length offset))
+      (vimpulse-truncate temp-sequence length offset))))
 
 (defun vimpulse-memq-recursive (elt tree)
   "Return non-nil if TREE contains ELT.
