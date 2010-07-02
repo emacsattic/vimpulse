@@ -562,6 +562,14 @@ Doesn't indent with a prefix argument."
 
 ;; Keep <tab> separate from C-i by making an explicit binding for <tab>.
 (global-set-key [tab] (or (key-binding [tab]) (key-binding "\C-i")))
+(mapc (lambda (map)
+        (when (boundp map)
+          (setq map (symbol-value map))
+          (define-key map [tab] (or (lookup-key map [tab])
+                                    (lookup-key map "\C-i")))))
+      '(ex-read-filename-map
+        minibuffer-local-completion-map
+        viper-ex-cmd-map))
 (define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
 (define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
 (unless (key-binding "\C-c\C-o")
