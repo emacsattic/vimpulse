@@ -565,8 +565,6 @@ Doesn't indent with a prefix argument."
                                          (key-binding "\C-i")))
 (define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
 (define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
-(unless (key-binding "\C-c\C-o")
-  (global-set-key "\C-c\C-o" 'open-line)) ; some may miss this command
 
 ;;; Replace backspace
 
