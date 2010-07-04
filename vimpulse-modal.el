@@ -391,7 +391,8 @@ If CAREFUL is non-nil, make a careful binding with
       (setq map (eval map)))
     ;; Define key.
     (if careful
-        (vimpulse-make-careful-binding map key def)
+        (vimpulse-with-state state
+          (vimpulse-make-careful-binding map key def))
       (define-key map key def))))
 
 ;; This modifies the major mode extension keymap, i.e., it's
@@ -438,7 +439,8 @@ Don't use this function directly; see `vimpulse-map',
           (if (eq mode t)
               (vimpulse-global-set-key 'vi-state key def t)
             (vimpulse-define-major-key mode 'vi-state key def t)))
-      (vimpulse-make-careful-binding basic-map key def))))
+      (vimpulse-with-state state
+        (vimpulse-make-careful-binding basic-map key def)))))
 
 (defalias 'vimpulse-map-state-local 'vimpulse-local-set-key)
 
