@@ -346,8 +346,9 @@ expression for determining the keymap of MODE.")
 
 ;; Ensure that mode-specific bindings are refreshed properly.
 (defadvice set-auto-mode (after vimpulse activate)
-  "Normalize minor modes."
-  (vimpulse-normalize-minor-mode-map-alist))
+  "Refresh mode-specific bindings."
+  (viper-normalize-minor-mode-map-alist)
+  (viper-set-mode-vars-for viper-current-state))
 
 (defun vimpulse-make-toggle-alist (&optional state &rest excluded-states)
   "Make toggle alist for STATE (current if not specified)."
