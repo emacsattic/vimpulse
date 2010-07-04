@@ -332,7 +332,7 @@ expression for determining the keymap of MODE.")
                    (cons (cdr (assq 'intercept-mode mode))
                          (eval (cdr (assq 'intercept-map mode)))) t))
     ;; Refresh `viper--key-maps'.
-    (setq viper--key-maps (vimpulse-make-keymap-alist viper-current-state))
+    (setq viper--key-maps (vimpulse-make-keymap-alist))
     ;; Make `minor-mode-map-alist' buffer-local in older Emacs versions
     ;; lacking `emulation-mode-map-alists'.
     (unless (and (fboundp 'add-to-ordered-list)
@@ -342,9 +342,17 @@ expression for determining the keymap of MODE.")
             (append viper--intercept-key-maps viper--key-maps)
             minor-mode-map-alist)))))
 
-(defun vimpulse-make-toggle-alist (state &rest excluded-states)
-  "Make toggle alist for STATE."
+(defalias 'viper-normalize-minor-mode-map-alist 'vimpulse-normalize-minor-mode-map-alist)
+
+;; Ensure that mode-specific bindings are refreshed properly.
+(defadvice set-auto-mode (after vimpulse activate)
+  "Normalize minor modes."
+  (vimpulse-normalize-minor-mode-map-alist))
+
+(defun vimpulse-make-toggle-alist (&optional state &rest excluded-states)
+  "Make toggle alist for STATE (current if not specified)."
   (let (mode result toggle)
+    (setq state (or state viper-current-state 'vi-state))
     (unless (memq state excluded-states)
       (dolist (entry (cdr (assq state vimpulse-state-modes-alist)))
         (setq toggle (cdr entry)
@@ -382,10 +390,11 @@ expression for determining the keymap of MODE.")
              (list (cons entry toggle))))))))
     result))
 
-(defun vimpulse-make-keymap-alist (state)
-  "Make keymap alist for STATE."
+(defun vimpulse-make-keymap-alist (&optional state)
+  "Make keymap alist for STATE (current if not specified)."
   (let (result map)
-    (setq result (mapcar (lambda (entry)
+    (setq state (or state viper-current-state 'vi-state)
+          result (mapcar (lambda (entry)
                            (cons (car entry)
                                  (eval (cdr (assq (car entry)
                                                   vimpulse-state-maps-alist)))))
@@ -401,23 +410,6 @@ expression for determining the keymap of MODE.")
                            (eval (cdr (assq mode vimpulse-state-maps-alist))))
                      t)))
     result))
-
-(defun vimpulse-normalize-auxiliary-modes ()
-  "Normalize auxiliary modes for minor modes."
-  (let ((aux-modes (assq viper-current-state vimpulse-auxiliary-modes-alist))
-        aux map)
-    (dolist (mode minor-mode-map-alist)
-      (setq mode (car mode))
-      (when (assq mode aux-modes)
-        (setq aux (cdr (assq mode aux-modes))
-              map (eval (cdr (assq aux vimpulse-state-maps-alist))))
-        (add-to-list 'viper--key-maps (cons aux map) t)))
-    (when (assq major-mode aux-modes)
-      (setq aux (cdr (assq major-mode aux-modes))
-            map (eval (cdr (assq aux vimpulse-state-maps-alist))))
-      (add-to-list 'viper--key-maps (cons aux map) t))))
-
-(defalias 'viper-normalize-minor-mode-map-alist 'vimpulse-normalize-minor-mode-map-alist)
 
 (defadvice viper-refresh-mode-line (after vimpulse-states activate)
   "Refresh mode line tag for Vimpulse states."
