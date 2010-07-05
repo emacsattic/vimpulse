@@ -9,19 +9,18 @@
 ;;
 ;; Author: Brad Beveridge et al.
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
+;;      Please send bug reports to the mailing list (below).
 ;; Created: 23 Aug 2007
 ;; Version: 0.4+git
 ;; Keywords: emulations, viper
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el
-;; Git and bug tracker: http://www.assembla.com/spaces/vimpulse/
-;;                      http://trac-git.assembla.com/vimpulse/report/1
-;; You can also send patches and bug reports to the mailing list:
-;;      <implementations-list at lists.ourproject.org>
-;;      http://tinyurl.com/implementations-list
+;; Git repository: http://www.assembla.com/spaces/vimpulse/
+;; Mailing list: <implementations-list at lists.ourproject.org>
+;;      Subscribe: http://tinyurl.com/implementations-list
+;;      Archives: http://dir.gmane.org/gmane.emacs.vim-emulation
 ;;      You don't have to subscribe.  We usually reply within a few
 ;;      days and CC our replies back to you.
-;; Gmane: http://dir.gmane.org/gmane.emacs.vim-emulation
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
 ;; Thanks to our old maintainers:
@@ -39,7 +38,7 @@
 ;; as soon as it is loaded, Viper will start working in a more
 ;; Vim-like way.
 ;;
-;; Vimpulse is under active development.  It seems to work quite well
-;; with GNU Emacs 22.3 and 23.2, as well as XEmacs 21.4.22.  Patches
-;; and feature requests are welcome.
+;; Vimpulse is under active development.  It works quite well with
+;; GNU Emacs 22.3 and 23.2, as well as XEmacs 21.4.22.  Patches and
+;; feature requests are welcome.
 
