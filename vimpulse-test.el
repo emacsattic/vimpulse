@@ -1021,16 +1021,19 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
   "Execute BODY in a temporary buffer.
 The buffer contains the familiar *scratch* message,
 with point at position 1 and in vi (command) state."
-  (with-temp-buffer
-    (save-window-excursion
-      (switch-to-buffer-other-window (current-buffer))
-      (save-excursion
-        (insert ";; This buffer is for notes you don't want to save, \
+  (let ((kill-ring kill-ring)
+        (kill-ring-yank-pointer kill-ring-yank-pointer)
+        x-select-enable-clipboard)
+    (with-temp-buffer
+      (save-window-excursion
+        (switch-to-buffer-other-window (current-buffer))
+        (save-excursion
+          (insert ";; This buffer is for notes you don't want to save, \
 and for Lisp evaluation.\n;; If you want to create a file, visit \
 that file with C-x C-f,\n;; then enter the text in that file's own \
 buffer.\n"))
-      (viper-mode)
-      (funcall body))))
+        (viper-mode)
+        (funcall body)))))
 
 (defsuite test-utils-suite
   "Test suite for vimpulse-utils.el.
@@ -1111,6 +1114,7 @@ This line is not included in the report."
    (assert-string=
      (buffer-substring 1 47)
      ";;  buffer is for notes you don't want to save"))
+
   (test-visual-delete-line
    "Visually delete a line."
    (execute-kbd-macro "Vd")
@@ -1118,6 +1122,7 @@ This line is not included in the report."
      (buffer-string)
      ";; If you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.\n"))
+
   (test-visual-delete-block
    "Visually delete `;; ' prefix."
    (execute-kbd-macro "\C-vjjlld")
@@ -1127,6 +1132,17 @@ This line is not included in the report."
 Lisp evaluation.
 If you want to create a file, visit that file with C-x C-f,
 then enter the text in that file's own buffer.\n"))
+
+  (test-visual-delete-block-with-counts
+   "Visually delete `;; ' prefix, using counts."
+   (execute-kbd-macro "\C-v2l2jd")
+   (assert-string=
+     (buffer-string)
+     "This buffer is for notes you don't want to save, and for \
+Lisp evaluation.
+If you want to create a file, visit that file with C-x C-f,
+then enter the text in that file's own buffer.\n"))
+
   (test-visual-replace
    "Replace with Visual selection."
    (execute-kbd-macro "wvjra")
@@ -1136,11 +1152,13 @@ then enter the text in that file's own buffer.\n"))
      ";; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaf you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.\n")
+
    (execute-kbd-macro "jjvral.l.")
    (assert-string=
      "Replace a character and repeat for subsequent characters."
      (buffer-substring 141 191)
      ";; aaan enter the text in that file's own buffer.\n")
+
    (execute-kbd-macro "$ra")
    (assert-string=
      "Replace at end of line."
