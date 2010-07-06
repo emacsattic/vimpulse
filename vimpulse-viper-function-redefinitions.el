@@ -1,9 +1,22 @@
 ;;;; Redefinitions of some of Viper's functions
 
-(defadvice viper-digit-argument (around vimpulse activate)
-  "Echo digits immediately."
-  (let ((echo-keystrokes 0.01))
-    ad-do-it))
+(defalias 'viper-digit-argument 'digit-argument)
+
+;; Ensure that counts are always echoed immediately, since they might
+;; alter the command's behavior profoundly (e.g., 5i repeats the
+;; insertion four times).
+(defadvice digit-argument (around echo-keystrokes activate)
+  "Echo keystrokes immediately."
+  (setq echo-keystrokes 0.01)
+  ad-do-it)
+
+(defadvice ensure-overriding-map-is-bound (after echo-keystrokes activate)
+  "Echo keystrokes immediately."
+  (setq echo-keystrokes 0.01))
+
+(defadvice restore-overriding-map (after echo-keystrokes activate)
+  "Restore `echo-keystrokes'."
+  (setq echo-keystrokes saved-echo-keystrokes))
 
 (defadvice viper-change
   (around vimpulse-want-change-state activate)
