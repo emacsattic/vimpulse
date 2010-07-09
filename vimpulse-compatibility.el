@@ -294,7 +294,6 @@ Disable anyway if FORCE is t."
        (hs-toggle-hiding)
        (hs-hide-level vimpulse-fold-level))
      (defun vimpulse-hs-setup ()
-       (hs-hide-all)
        (define-key viper-vi-basic-map "za" 'vimpulse-za)
        (define-key viper-vi-basic-map "zm" 'hs-hide-all)
        (define-key viper-vi-basic-map "zr" 'hs-show-all)
