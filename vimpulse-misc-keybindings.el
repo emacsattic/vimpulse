@@ -95,13 +95,6 @@
 ;; Make ^[ work.
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
-;; My code (Alessandro).
-(defun vimpulse-indent-lines (count)
-  (save-excursion
-    (dotimes (i count)
-      (indent-according-to-mode)
-      (forward-line))))
-
 ;; His code (Brad).
 (defun vimpulse-cycle-windows ()
   "Cycle point to another window."
