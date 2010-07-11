@@ -1166,10 +1166,11 @@ aaaaf you want to create a file, visit that file with C-x C-f,
 
   (test-change-undo
    "Change a word and undo."
-   (execute-kbd-macro "wcwfoou")
-   (assert-string=
-     (buffer-substring 1 51)
-     ";; This buffer is for notes you don't want to save")))
+   (let ((vimpulse-want-change-undo t))
+     (execute-kbd-macro "wcwfoou")
+     (assert-string=
+       (buffer-substring 1 51)
+       ";; This buffer is for notes you don't want to save"))))
 
 (provide 'vimpulse-test)
 
