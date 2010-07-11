@@ -1027,6 +1027,7 @@ with point at position 1 and in vi (command) state."
     (with-temp-buffer
       (save-window-excursion
         (switch-to-buffer-other-window (current-buffer))
+        (buffer-enable-undo)
         (save-excursion
           (insert ";; This buffer is for notes you don't want to save, \
 and for Lisp evaluation.\n;; If you want to create a file, visit \
@@ -1102,11 +1103,11 @@ This line is not included in the report."
      "Nothing in nil!"
      (vimpulse-memq-recursive nil nil))))
 
-;; These tests are largely interactive, so don't run them
-;; automatically; add (test-visual-suite) to .emacs and/or
-;; run `M-x test-visual-suite' habitually.
-(defsuite test-visual-suite
-  "Test suite for vimpulse-visual-mode.el."
+;; These tests are largely interactive (and heavy), so don't run them
+;; automatically; add (test-interactive-suite) to .emacs and/or run
+;; `M-x test-interactive-suite' habitually.
+(defsuite test-interactive-suite
+  "Interactive test suite for Vimpulse."
   :fixture vimpulse-test-buffer
   (test-visual-delete-word
    "Visually delete a word."
@@ -1152,18 +1153,23 @@ then enter the text in that file's own buffer.\n"))
      ";; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaf you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.\n")
-
    (execute-kbd-macro "jjvral.l.")
    (assert-string=
      "Replace a character and repeat for subsequent characters."
      (buffer-substring 141 191)
      ";; aaan enter the text in that file's own buffer.\n")
-
    (execute-kbd-macro "$ra")
    (assert-string=
      "Replace at end of line."
      (buffer-substring 141 191)
-     ";; aaan enter the text in that file's own buffera\n")))
+     ";; aaan enter the text in that file's own buffera\n"))
+
+  (test-change-undo
+   "Change a word and undo."
+   (execute-kbd-macro "wcwfoou")
+   (assert-string=
+     (buffer-substring 1 51)
+     ";; This buffer is for notes you don't want to save")))
 
 (provide 'vimpulse-test)
 
