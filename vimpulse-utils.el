@@ -463,6 +463,65 @@ In XEmacs, change the `end-glyph' property."
    (t
     (viper-overlay-put overlay 'after-string string))))
 
+;;; Undo
+
+(defun vimpulse-refresh-undo-step ()
+  "Refresh `buffer-undo-list' entries for current undo step.
+Undo boundaries until `vimpulse-undo-list-pointer' are removed
+to make the entries undoable as a single action.
+See `vimpulse-start-undo-step'."
+  (setq buffer-undo-list
+        (vimpulse-filter-undo-boundaries buffer-undo-list
+                                         vimpulse-undo-list-pointer)))
+
+(defun vimpulse-filter-undo-boundaries (undo-list &optional pointer)
+  "Filter undo boundaries from beginning of UNDO-LIST, until POINTER.
+A boundary is a nil element, typically inserted by `undo-boundary'.
+Return the filtered list."
+  (cond
+   ((null undo-list)
+    nil)
+   ((not (listp undo-list))
+    undo-list)
+   ((eq undo-list pointer)
+    undo-list)
+   ((null (car undo-list))
+    (vimpulse-filter-undo-boundaries (cdr undo-list) pointer))
+   (t
+    (cons (car undo-list)
+          (vimpulse-filter-undo-boundaries (cdr undo-list) pointer)))))
+
+(defun vimpulse-start-undo-step ()
+  "Start a single undo step.
+End the step with `vimpulse-end-undo-step'.
+All intermediate buffer modifications will be undoable as a
+single action."
+  (when (listp buffer-undo-list)
+    (unless (null (car buffer-undo-list))
+      (add-to-list 'buffer-undo-list nil))
+    (setq vimpulse-undo-list-pointer buffer-undo-list)
+    ;; Continually refresh the undo entries for the step,
+    ;; ensuring proper synchronization between `buffer-undo-list'
+    ;; and `buffer-undo-tree'.
+    (add-hook 'post-command-hook 'vimpulse-refresh-undo-step nil t)))
+
+(defun vimpulse-end-undo-step ()
+  "End a single undo step.
+The step must have been started with `vimpulse-start-undo-step'.
+All intermediate buffer modifications will be undoable as a
+single action."
+  (when (memq 'vimpulse-refresh-undo-step post-command-hook)
+    (vimpulse-refresh-undo-step)
+    (remove-hook 'post-command-hook 'vimpulse-refresh-undo-step t)))
+
+(defmacro vimpulse-single-undo (&rest body)
+  "Execute BODY as a single undo step."
+  `(unwind-protect
+       (progn
+         (vimpulse-start-single-undo)
+         ,@body)
+     (vimpulse-end-single-undo)))
+
 ;;; Motion type system
 
 (defun vimpulse-range-p (object)
