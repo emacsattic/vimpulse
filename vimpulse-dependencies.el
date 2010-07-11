@@ -32,16 +32,16 @@
   :link   '(custom-group-link "viper")
   :prefix 'vimpulse-)
 
-(defcustom vimpulse-experimental t
-  "Whether or not to use experimental features.
-Turned on by default, so you will give feedback :P"
-  :group 'vimpulse
-  :type  'boolean)
-
 (defcustom vimpulse-want-change-state nil
   "Whether commands like \"cw\" invoke Replace state, vi-like.
 The default is to delete the text and enter Insert state,
 like in Vim."
+  :group 'vimpulse
+  :type  'boolean)
+
+(defcustom vimpulse-want-change-undo t
+  "Whether commands like \"cw\" are undone in a single step.
+On by default."
   :group 'vimpulse
   :type  'boolean)
 
@@ -350,10 +350,7 @@ In XEmacs, this is an extent.")
   "Overlay encompassing text inserted into the buffer
 to make Block selection at least one column wide.")
 
-(viper-deflocalvar vimpulse-undo-needs-adjust nil
-  "If true, several commands in the undo-list should be connected.")
-
-(defconst vimpulse-buffer-undo-list-mark 'vimpulse
+(viper-deflocalvar vimpulse-undo-list-pointer nil
   "Everything up to this mark is united in the undo-list.")
 
 (defvar vimpulse-visual-height nil

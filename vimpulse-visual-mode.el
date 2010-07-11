@@ -871,35 +871,6 @@ it is more useful to exclude the last newline from the region."
   "Remap FROM to TO in Visual mode."
   (vimpulse-remap vimpulse-visual-basic-map from to))
 
-;; This is currently unused. Its function is to collapse a single edit
-;; like "cwfoo" to a single undo. Will it work with undo-tree.el?
-(defun vimpulse-connect-undos ()
-  "Connects all undo-steps from `buffer-undo-list' up to the
-first occurrence of `vimpulse-buffer-undo-list-mark'."
-  (when (and vimpulse-undo-needs-adjust
-             (listp buffer-undo-list))
-    (setq buffer-undo-list
-          (vimpulse-filter-undos buffer-undo-list)))
-  (setq vimpulse-undo-needs-adjust nil))
-
-(defun vimpulse-filter-undos (undo-list)
-  "Filters all `nil' marks from `undo-list' until the first
-occurrence of `vimpulse-buffer-undo-list-mark'."
-  (cond
-   ((null undo-list)
-    nil)
-   ((eq (car undo-list) 'vimpulse)
-    (cdr undo-list))
-   ((null (car undo-list))
-    (vimpulse-filter-undos (cdr undo-list)))
-   (t
-    (cons (car undo-list)
-          (vimpulse-filter-undos (cdr undo-list))))))
-
-(defun vimpulse-push-buffer-undo-list-mark ()
-  (setq vimpulse-undo-needs-adjust t)
-  (push vimpulse-buffer-undo-list-mark buffer-undo-list))
-
 ;;; Ex
 
 (defun vimpulse-visual-ex (arg)
@@ -1248,7 +1219,7 @@ Returns the insertion point."
               (viper-repeat nil)))))
       (setq vimpulse-visual-insert-coords nil)))
   ;; Update undo-list.
-  (vimpulse-connect-undos))
+  (vimpulse-end-undo-step))
 
 (defalias 'viper-exit-insert-state 'vimpulse-exit-insert-state)
 

@@ -514,6 +514,8 @@ If DONT-SAVE is t, just delete it."
   "Change text from BEG to END.
 If DONT-SAVE is non-nil, just delete it."
   (interactive (vimpulse-range))
+  (when vimpulse-want-change-undo
+    (vimpulse-start-undo-step))
   (cond
    ((eq vimpulse-this-motion-type 'block)
     (vimpulse-delete beg end dont-save)
