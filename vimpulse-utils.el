@@ -512,6 +512,7 @@ All intermediate buffer modifications will be undoable as a
 single action."
   (when (memq 'vimpulse-refresh-undo-step post-command-hook)
     (vimpulse-refresh-undo-step)
+    (undo-boundary)
     (remove-hook 'post-command-hook 'vimpulse-refresh-undo-step t)))
 
 (defmacro vimpulse-single-undo (&rest body)
