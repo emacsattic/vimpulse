@@ -553,7 +553,8 @@ Doesn't indent with a prefix argument."
         (goto-char next-pos)
         (setq vimpulse-mark-list (cdr vimpulse-mark-list))))))
 
-(define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
+(when vimpulse-want-C-i-like-Vim
+  (define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward))
 (define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
 
 ;;; Replace backspace
