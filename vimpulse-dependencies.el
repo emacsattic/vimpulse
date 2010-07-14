@@ -50,6 +50,11 @@ On by default."
   :group 'vimpulse
   :type  'boolean)
 
+(defcustom vimpulse-want-C-i-like-Vim t
+  "Whether C-i jumps forward like in Vim, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
 (defcustom vimpulse-enhanced-paren-matching t
   "Enhanced matching of parentheses, on by default."
   :group 'vimpulse
