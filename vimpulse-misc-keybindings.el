@@ -553,9 +553,6 @@ Doesn't indent with a prefix argument."
         (goto-char next-pos)
         (setq vimpulse-mark-list (cdr vimpulse-mark-list))))))
 
-;; Keep <tab> separate from C-i by making an explicit binding for <tab>.
-(define-key viper-vi-basic-map [tab] (or (key-binding [tab])
-                                         (key-binding "\C-i")))
 (define-key viper-vi-basic-map "\C-i" 'vimpulse-jump-forward)
 (define-key viper-vi-basic-map "\C-o" 'vimpulse-jump-backward)
 
