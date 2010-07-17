@@ -335,6 +335,11 @@ Returns the new position."
 
 ;;; Region
 
+;; GNU Emacs 22 lacks `region-active-p'.
+(unless (fboundp 'region-active-p)
+  (defun region-active-p ()
+    (and transient-mark-mode mark-active)))
+
 (defun vimpulse-region-face ()
   "Return face of region."
   (if (featurep 'xemacs) 'zmacs-region 'region))
