@@ -167,7 +167,7 @@ from the keyboard. This has no effect in Visual mode."
       (when (and whole-lines
                  (not (eq vimpulse-visual-mode 'line)))
         (vimpulse-visual-activate 'line)
-        (vimpulse-visual-dimensions))
+        (vimpulse-set-visual-dimensions))
       ;; Determine range and go to beginning.
       (setq range (vimpulse-visual-range))
       (setq vimpulse-this-motion-type (vimpulse-motion-type range)
