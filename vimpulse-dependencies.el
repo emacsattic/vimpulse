@@ -320,8 +320,7 @@ Used by `vimpulse-operator-repeat'.")
   '(cua-mode
     mark-active
     transient-mark-mode
-    zmacs-regions
-    vimpulse-visual-region-expanded)
+    zmacs-regions)
   "System variables that are reset for each Visual session.")
 
 (viper-deflocalvar vimpulse-visual-vars-alist nil

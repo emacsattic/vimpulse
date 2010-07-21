@@ -75,6 +75,7 @@ selection on each line."
         (set var (cdr (assq var vimpulse-visual-vars-alist))))
       (when (memq var vimpulse-visual-global-vars)
         (kill-local-variable var)))
+    (setq vimpulse-visual-region-expanded nil)
     ;; Deactivate mark.
     (when vimpulse-visual-vars-alist
       (vimpulse-deactivate-mark t))
@@ -118,6 +119,7 @@ May also be used to change the Visual mode."
       (unless (assoc var (buffer-local-variables))
         (make-local-variable var)
         (add-to-list 'vimpulse-visual-global-vars var)))
+    (setq vimpulse-visual-region-expanded nil)
     ;; Re-add hooks in case they were cleared.
     (add-hook 'pre-command-hook 'vimpulse-visual-pre-command)
     (add-hook 'post-command-hook 'vimpulse-visual-post-command)
@@ -154,7 +156,8 @@ May also be used to change the Visual mode."
     (vimpulse-transient-mark -1))
    (t
     (vimpulse-transient-mark 1)
-    (vimpulse-activate-mark))))
+    (vimpulse-activate-mark)))
+  (vimpulse-set-visual-dimensions))
 
 (defun vimpulse-visual-toggle (mode)
   "Enable Visual MODE if this is not the current mode.
@@ -463,7 +466,7 @@ See also `vimpulse-visual-restore'."
    (t                                   ; char
     (viper-forward-char-carefully (1- width)))))
 
-(defun vimpulse-visual-markers (&optional point mark)
+(defun vimpulse-set-visual-markers (&optional point mark)
   "Refresh `vimpulse-visual-point' and `vimpulse-visual-mark'."
   (setq mark  (vimpulse-visual-beginning 'char)
         point (vimpulse-visual-end 'char))
@@ -477,9 +480,9 @@ See also `vimpulse-visual-restore'."
   (set-marker-insertion-type vimpulse-visual-mark
                              (> point mark)))
 
-(defun vimpulse-visual-dimensions (&optional beg end mode)
+(defun vimpulse-set-visual-dimensions (&optional beg end mode)
   "Refresh `vimpulse-visual-height' and `vimpulse-visual-width'."
-  (vimpulse-visual-markers beg end)
+  (vimpulse-set-visual-markers beg end)
   (setq mode (or mode vimpulse-visual-mode)
         beg (or beg (vimpulse-visual-beginning mode))
         end (or end (vimpulse-visual-end mode)))
@@ -662,7 +665,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   "Run before each command in Visual mode."
   (when vimpulse-visual-mode
     ;; Refresh Visual restore markers and marks.
-    (vimpulse-visual-dimensions)
+    (vimpulse-set-visual-dimensions)
     (cond
      ;; Movement command: don't expand region.
      ((vimpulse-movement-cmd-p this-command)
@@ -1080,7 +1083,7 @@ restores the selection with the same rotation."
             newmark  newmark-marker))
     (set-mark newmark)
     (goto-char newpoint)
-    (vimpulse-visual-dimensions beg end 'block)))
+    (vimpulse-set-visual-dimensions beg end 'block)))
 
 (defun vimpulse-visual-exchange-corners ()
   "Rearrange corners in Visual Block mode.
