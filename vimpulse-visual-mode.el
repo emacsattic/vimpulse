@@ -728,7 +728,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
 (defadvice viper-intercept-ESC-key
   (around vimpulse-ESC-exit-visual-mode activate)
   "Exit Visual mode with ESC."
-  (let ((viper-ESC-moves-cursor-back (not (region-active-p)))
+  (let ((viper-ESC-moves-cursor-back (unless (region-active-p)
+                                       viper-ESC-moves-cursor-back))
         deactivate-mark)
     (if (and vimpulse-visual-mode
              (not (input-pending-p)))
