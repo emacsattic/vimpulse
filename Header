@@ -41,5 +41,6 @@
 ;;
 ;; Vimpulse is under active development.  It works quite well with
 ;; GNU Emacs 22.3 and 23.2, as well as XEmacs 21.4.22.  Patches and
-;; feature requests are welcome.
+;; feature requests are welcome (see also the file CONTRIBUTE in the
+;; repository).
 
