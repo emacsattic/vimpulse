@@ -410,6 +410,7 @@ specifies whether to include the quote marks in the range."
        (viper-backward-word (cons arg ?r))))
    (lambda (arg)
      (vimpulse-limit (line-beginning-position) (line-end-position)
+       (backward-char)
        (viper-end-of-word (cons arg ?r))))))
 
 (vimpulse-define-text-object vimpulse-a-Word (arg)
