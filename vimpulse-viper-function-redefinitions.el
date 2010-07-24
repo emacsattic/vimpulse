@@ -359,8 +359,29 @@ expression for determining the keymap of MODE.")
 
 (defalias 'viper-normalize-minor-mode-map-alist 'vimpulse-normalize-minor-mode-map-alist)
 
+(defun vimpulse-normalize-auxiliary-modes ()
+  "Normalize `vimpulse-auxiliary-modes'.
+Order the modes on the basis of `minor-mode-map-alist'
+and remove duplicates."
+  (let ((temp vimpulse-auxiliary-modes) result)
+    (dolist (mode minor-mode-map-alist)
+      (setq mode (car mode))
+      (when (memq mode temp)
+        (setq temp (delq mode temp))
+        (unless (memq mode result)
+          (add-to-list 'result mode t))))
+    (dolist (mode temp)
+      (unless (memq mode result)
+        (add-to-list 'result mode t)))
+    (setq vimpulse-auxiliary-modes result)))
+
 ;; Ensure that mode-specific bindings are refreshed properly.
 (defadvice set-auto-mode (after vimpulse activate)
+  "Refresh mode-specific bindings."
+  (viper-normalize-minor-mode-map-alist)
+  (viper-set-mode-vars-for viper-current-state))
+
+(defadvice set-viper-state-in-major-mode (after vimpulse activate)
   "Refresh mode-specific bindings."
   (viper-normalize-minor-mode-map-alist)
   (viper-set-mode-vars-for viper-current-state))
@@ -387,15 +408,14 @@ expression for determining the keymap of MODE.")
           ((rassq entry vimpulse-auxiliary-modes-alist)
            (let (aux result)
              (setq entry (symbol-value entry))
-             (dolist (mode minor-mode-map-alist)
-               (setq mode (car mode))
+             (dolist (mode vimpulse-auxiliary-modes)
                (when (and (boundp mode)
                           (symbol-value mode)
                           (assq mode entry))
                  (setq aux (cdr (assq mode entry)))
                  (unless (assq aux result)
                    (add-to-list 'result (cons aux toggle) t))))
-             (when (assq major-mode entry)
+             (when (memq major-mode vimpulse-auxiliary-modes)
                (setq aux (cdr (assq major-mode entry)))
                (unless (assq aux result)
                  (add-to-list 'result (cons aux toggle) t)))
