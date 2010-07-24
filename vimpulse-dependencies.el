@@ -416,6 +416,10 @@ the region acted on.")
 (defvar vimpulse-search-prompt nil
   "String to use for vi-like searching.")
 
+(defvar vimpulse-auxiliary-modes nil
+  "List of Emacs modes with state bindings.
+The topmost modes have the highest priority.")
+
 (defvar vimpulse-auxiliary-modes-alist
   '((vi-state . viper-vi-auxiliary-modes)
     (insert-state . viper-insert-auxiliary-modes)
