@@ -368,11 +368,9 @@ and remove duplicates."
       (setq mode (car mode))
       (when (memq mode temp)
         (setq temp (delq mode temp))
-        (unless (memq mode result)
-          (add-to-list 'result mode t))))
+        (add-to-list 'result mode t 'eq)))
     (dolist (mode temp)
-      (unless (memq mode result)
-        (add-to-list 'result mode t)))
+      (add-to-list 'result mode t 'eq))
     (setq vimpulse-auxiliary-modes result)))
 
 ;; Ensure that mode-specific bindings are refreshed properly.
