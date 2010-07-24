@@ -687,6 +687,7 @@ beginning of a line, a different type of range is returned:
     (save-excursion
       (cond
        ((and normalize
+             (/= beg end)
              (progn
                (goto-char end)
                (bolp)))
