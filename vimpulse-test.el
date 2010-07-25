@@ -878,9 +878,8 @@ which releases automatically."
   (declare (indent defun))
   `(cond
     ((fboundp ',func)
-     (add-to-list 'stubs ',func)
-     (unless (memq ',func stubs-global)
-       (add-to-list 'stubs-global ',func))
+     (add-to-list 'stubs ',func nil 'eq)
+     (add-to-list 'stubs-global ',func nil 'eq)
      (defadvice ,func (around stub activate)
        (if stubs-global
            (setq ad-return-value
