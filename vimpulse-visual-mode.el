@@ -426,13 +426,16 @@ See also `vimpulse-visual-reselect'."
       (vimpulse-visual-mode 1))
      (t
       (unless vimpulse-visual-mode
-        (cond
-         ((eq last 'line)
-          (vimpulse-visual-activate-line))
-         ((eq last 'block)
-          (vimpulse-visual-activate-block))
-         (t                             ; char
-          (vimpulse-visual-activate-char))))
+        ;; Protect the previous values of `vimpulse-visual-mark'
+        ;; and `vimpulse-visual-point'.
+        (let (vimpulse-visual-mark vimpulse-visual-point)
+          (cond
+           ((eq last 'line)
+            (vimpulse-visual-activate-line))
+           ((eq last 'block)
+            (vimpulse-visual-activate-block))
+           (t                           ; char
+            (vimpulse-visual-activate-char)))))
       (set-mark vimpulse-visual-mark)
       (goto-char vimpulse-visual-point)
       (vimpulse-visual-contract-region)
