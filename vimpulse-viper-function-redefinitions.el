@@ -438,11 +438,11 @@ and remove duplicates."
         (setq mode (car mode))
         (unless (or (assq mode result)
                     (assq mode vimpulse-state-modes-alist)
-                    (rassq mode vimpulse-auxiliary-modes-alist)))
-        (add-to-list 'result
-                     (cons mode
-                           (eval (cdr (assq mode vimpulse-state-maps-alist))))
-                     t)))
+                    (rassq mode vimpulse-auxiliary-modes-alist))
+          (add-to-list 'result
+                       (cons mode
+                             (eval (cdr (assq mode vimpulse-state-maps-alist))))
+                       t))))
     result))
 
 (defadvice viper-refresh-mode-line (after vimpulse-states activate)
