@@ -55,6 +55,11 @@ On by default."
   :group 'vimpulse
   :type  'boolean)
 
+(defcustom vimpulse-want-quit-like-Vim t
+  "Whether :q quits the editor like in Vim, on by default."
+  :group 'vimpulse
+  :type  'boolean)
+
 (defcustom vimpulse-enhanced-paren-matching t
   "Enhanced matching of parentheses, on by default."
   :group 'vimpulse

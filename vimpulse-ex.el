@@ -9,12 +9,15 @@
     ("close" (delete-window))
     ("on" "only")
     ("only" (delete-other-windows))
-    ("quit" (save-buffers-kill-emacs))
     ("split" (split-window))
     ("syntax" (global-font-lock-mode))
     ;; Emacs and Vim use inverted naming conventions for splits.
     ("vsplit" (split-window-horizontally)))
   "Extra Ex commands, added to `ex-token-alist' when Vimpulse loads.")
+
+(when vimpulse-want-quit-like-Vim
+  (add-to-list 'vimpulse-extra-ex-commands
+               '("quit" (save-buffers-kill-emacs))))
 
 (defun vimpulse-kill-current-buffer ()
   "Kill the current buffer."
