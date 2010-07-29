@@ -1103,10 +1103,7 @@ docstring. The variable becomes buffer-local whenever set.")
         (com (viper-getcom arg)))
     (cond
      (com
-      (viper-move-marker-locally 'viper-com-point (point))
-      (when (and (not (viper-looking-at-alpha))
-                 (not (viper-looking-at-alphasep)))
-        (setq val (1+ val))))
+      (viper-move-marker-locally 'viper-com-point (point)))
      ((save-excursion
         (viper-forward-char-carefully)
         (memq (char-syntax (char-after)) '(?\  ?- nil)))
