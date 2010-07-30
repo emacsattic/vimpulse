@@ -774,7 +774,7 @@ is specified."
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (string= actual expected)
-         (error "%sassert-string= for %s failed:\n\texpected %s, was %s\n"
+         (error "%sassert-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
                 ,(if (stringp doc) (concat doc "\n\t") "")
                 ',actual expected actual)))))
 
@@ -784,7 +784,7 @@ is specified."
          (expected ,expected))
      (without-mocks-and-stubs
        (when (string= actual expected)
-         (error "%sassert-not-string= for %s failed:\n\texpected %s, was %s\n"
+         (error "%sassert-not-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
                 ,(if (stringp doc) (concat doc "\n\t") "")
                 ',actual expected actual)))))
 
@@ -1104,7 +1104,7 @@ This line is not included in the report."
 
 ;; These tests are largely interactive (and heavy), so don't run them
 ;; automatically; add (test-interactive-suite) to .emacs and/or run
-;; `M-x test-interactive-suite' habitually.
+;; `M-x test-interactive-suite' manually.
 (defsuite test-interactive-suite
   "Interactive test suite for Vimpulse."
   :fixture vimpulse-test-buffer
@@ -1142,6 +1142,39 @@ then enter the text in that file's own buffer.\n"))
 Lisp evaluation.
 If you want to create a file, visit that file with C-x C-f,
 then enter the text in that file's own buffer.\n"))
+
+  (test-end-of-Word
+   "Test E (`vimpulse-end-of-Word')."
+   (execute-kbd-macro "wr+d0yEP")
+   (assert-string=
+     "Yank and put +his before point."
+     (buffer-substring 1 52)
+     "+his+his buffer is for notes you don't want to save")
+   (execute-kbd-macro "EEEwcwfoo")
+   (assert-string=
+     "Move to \"for\" and change to \"foo\"."
+     (buffer-substring 1 52)
+     "+his+his buffer is foo notes you don't want to save")
+   (execute-kbd-macro "$Ewcw`foo'")
+   (assert-string=
+     "Move to next line and change \"If\" to \"`foo'\"."
+     (buffer-substring 79 113)
+     ";; `foo' you want to create a file")
+   (execute-kbd-macro "By2EP")
+   (assert-string=
+     "Yank two words and put before point."
+     (buffer-substring 79 122)
+     ";; `foo' you`foo' you want to create a file")
+   (execute-kbd-macro "EEEEEwcw(bar)")
+   (assert-string=
+     "Change a single-letter word."
+     (buffer-substring 97 126)
+     "you want to create (bar) file")
+   (execute-kbd-macro "bldiW")
+   (assert-string=
+     "Delete inner Word."
+     (buffer-substring 97 121)
+     "you want to create  file"))
 
   (test-visual-replace
    "Replace with Visual selection."
