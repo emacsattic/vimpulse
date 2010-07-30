@@ -24,8 +24,8 @@
 ;;
 ;; When the latter command above is run in vi state, `vimpulse-range'
 ;; will query the user for a motion and determine the resulting range
-;; to pass on to the command's arguments. Note that in Visual mode,
-;; however, it simply uses the selection boundaries (no querying).
+;; to pass on to the command's arguments. In Visual mode, however,
+;; it simply uses the selection boundaries (no querying).
 ;;
 ;; While a motion is read from the keyboard, a temporary Viper state,
 ;; Operator-Pending mode, is entered. This state inherits bindings
@@ -106,6 +106,9 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
   (when vimpulse-want-operator-pending-cursor
     (vimpulse-half-height-cursor)))
 
+;; The half-height "Operator-Pending cursor" cannot be specified
+;; as a static `cursor-type' value, since its height depends on
+;; the current font size; a function is needed.
 (defun vimpulse-half-height-cursor ()
   "Change cursor to a half-height box.
 \(This is really just a thick horizontal bar.)"
@@ -659,14 +662,20 @@ ARGS is passed to `vimpulse-range'."
 ;;; Compatibility code allowing old-style Viper motions to work
 
 ;; Postpone operator execution by disabling `viper-execute-com'.
-;; However, some motions, like f and /, need to update `viper-d-com'
-;; with negative count, command-keys, etc., to repeat properly.
+;; In the old scheme, the operator was executed inside the motion
+;; (by a call to this function), rather than after it; the following
+;; advice removes this behavior. However, some motions, like f and /,
+;; need to access `viper-d-com' for negative count and command-keys
+;; while repeating, so certain parts must be carefully retained.
 (defadvice viper-execute-com (around vimpulse-operator activate)
   "Disable in Operator-Pending mode."
   (cond
    ((eq 'operator-state viper-current-state)
+    ;; ?r is Viper's "dummy operator", associated with
+    ;; `viper-exec-dummy' in `viper-exec-array'.
     (setq com ?r)
     ad-do-it
+    ;; While repeating, put needed values in `viper-d-com'.
     (unless (or (eq 'viper-repeat this-command)
                 (eq 'viper-repeat viper-intermediate-command))
       (unless viper-d-com
