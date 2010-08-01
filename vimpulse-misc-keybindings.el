@@ -538,9 +538,39 @@ Doesn't indent with a prefix argument."
         (setq vimpulse-mark-list
               (cons current-pos vimpulse-mark-list))))))
 
+(defun vimpulse-jump-backward-globally (arg)
+  (interactive "p")
+  (let ((current-pos (make-marker))
+        global-buffer global-mark global-pos)
+    ;; Store current position.
+    (move-marker current-pos (point))
+    (add-to-list 'vimpulse-mark-list current-pos)
+    ;; Determine global mark, if any.
+    (vimpulse-remove-minibuffer-marks)
+    (setq global-mark (car global-mark-ring))
+    (when (markerp global-mark)
+      (setq global-pos    (marker-position global-mark)
+            global-buffer (marker-buffer   global-mark)))
+    (cond
+     ((not (eq (current-buffer) global-buffer))
+      (switch-to-buffer global-buffer))
+     ((eq (mark t) global-pos)
+      (pop-global-mark))
+     (t
+      (vimpulse-jump-backward 1)))))
+
+(defun vimpulse-remove-minibuffer-marks ()
+  "Remove minibuffer marks from `global-mark-ring'."
+  (let (result)
+    (dolist (mark global-mark-ring)
+      (unless (and (marker-buffer mark)
+                   (minibufferp (marker-buffer mark)))
+        (add-to-list 'result mark t)))
+    (setq global-mark-ring result)))
+
 (defun vimpulse-jump-forward (arg)
   "Go to newer position in jump list.
- To go the other way, press \\[vimpulse-jump-backward]."
+To go the other way, press \\[vimpulse-jump-backward]."
   (interactive "p")
   (let (current-pos next-pos)
     (dotimes (arg arg)
@@ -550,6 +580,8 @@ Doesn't indent with a prefix argument."
         ;; Protect `vimpulse-mark-list'.
         (let (vimpulse-mark-list)
           (push-mark current-pos t nil))
+        (unless (eq (marker-buffer next-pos) (current-buffer))
+          (switch-to-buffer (marker-buffer next-pos)))
         (goto-char next-pos)
         (setq vimpulse-mark-list (cdr vimpulse-mark-list))))))
 

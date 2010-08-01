@@ -220,31 +220,31 @@ SYM is unquoted. Returns VAL."
   "List of Viper \"core\" movement commands.
 These should be present in every mode, to avoid confusion.")
 
-(viper-deflocalvar vimpulse-mark-list nil
+(defvar vimpulse-mark-list nil
   "List of mark positions to jump to with `vimpulse-jump-forward'.
- They are stored as markers, the current position first:
+They are stored as markers, the current position first:
 
-     (car vimpulse-mark-list)  = current position (last popped)
-     (cdr vimpulse-mark-list)  = future positions (previously popped)
-     (cadr vimpulse-mark-list) = next position (to jump to)
+    (car vimpulse-mark-list)  = current position (last popped)
+    (cdr vimpulse-mark-list)  = future positions (previously popped)
+    (cadr vimpulse-mark-list) = next position (to jump to)
 
- In other words, a sort of \"reverse mark ring\": marks that are
- popped off the mark ring, are collected here.")
+In other words, a sort of \"reverse mark ring\": marks that are
+popped off the mark ring, are collected here.")
 
 (viper-deflocalvar vimpulse-local-marks-alist nil
   "Association list of local marks.
-Entries have the form (CHAR (FILE . POS)) where POS is a marker
+Entries have the form (CHAR (FILE . POS)), where POS is a marker
 or a character position.")
 
 (defvar vimpulse-global-marks-alist nil
   "Association list of global marks.
-Entries have the form (CHAR (FILE . POS)) where POS is a marker
+Entries have the form (CHAR (FILE . POS)), where POS is a marker
 or a character position.")
 
 (viper-deflocalvar vimpulse-replace-alist nil
   "Alist of characters overwritten in Replace mode.
- Used by `vimpulse-replace-backspace' to restore text.
- The format is (POS . CHAR).")
+Used by `vimpulse-replace-backspace' to restore text.
+The format is (POS . CHAR).")
 
 (viper-deflocalvar vimpulse-exit-point nil
   "Like `viper-insert-point', but when exiting Insert mode.")
