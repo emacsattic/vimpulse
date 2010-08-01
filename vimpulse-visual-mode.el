@@ -438,7 +438,11 @@ See also `vimpulse-visual-reselect'."
             (vimpulse-visual-activate-char)))))
       (set-mark vimpulse-visual-mark)
       (goto-char vimpulse-visual-point)
-      (vimpulse-visual-contract-region)
+      (unless (save-excursion
+                (goto-char (max vimpulse-visual-mark
+                                vimpulse-visual-point))
+                (bolp))
+        (vimpulse-visual-contract-region))
       (vimpulse-visual-highlight)))))
 
 (defun vimpulse-visual-reselect (&optional mode height width pos)
