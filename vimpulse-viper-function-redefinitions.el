@@ -1106,7 +1106,7 @@ docstring. The variable becomes buffer-local whenever set.")
       (viper-move-marker-locally 'viper-com-point (point)))
      ((save-excursion
         (viper-forward-char-carefully)
-        (memq (char-syntax (char-after)) '(?\  ?- nil)))
+        (or (eolp) (memq (char-syntax (char-after)) '(?\  ?- nil))))
       (setq val (1+ val))))
     (viper-loop val
       (viper-end-of-word-kernel)
