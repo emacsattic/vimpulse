@@ -47,7 +47,7 @@
 ;; dvj will delete an exclusive range rather than a linewise.
 ;;
 ;; The benefit of a dedicated state when an "operator" is "pending" is
-;; code separation. In the original scheme, every Viper motion must
+;; code separation. In the original scheme, every Viper motion had to
 ;; manually do the work of deleting/changing/yanking the text moved
 ;; over, making that action repeatable, etc. The new framework handles
 ;; everything automatically and orthogonally, enabling the use of
@@ -451,7 +451,7 @@ TYPE is the motion type."
 
 (defun vimpulse-operator-cmd-p (cmd)
   "Return t if CMD is an operator command."
-  (vimpulse-memq-recursive 'vimpulse-range (interactive-form cmd)))
+  (vimpulse-memq-recursive 'vimpulse-range (interactive-form cmd) t))
 
 ;;; Operators (yank, delete, change)
 
