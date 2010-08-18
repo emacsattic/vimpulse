@@ -392,7 +392,7 @@ and remove duplicates."
       (dolist (entry (cdr (assq state vimpulse-state-modes-alist)))
         (setq toggle (cdr entry)
               entry  (car entry))
-        (mapcar
+        (mapc
          (lambda (var)
            (unless (assq (car var) result)
              (if toggle
