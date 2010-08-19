@@ -529,7 +529,7 @@ If DONT-SAVE is non-nil, just delete it."
       (min vimpulse-visual-point vimpulse-visual-mark)
       (1+ (max vimpulse-visual-point vimpulse-visual-mark))))
     (viper-insert nil))
-   ((eq 'viper-repeat viper-intermediate-command)
+   ((eq viper-intermediate-command 'viper-repeat)
     (if dont-save
         (delete-region beg end)
       (kill-region beg end))
@@ -671,14 +671,14 @@ ARGS is passed to `vimpulse-range'."
 (defadvice viper-execute-com (around vimpulse-operator activate)
   "Disable in Operator-Pending mode."
   (cond
-   ((eq 'operator-state viper-current-state)
+   ((eq viper-current-state 'operator-state)
     ;; ?r is Viper's "dummy operator", associated with
     ;; `viper-exec-dummy' in `viper-exec-array'.
     (setq com ?r)
     ad-do-it
     ;; While repeating, put needed values in `viper-d-com'.
-    (unless (or (eq 'viper-repeat this-command)
-                (eq 'viper-repeat viper-intermediate-command))
+    (unless (or (eq this-command 'viper-repeat)
+                (eq viper-intermediate-command 'viper-repeat))
       (unless viper-d-com
         (setq viper-d-com (list nil nil nil nil nil nil)))
       (unless (eq vimpulse-this-motion
@@ -734,7 +734,7 @@ type TYPE. A custom function body may be specified via BODY."
                       (,viper-motion (if (region-active-p)
                                          arg
                                        (cons arg com)))
-                      ,@(unless (eq 'exclusive type)
+                      ,@(unless (eq type 'exclusive)
                           '((viper-backward-char-carefully))))))))
      (put motion-name 'motion-type type)
      `(quote ,motion-name)))
