@@ -12,6 +12,7 @@
 (defvar viper-inhibit-startup-message t)
 (defvar viper-expert-level 5)
 (defvar viper-want-ctl-h-help t)
+(defvar viper-search-wrap-around t)
 (require 'viper)
 
 ;; Load undo-tree.el if available, with redo.el as fall-back.
