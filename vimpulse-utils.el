@@ -196,7 +196,8 @@ If OFFSET is specified, skip first elements of VECTOR."
 ;; `this-command-keys', to be looked up in `vimpulse-careful-alist'.
 (defun vimpulse-strip-prefix (key-sequence &optional string)
   "Strip any prefix argument keypresses from KEY-SEQUENCE.
-If STRING is t, output a string; otherwise output a vector."
+If STRING is t, output a string if possible.
+Otherwise output a vector."
   (let* ((offset 0)
          (temp-sequence (vconcat key-sequence))
          (key (aref temp-sequence offset))
@@ -219,7 +220,10 @@ If STRING is t, output a string; otherwise output a vector."
       (setq key (aref temp-sequence offset))
       (and (featurep 'xemacs) (eventp key)
            (setq key (event-to-character key nil t))))
-    (if string
+    (if (and string
+             ;; String conversion is impossible if the vector
+             ;; contains a non-numerical element.
+             (not (memq nil (mapcar 'integerp (append temp-sequence nil)))))
         (concat "" (vimpulse-truncate temp-sequence length offset))
       (vimpulse-truncate temp-sequence length offset))))
 
