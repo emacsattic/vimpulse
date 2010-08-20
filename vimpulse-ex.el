@@ -1,6 +1,5 @@
 ;;;; Ex commands
 
-;; All this code is taken from Brad Beveridge's extended viper.
 (defvar vimpulse-extra-ex-commands
   '(("b" "buffer")
     ("bdelete" (vimpulse-kill-current-buffer))
@@ -24,11 +23,9 @@
   (interactive)
   (kill-buffer nil))
 
-;; Additional Ex mode features: `ex-token-alist' is defined as a
-;; constant, but it appears I can safely push values to it!
 (dolist (entry vimpulse-extra-ex-commands)
   (setq ex-token-alist
         (delete (assoc (car entry) ex-token-alist) ex-token-alist))
-  (add-to-list 'ex-token-alist entry t))
+  (push entry ex-token-alist))
 
 (provide 'vimpulse-ex)
