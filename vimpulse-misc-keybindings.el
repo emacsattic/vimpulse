@@ -71,8 +71,8 @@
 ;; Window manipulation.
 (defvar vimpulse-window-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\C-w" 'vimpulse-cycle-windows)
-    (define-key map "w" 'vimpulse-cycle-windows)
+    (define-key map "\C-w" 'other-window)
+    (define-key map "w" 'other-window)
     (define-key map "o" 'delete-other-windows)
     (define-key map "c" 'delete-window)
     (define-key map "s" 'split-window-vertically)
@@ -99,12 +99,6 @@ Equivalent to Vim's C-w prefix.")
 (define-key viper-insert-basic-map [delete] 'delete-char) ; <delete> key
 ;; Make ^[ work.
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
-
-;; His code (Brad).
-(defun vimpulse-cycle-windows ()
-  "Cycle point to another window."
-  (interactive)
-  (select-window (next-window)))
 
 ;;; r, J, =, >, <
 
