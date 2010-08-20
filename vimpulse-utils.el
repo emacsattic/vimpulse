@@ -247,6 +247,10 @@ If SEARCH-VECTORS is t, search inside vector elements."
    (t
     (vimpulse-memq-recursive elt (cdr tree) search-vectors))))
 
+;; GNU Emacs 22 lacks `characterp'.
+(unless (fboundp 'characterp)
+  (defalias 'characterp 'integerp))
+
 ;;; Movement
 
 (defun vimpulse-move-to-column (column &optional dir force)
