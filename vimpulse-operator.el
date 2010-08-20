@@ -217,7 +217,7 @@ from the keyboard. This has no effect in Visual mode."
                    (setq type (cdr (assq vimpulse-this-motion
                                          type-alist))))))
         ;; Motion reading done: restore the echo area.
-        (message oldmsg)
+        (message "%s" oldmsg)
         ;; With doubled operator ("gqgq" or "gqq"), set motion to current line.
         (if (or (eq vimpulse-this-motion vimpulse-this-operator)
                 (member (vimpulse-strip-prefix (this-command-keys) t)
@@ -587,7 +587,7 @@ This function respects `viper-change-notification-threshold'."
                     template)))
     (when (and (> length viper-change-notification-threshold)
                (not (viper-is-in-minibuffer)))
-      (message template))))
+      (message "%s" template))))
 
 (defun vimpulse-store-in-register (register start end)
   "Store text from START to END in REGISTER."

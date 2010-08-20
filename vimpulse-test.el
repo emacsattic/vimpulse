@@ -944,7 +944,7 @@ Don't use this function directly; see `mock' instead."
         (ad-safe-fset symbol definition)
       (fmakunbound symbol))
     (unless (eq symbol 'message)
-      (message oldmsg))))
+      (message "%s" oldmsg))))
 
 (defun release-mock (func)
   "Release mock for FUNC."
@@ -957,7 +957,7 @@ Don't use this function directly; see `mock' instead."
           (ad-safe-fset func def)
         (fmakunbound func))
       (setq mocks-alist (assq-delete-all func mocks-alist))
-      (message oldmsg))))
+      (message "%s" oldmsg))))
 
 (defun release-mocks (&rest funcs)
   "Release mocks for FUNCS.
