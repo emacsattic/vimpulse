@@ -69,20 +69,25 @@
   (define-key viper-vi-basic-map "\C-r" 'redo)))
 
 ;; Window manipulation.
-(define-prefix-command 'vimpulse-window-map)
-(define-key viper-vi-basic-map "\C-w" 'vimpulse-window-map)
-(define-key vimpulse-window-map "\C-w" 'vimpulse-cycle-windows)
-(define-key vimpulse-window-map "w" 'vimpulse-cycle-windows)
-(define-key vimpulse-window-map "o" 'delete-other-windows)
-(define-key vimpulse-window-map "c" 'delete-window)
-(define-key vimpulse-window-map "s" 'split-window-vertically)
-(define-key vimpulse-window-map "v" 'split-window-horizontally)
+(defvar vimpulse-window-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\C-w" 'vimpulse-cycle-windows)
+    (define-key map "w" 'vimpulse-cycle-windows)
+    (define-key map "o" 'delete-other-windows)
+    (define-key map "c" 'delete-window)
+    (define-key map "s" 'split-window-vertically)
+    (define-key map "v" 'split-window-horizontally)
+    (when (fboundp 'windmove-left)
+      (define-key map "h" 'windmove-left)
+      (define-key map "j" 'windmove-down)
+      (define-key map "k" 'windmove-up)
+      (define-key map "l" 'windmove-right))
+    map)
+  "Keymap for window-related commands.
+Equivalent to Vim's C-w prefix.")
 
-(when (fboundp 'windmove-left)
-  (define-key vimpulse-window-map "h" 'windmove-left)
-  (define-key vimpulse-window-map "j" 'windmove-down)
-  (define-key vimpulse-window-map "k" 'windmove-up)
-  (define-key vimpulse-window-map "l" 'windmove-right))
+(define-key viper-vi-basic-map "\C-w" vimpulse-window-map)
+
 
 ;;; Insert mode keys
 
