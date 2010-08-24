@@ -403,7 +403,7 @@ If CAREFUL is non-nil, make a careful binding with
       (define-key map key def))))
 
 ;; This modifies the major mode extension keymap, i.e., it's
-;; a reuseable front-end to `viper-modify-major-mode'.
+;; a reusable front-end to `viper-modify-major-mode'.
 ;; (By itself, `viper-modify-major-mode' discards the previous keymap.)
 (defun vimpulse-define-major-key (mode state key def &optional careful)
   "Modally bind KEY to DEF in STATE for major mode MODE.

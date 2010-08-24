@@ -21,7 +21,7 @@ the count. It is followed by an optional docstring and optional
 keywords:
 
 :keys KEYS      A key or a list of keys to bind the command to.
-:map MAP        Keymap to bind :keys in, default
+:map MAP        Keymap to bind :keys in, defaults to
                 `vimpulse-operator-basic-map'.
 :type TYPE      The object's motion type.
 

@@ -481,7 +481,7 @@ TYPE is the motion type."
 
 (defun vimpulse-delete (beg end &optional dont-save)
   "Delete text from BEG to END.
-If DONT-SAVE is t, just delete it."
+If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
   (interactive (vimpulse-range))
   (let ((length (if (eq vimpulse-this-motion-type 'line)
                     (count-lines beg end)
@@ -515,7 +515,7 @@ If DONT-SAVE is t, just delete it."
 
 (defun vimpulse-change (beg end &optional dont-save)
   "Change text from BEG to END.
-If DONT-SAVE is non-nil, just delete it."
+If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
   (interactive (vimpulse-range))
   (when vimpulse-want-change-undo
     (vimpulse-start-undo-step))

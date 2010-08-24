@@ -195,7 +195,7 @@ Equivalent to Vim's C-w prefix.")
 ;;; gg
 
 (defun vimpulse-goto-first-line (arg)
-  "Go to first line."
+  "Go to ARGth line (first line by default)."
   (interactive "P")
   (let ((val (viper-P-val arg))
         (com (viper-getCom arg)))
