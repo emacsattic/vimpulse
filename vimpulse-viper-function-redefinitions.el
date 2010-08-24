@@ -373,17 +373,6 @@ and remove duplicates."
       (add-to-list 'result mode t 'eq))
     (setq vimpulse-auxiliary-modes result)))
 
-;; Ensure that mode-specific bindings are refreshed properly.
-(defadvice set-auto-mode (after vimpulse activate)
-  "Refresh mode-specific bindings."
-  (viper-normalize-minor-mode-map-alist)
-  (viper-set-mode-vars-for viper-current-state))
-
-(defadvice set-viper-state-in-major-mode (after vimpulse activate)
-  "Refresh mode-specific bindings."
-  (viper-normalize-minor-mode-map-alist)
-  (viper-set-mode-vars-for viper-current-state))
-
 (defun vimpulse-make-toggle-alist (&optional state &rest excluded-states)
   "Make toggle alist for STATE (current if not specified)."
   (let (mode result toggle)

@@ -386,8 +386,11 @@ If CAREFUL is non-nil, make a careful binding with
                ,(format "Auxiliary %s mode for `%s'." state mode)))
       (eval `(defvar ,map (make-sparse-keymap)
                ,(format "Auxiliary %s keymap for `%s'." state mode)))
-      (eval `(defadvice ,mode (after vimpulse-modal activate)
-               (viper-normalize-minor-mode-map-alist)))
+      (when (fboundp mode)
+        (eval `(defadvice ,mode (after vimpulse-modal activate)
+                 (when viper-mode
+                   (viper-normalize-minor-mode-map-alist)
+                   (viper-set-mode-vars-for viper-current-state)))))
       (add-to-list 'vimpulse-state-maps-alist (cons aux map) t)
       (add-to-list entry (cons mode aux) t)
       (add-to-list 'vimpulse-auxiliary-modes mode)
