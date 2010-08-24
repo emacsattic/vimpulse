@@ -549,7 +549,9 @@ If DONT-SAVE is non-nil, just delete it."
     (viper-change-state-to-insert))
    (t
     (if dont-save
-        (delete-region beg end)
+        (progn
+          (delete-region beg end)
+          (viper-change-state-to-insert))
       (vimpulse-store-in-current-register beg end)
       (viper-change beg end)))))
 
