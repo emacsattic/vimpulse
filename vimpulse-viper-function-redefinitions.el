@@ -14,9 +14,11 @@
   "Echo keystrokes immediately."
   (setq echo-keystrokes 0.01))
 
+(defvar vimpulse-saved-echo-keystrokes echo-keystrokes)
+
 (defadvice restore-overriding-map (after echo-keystrokes activate)
   "Restore `echo-keystrokes'."
-  (setq echo-keystrokes saved-echo-keystrokes))
+  (setq echo-keystrokes vimpulse-saved-echo-keystrokes))
 
 (defadvice viper-change
   (around vimpulse-want-change-state activate)

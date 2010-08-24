@@ -180,7 +180,6 @@ SYM is unquoted. Returns VAL."
 (defvar isearch-regexp)
 (defvar isearch-string)
 (defvar killed-rectangle nil)
-(defvar saved-echo-keystrokes echo-keystrokes)
 (defvar show-paren-delay)
 (defvar undo-tree-visualizer-map)
 (defvar woman-use-own-frame)
