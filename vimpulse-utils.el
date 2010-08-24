@@ -391,7 +391,7 @@ If POS if specified, set mark at POS instead."
       (unwind-protect
           (and (fboundp 'cua-set-mark)
                (cua-set-mark))
-        (message oldmsg))
+        (message "%s" oldmsg))
       (goto-char opoint)))
    (t
     (let (this-command)
