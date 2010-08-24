@@ -165,7 +165,7 @@ SYM is unquoted. Returns VAL."
      ,@(when body
          `((vimpulse-setq ,@body)))))
 
-;;; Initialize variables
+;;; Declare and/or initialize variables
 
 (defvar dabbrev--last-abbrev-location)
 (defvar dabbrev--last-abbreviation)
@@ -179,13 +179,13 @@ SYM is unquoted. Returns VAL."
 (defvar isearch-lazy-highlight-wrapped)
 (defvar isearch-regexp)
 (defvar isearch-string)
-(defvar killed-rectangle nil)
+(defvar killed-rectangle nil)           ; rect.el
 (defvar show-paren-delay)
 (defvar undo-tree-visualizer-map)
 (defvar woman-use-own-frame)
 (defvar woman-use-topic-at-point)
 
-(defvar ex-token-alist)
+(defvar ex-token-alist)                 ; viper-ex.el
 (defvar viper-mode-string)
 
 (defvar vimpulse-viper-movement-cmds
