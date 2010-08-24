@@ -456,8 +456,6 @@ TYPE is the motion type."
 
 ;;; Operators (yank, delete, change)
 
-(defvar killed-rectangle nil)
-
 (defun vimpulse-yank (beg end)
   "Yank text from BEG to END."
   (interactive (vimpulse-range t t))
