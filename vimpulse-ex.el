@@ -1,5 +1,7 @@
 ;;;; Ex commands
 
+(require 'vimpulse-dependencies) ; ex-token-alist, v-want-quit-like-Vim
+
 (defvar vimpulse-extra-ex-commands
   '(("b" "buffer")
     ("bdelete" (vimpulse-kill-current-buffer))

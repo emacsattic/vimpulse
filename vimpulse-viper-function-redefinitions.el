@@ -1,5 +1,8 @@
 ;;;; Redefinitions of some of Viper's functions
 
+(require 'vimpulse-dependencies)
+(eval-when-compile (require 'vimpulse-utils))   ; vimpulse-unquote
+
 (defalias 'viper-digit-argument 'digit-argument)
 
 ;; Ensure that counts are always echoed immediately, since they might
@@ -437,6 +440,7 @@ and remove duplicates."
                        t))))
     result))
 
+(defvar viper-mode-string)
 (defadvice viper-refresh-mode-line (after vimpulse-states activate)
   "Refresh mode line tag for Vimpulse states."
   (let ((id (assq viper-current-state vimpulse-state-vars-alist)))
@@ -538,14 +542,6 @@ Usage:
       (viper-set-mode-vars-for viper-current-state))))
 
 (defalias 'viper-add-local-keys 'vimpulse-add-local-keys)
-
-(eval-and-compile
-  (defun vimpulse-unquote (exp)
-    "Return EXP unquoted."
-    (if (and (listp exp)
-             (eq (car exp) 'quote))
-        (eval exp)
-      exp)))
 
 ;; Macro for defining new Viper states. This saves us the trouble of
 ;; defining and indexing all those minor modes manually.

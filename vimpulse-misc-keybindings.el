@@ -1,5 +1,11 @@
 ;;;; Keybindings
 
+(require 'vimpulse-dependencies)
+(require 'vimpulse-visual-mode)         ; vimpulse-apply-on-block, vimpulse-visual-mode
+
+(declare-function vimpulse-range "vimpulse-operator" (&optional no-repeat dont-move-point whole-lines keep-visual custom-motion))
+(declare-function vimpulse-set-replace-cursor-type "vimpulse-viper-function-redefinitions" nil)
+
 ;;; C-u
 
 (unless vimpulse-want-C-u-like-Vim
@@ -102,23 +108,7 @@ Equivalent to Vim's C-w prefix.")
 ;; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
-;;; Registers
-
-(defun vimpulse-store-in-register (register start end)
-  "Store text from START to END in REGISTER."
-  (cond
-   ((viper-valid-register register '(Letter))
-    (viper-append-to-register
-     (downcase register) start end))
-   (t
-    (copy-to-register register start end))))
-
-(defun vimpulse-store-in-current-register (start end)
-  "Store text from START to END in current register, if any.
-  Resets `viper-use-register'."
-  (when viper-use-register
-    (vimpulse-store-in-register viper-use-register start end)
-    (setq viper-use-register nil)))
+;;; "
 
 (defun vimpulse-read-register (&optional register command)
   "Use COMMAND with REGISTER.
@@ -513,6 +503,12 @@ call `viper-del-backward-char-in-replace' instead."
 (defadvice viper-adjust-keys-for (after vimpulse activate)
   "Map <backspace> to `vimpulse-replace-backspace' in Replace mode."
   (define-key viper-replace-map [backspace] 'vimpulse-replace-backspace))
+
+(defvar dabbrev--last-abbrev-location)
+(defvar dabbrev--last-abbreviation)
+(defvar dabbrev--last-direction)
+(defvar dabbrev--last-expansion)
+(defvar dabbrev--last-expansion-location)
 
 (defun vimpulse-abbrev-expand-before ()
   "Expand to the nearest preceding word.

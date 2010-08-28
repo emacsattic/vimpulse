@@ -1,10 +1,9 @@
 ;;; Installation:
 
-;; If you checked out from Git, run `make' to produce
-;; vimpulse-big.el. If on Windows, you can run compile.bat. Then:
+;; If you checked out from Git but still want the single-file version, run
+;; `make big' to produce `vimpulse.el' in a `bigd' directory.  Then:
 ;;
-;; 1. Copy vimpulse.el (or vimpulse-big.el) to somewhere in your
-;;    `load-path'.
+;; 1. Put vimpulse.el somewhere in your `load-path'.
 ;;
 ;; 2. Add the following to your init file:
 ;;

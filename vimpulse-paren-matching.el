@@ -13,7 +13,18 @@
 ;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
 ;; in your .emacs before loading Vimpulse.
 
-;; load and enable paren.el if available
+(require 'vimpulse-dependencies)        ; vimpulse-setq etc.
+
+(declare-function vimpulse-delete-overlay "vimpulse-utils" (overlay))
+
+(defvar show-paren-delay)
+(defvar vimpulse-paren-overlay-open nil
+  "Overlay used to highlight the opening paren.")
+
+(defvar vimpulse-paren-overlay-close nil
+  "Overlay used to highlight the closing paren.")
+
+;; Load and enable paren.el if available.
 (unless (featurep 'paren)
   (condition-case nil
       (require 'paren)

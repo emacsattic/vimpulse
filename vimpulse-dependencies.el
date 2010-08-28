@@ -84,15 +84,6 @@ Off by default."
   :type  'boolean
   :group 'vimpulse-visual)
 
-(defcustom vimpulse-incremental-search t
-  "Use isearch for / and ?, on by default.")
-
-(defcustom vimpulse-flash-delay 2
-  "Number of seconds to flash search matches.")
-
-(defvar vimpulse-flash-timer nil
-  "Timer for flashing search results.")
-
 (defcustom vimpulse-want-vi-keys-in-apropos t
   "Whether to use vi keys in Apropos mode, on by default."
   :group 'vimpulse
@@ -174,11 +165,6 @@ SYM is unquoted. Returns VAL."
 
 ;;; Declare and/or initialize variables
 
-(defvar dabbrev--last-abbrev-location)
-(defvar dabbrev--last-abbreviation)
-(defvar dabbrev--last-direction)
-(defvar dabbrev--last-expansion)
-(defvar dabbrev--last-expansion-location)
 (defvar isearch-forward)
 (defvar isearch-lazy-highlight-end)
 (defvar isearch-lazy-highlight-last-string)
@@ -187,13 +173,11 @@ SYM is unquoted. Returns VAL."
 (defvar isearch-regexp)
 (defvar isearch-string)
 (defvar killed-rectangle nil)           ; rect.el
-(defvar show-paren-delay)
 (defvar undo-tree-visualizer-map)
 (defvar woman-use-own-frame)
 (defvar woman-use-topic-at-point)
 
 (defvar ex-token-alist)                 ; viper-ex.el
-(defvar viper-mode-string)
 
 (defvar vimpulse-viper-movement-cmds
   '(viper-backward-Word viper-backward-char viper-backward-paragraph
@@ -254,35 +238,8 @@ The format is (POS . CHAR).")
 (viper-deflocalvar vimpulse-exit-point nil
   "Like `viper-insert-point', but when exiting Insert mode.")
 
-(defvar vimpulse-last-command-event nil
-  "Value for overwriting `last-command-event'.
-Used by `vimpulse-careful-pre-hook'.")
-
-(defvar vimpulse-careful-alist nil
-  "Key bindings for which `vimpulse-careful-pre-hook' is active.
-That is, `last-command-event' and `read-char' work differently
-for these bindings. The format is (KEY-VECTOR . COMMAND).")
-
-(defvar vimpulse-careful-map (make-sparse-keymap)
-  "Keymap of bindings overwritten by `vimpulse-map' et al.")
-
-(defvar vimpulse-paren-overlay-open nil
-  "Overlay used to highlight the opening paren.")
-
-(defvar vimpulse-paren-overlay-close nil
-  "Overlay used to highlight the closing paren.")
-
-(defvar vimpulse-operators nil
-  "Operator commands defined with `vimpulse-define-operator'.")
-
-(viper-deflocalvar vimpulse-inhibit-operator nil
-  "Inhibit current operator.
-If an operator calls a motion and the motion sets this variable
-to t, the operator code is not executed.")
-
-(defvar vimpulse-operator-basic-map)
-
-(defvar vimpulse-operator-remap-map (make-sparse-keymap))
+(defvar vimpulse-operator-remap-map (make-sparse-keymap)
+  "FIXME.")
 
 (defvar vimpulse-operator-remap-alist nil
   "Association list of command remappings in Operator-Pending mode.")
@@ -319,74 +276,6 @@ Used by `vimpulse-operator-repeat'.")
 (defvar vimpulse-last-motion nil
   "Last repeated motion.
 Used by `vimpulse-operator-repeat'.")
-
-(defvar vimpulse-visual-basic-map)
-
-(defvar vimpulse-visual-remap-alist nil
-  "Association list of command remappings in Visual mode.")
-
-(put 'vimpulse-visual-basic-map
-     'remap-alist 'vimpulse-visual-remap-alist)
-
-(viper-deflocalvar vimpulse-visual-mode nil
-  "Current Visual mode: may be nil, `char', `line' or `block'.")
-
-(viper-deflocalvar vimpulse-visual-global-vars nil
-  "List of variables that were global.")
-
-(viper-deflocalvar vimpulse-visual-local-vars
-  '(cua-mode
-    mark-active
-    transient-mark-mode
-    zmacs-regions)
-  "System variables that are reset for each Visual session.")
-
-(viper-deflocalvar vimpulse-visual-vars-alist nil
-  "Alist of old variable values.")
-
-(viper-deflocalvar vimpulse-visual-last nil
-  "Last active Visual mode.
-May be `char', `line', `block' or nil.")
-
-(viper-deflocalvar vimpulse-visual-previous-state 'viper-state
-  "Previous state before enabling Visual mode.
-This lets us revert to Emacs state in non-vi buffers.")
-
-(viper-deflocalvar vimpulse-visual-region-expanded nil
-  "Whether region is expanded to the Visual selection.")
-
-(viper-deflocalvar vimpulse-visual-point nil
-  "Last expanded `point' in Visual mode.")
-
-(viper-deflocalvar vimpulse-visual-mark nil
-  "Last expanded `mark' in Visual mode.")
-
-(viper-deflocalvar vimpulse-visual-overlay nil
-  "Overlay for Visual selection.
-In XEmacs, this is an extent.")
-
-(viper-deflocalvar vimpulse-visual-block-overlays nil
-  "Overlays for Visual Block selection.")
-
-(viper-deflocalvar vimpulse-visual-whitespace-overlay nil
-  "Overlay encompassing text inserted into the buffer
-to make Block selection at least one column wide.")
-
-(viper-deflocalvar vimpulse-undo-list-pointer nil
-  "Everything up to this mark is united in the undo-list.")
-
-(defvar vimpulse-visual-height nil
-  "Height of last Visual selection.")
-
-(defvar vimpulse-visual-width nil
-  "Width of last Visual selection.")
-
-(defvar vimpulse-visual-insert-coords nil
-  "List with (I-COM UL-POS COL NLINES), where
-I-COM is the insert command (?i, ?a, ?I or ?A),
-UL-POS is the position of the upper left corner of the region,
-COL is the column of insertion, and
-NLINES is the number of lines in the region.")
 
 (defvar vimpulse-movement-cmds
   '(backward-char backward-list backward-paragraph backward-sentence

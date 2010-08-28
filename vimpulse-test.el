@@ -4,7 +4,7 @@
 ;; Created: May 2010
 ;; Keywords: unit testing
 
-;; This file is NOT part of vimpulse-big.el.
+;; This file is NOT part of Vimpulse proper.
 
 ;;; Commentary:
 

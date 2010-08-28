@@ -48,6 +48,9 @@
 ;; what he thinks about this. For what it's worth, the following code
 ;; addresses "TODO item #1" in viper.el.
 
+(require 'vimpulse-visual-mode)
+(eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
+
 (vimpulse-define-state operator
   "Operator-pending mode is when an operator is pending,
 awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
@@ -127,6 +130,14 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
           (force-window-update (selected-window))
           (redisplay))
       (error nil))))
+
+(defvar vimpulse-operators nil
+  "Operator commands defined with `vimpulse-define-operator'.")
+
+(viper-deflocalvar vimpulse-inhibit-operator nil
+  "Inhibit current operator.
+If an operator calls a motion and the motion sets this variable
+to t, the operator code is not executed.")
 
 (defmacro vimpulse-define-operator (operator args &rest body)
   "Define an operator command OPERATOR.
@@ -598,6 +609,24 @@ TYPE is the motion type."
           vimpulse-this-motion-type (vimpulse-motion-type range))
     (unless vimpulse-inhibit-operator
       (funcall operator beg end))))
+
+;;; Registers
+
+(defun vimpulse-store-in-register (register start end)
+  "Store text from START to END in REGISTER."
+  (cond
+   ((viper-valid-register register '(Letter))
+    (viper-append-to-register
+     (downcase register) start end))
+   (t
+    (copy-to-register register start end))))
+
+(defun vimpulse-store-in-current-register (start end)
+  "Store text from START to END in current register, if any.
+  Resets `viper-use-register'."
+  (when viper-use-register
+    (vimpulse-store-in-register viper-use-register start end)
+    (setq viper-use-register nil)))
 
 ;;; Operators
 

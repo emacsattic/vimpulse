@@ -24,33 +24,112 @@
 ;; write your own utilities using the rect.el library. Alternatively,
 ;; use the `vimpulse-apply-on-block' function.
 
-(vimpulse-define-state visual
-  "Visual mode is a flexible and easy way to select text.
-To use Visual mode, press v in vi (command) mode. Then use the
-motion commands to expand the selection. Press d to delete, c to
-change, r to replace, or y to copy. You can use p to paste.
-For Line selection, press V instead of v; then you can copy and
-paste whole lines. For Block selection, press C-v; now you can
-copy and paste the selected rectangle. In Block selection, you
-may use I or A to insert or append text before or after the
-selection on each line."
-  :id "<VIS> "
-  :basic-minor-mode 'vimpulse-visual-mode
-  :enable '((vimpulse-visual-mode (or vimpulse-visual-mode t))
-            (vimpulse-operator-remap-minor-mode nil)
-            operator-state
-            vi-state)
-  (cond
-   ((eq new-state 'visual-state)
-    (unless (memq vimpulse-visual-mode '(char line block))
-      (vimpulse-visual-mode 1)))
-   (t
-    (vimpulse-visual-mode -1))))
+(eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
+(eval-when-compile (require 'vimpulse-utils))  ; vimpulse-remap
+
+(declare-function vimpulse-delete "vimpulse-operator" (beg end &optional dont-save))
+(declare-function vimpulse-mark-range "vimpulse-text-object-system" (range &optional widen type))
+(declare-function vimpulse-operator-cmd-p "vimpulse-operator" (cmd))
 
 (defgroup vimpulse-visual nil
   "Visual mode for Viper."
   :prefix "vimpulse-visual-"
   :group  'vimpulse)
+
+(defvar vimpulse-visual-remap-alist nil
+  "Association list of command remappings in Visual mode.")
+
+(viper-deflocalvar vimpulse-visual-global-vars nil
+  "List of variables that were global.") ; FIXME when? what for?
+
+(viper-deflocalvar vimpulse-visual-local-vars
+  '(cua-mode
+    mark-active
+    transient-mark-mode
+    zmacs-regions)
+  "System variables that are reset for each Visual session.")
+
+(viper-deflocalvar vimpulse-visual-vars-alist nil
+  "Alist of old variable values.")
+
+(viper-deflocalvar vimpulse-visual-last nil
+  "Last active Visual mode.
+May be `char', `line', `block' or nil.")
+
+(viper-deflocalvar vimpulse-visual-previous-state 'viper-state
+  "Previous state before enabling Visual mode.
+This lets us revert to Emacs state in non-vi buffers.")
+
+(viper-deflocalvar vimpulse-visual-region-expanded nil
+  "Whether region is expanded to the Visual selection.")
+
+(viper-deflocalvar vimpulse-visual-point nil
+  "Last expanded `point' in Visual mode.")
+
+(viper-deflocalvar vimpulse-visual-mark nil
+  "Last expanded `mark' in Visual mode.")
+
+(viper-deflocalvar vimpulse-visual-overlay nil
+  "Overlay for Visual selection.
+In XEmacs, this is an extent.")
+
+(viper-deflocalvar vimpulse-visual-block-overlays nil
+  "Overlays for Visual Block selection.")
+
+(viper-deflocalvar vimpulse-visual-whitespace-overlay nil
+  "Overlay encompassing text inserted into the buffer
+to make Block selection at least one column wide.")
+
+(defvar vimpulse-visual-height nil
+  "Height of last Visual selection.")
+
+(defvar vimpulse-visual-width nil
+  "Width of last Visual selection.")
+
+(defvar vimpulse-visual-insert-coords nil
+  "List of the form (I-COM UL-POS COL NLINES), where
+I-COM is the insert command (?i, ?a, ?I or ?A),
+UL-POS is the position of the upper left corner of the region,
+COL is the column of insertion, and
+NLINES is the number of lines in the region.")
+
+;;; Key bindings
+
+(defvar vimpulse-visual-basic-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "v" 'vimpulse-visual-toggle-char)
+    (define-key map "V" 'vimpulse-visual-toggle-line)
+    (define-key map "\C-v" 'vimpulse-visual-toggle-block)
+    (define-key map "x" 'vimpulse-delete)
+    (define-key map "D" 'vimpulse-delete)
+    (define-key map "Y" 'vimpulse-yank)
+    (define-key map "R" 'vimpulse-change)
+    (define-key map "C" 'vimpulse-change)
+    (define-key map "s" 'vimpulse-change)
+    (define-key map "S" 'vimpulse-change)
+    (define-key map "o" 'exchange-point-and-mark)
+    (define-key map "O" 'vimpulse-visual-exchange-corners)
+    (define-key map "I" 'vimpulse-visual-insert)
+    (define-key map "A" 'vimpulse-visual-append)
+    (define-key map "U" 'vimpulse-upcase)
+    (define-key map "u" 'vimpulse-downcase)
+    (define-key map ":" 'vimpulse-visual-ex)
+    map)
+  "Vimpulse Visual mode keymap.")
+
+(put 'vimpulse-visual-basic-map
+     'remap-alist 'vimpulse-visual-remap-alist)
+
+;; FIXME single use below
+(defun vimpulse-visual-remap (from to)
+  "Remap FROM to TO in Visual mode."
+  (vimpulse-remap vimpulse-visual-basic-map from to))
+
+;; Keys that have no effect in Visual mode.
+(vimpulse-visual-remap 'viper-repeat 'viper-nil)
+
+(viper-deflocalvar vimpulse-visual-mode nil
+  "Current Visual mode: may be nil, `char', `line' or `block'.")
 
 ;; Visual mode comprises three "submodes": characterwise, linewise
 ;; and blockwise selection. We implement this by setting the mode
@@ -93,6 +172,29 @@ selection on each line."
           (save-excursion
             (viper-change-state-to-vi))))))
     (kill-local-variable 'vimpulse-visual-previous-state))))
+
+(vimpulse-define-state visual
+  "Visual mode is a flexible and easy way to select text.
+To use Visual mode, press v in vi (command) mode. Then use the
+motion commands to expand the selection. Press d to delete, c to
+change, r to replace, or y to copy. You can use p to paste.
+For Line selection, press V instead of v; then you can copy and
+paste whole lines. For Block selection, press C-v; now you can
+copy and paste the selected rectangle. In Block selection, you
+may use I or A to insert or append text before or after the
+selection on each line."
+  :id "<VIS> "
+  :basic-minor-mode 'vimpulse-visual-mode
+  :enable '((vimpulse-visual-mode (or vimpulse-visual-mode t))
+            (vimpulse-operator-remap-minor-mode nil)
+            operator-state
+            vi-state)
+  (cond
+   ((eq new-state 'visual-state)
+    (unless (memq vimpulse-visual-mode '(char line block))
+      (vimpulse-visual-mode 1)))
+   (t
+    (vimpulse-visual-mode -1))))
 
 ;;; Activation
 
@@ -213,6 +315,18 @@ Otherwise disable Visual mode."
     (when vimpulse-visual-mode
       (message "-- VISUAL BLOCK --"))))
 
+;;; UUOE contest
+;; Should be replaced with something more readable,
+;; like (vimpulse-visual-historical-value 'transient-mark-mode).
+(defmacro vimpulse-visual-before (&rest body)
+  "Evaluate BODY with original system values from before Visual mode.
+This is based on `vimpulse-visual-vars-alist'."
+  ;; This needs to be expanded at runtime, obviously.
+  `(eval `(let ,(mapcar (lambda (elt)
+                          `(,(car elt) (quote ,(cdr elt))))
+                        vimpulse-visual-vars-alist)
+            ,',@body)))
+
 ;;; Visualization
 
 (defun vimpulse-deactivate-mark (&optional now)
@@ -291,17 +405,6 @@ Saves the previous state of Transient Mark mode in
     (when (boundp 'zmacs-regions)
       (let ((oldval (vimpulse-visual-before zmacs-regions)))
         (setq zmacs-regions oldval)))))
-
-;; should be replaced with something more readable,
-;; like (vimpulse-visual-historical-value 'transient-mark-mode)
-(defmacro vimpulse-visual-before (&rest body)
-  "Evaluate BODY with original system values from before Visual mode.
-This is based on `vimpulse-visual-vars-alist'."
-  ;; this needs to be expanded at runtime, obviously
-  `(eval `(let ,(mapcar (lambda (elt)
-                          `(,(car elt) (quote ,(cdr elt))))
-                        vimpulse-visual-vars-alist)
-            ,',@body)))
 
 (defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection.
@@ -865,9 +968,6 @@ it is more useful to exclude the last newline from the region."
   (or (member command vimpulse-newline-cmds)
       (vimpulse-operator-cmd-p command)))
 
-(defun vimpulse-visual-remap (from to)
-  "Remap FROM to TO in Visual mode."
-  (vimpulse-remap vimpulse-visual-basic-map from to))
 
 ;;; Ex
 
@@ -1236,27 +1336,5 @@ Returns the insertion point."
         (backward-char))))
    (t
     ad-do-it)))
-
-;;; Key bindings
-
-(define-key vimpulse-visual-basic-map "v" 'vimpulse-visual-toggle-char)
-(define-key vimpulse-visual-basic-map "V" 'vimpulse-visual-toggle-line)
-(define-key vimpulse-visual-basic-map "\C-v" 'vimpulse-visual-toggle-block)
-(define-key vimpulse-visual-basic-map "x" 'vimpulse-delete)
-(define-key vimpulse-visual-basic-map "D" 'vimpulse-delete)
-(define-key vimpulse-visual-basic-map "Y" 'vimpulse-yank)
-(define-key vimpulse-visual-basic-map "R" 'vimpulse-change)
-(define-key vimpulse-visual-basic-map "C" 'vimpulse-change)
-(define-key vimpulse-visual-basic-map "s" 'vimpulse-change)
-(define-key vimpulse-visual-basic-map "S" 'vimpulse-change)
-(define-key vimpulse-visual-basic-map "o" 'exchange-point-and-mark)
-(define-key vimpulse-visual-basic-map "O" 'vimpulse-visual-exchange-corners)
-(define-key vimpulse-visual-basic-map "I" 'vimpulse-visual-insert)
-(define-key vimpulse-visual-basic-map "A" 'vimpulse-visual-append)
-(define-key vimpulse-visual-basic-map "U" 'vimpulse-upcase)
-(define-key vimpulse-visual-basic-map "u" 'vimpulse-downcase)
-(define-key vimpulse-visual-basic-map ":" 'vimpulse-visual-ex)
-;; keys that have no effect in Visual mode
-(vimpulse-visual-remap 'viper-repeat 'viper-nil)
 
 (provide 'vimpulse-visual-mode)

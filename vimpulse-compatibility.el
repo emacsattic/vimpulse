@@ -1,5 +1,7 @@
 ;;;; This code integrates Viper with the outside world
 
+(require 'vimpulse-viper-function-redefinitions)
+
 ;;; undo-tree.el
 
 (when (and (boundp 'undo-tree-visualizer-map)
@@ -39,6 +41,19 @@
 
 ;;; Isearch
 
+(defcustom vimpulse-incremental-search t
+  "Use isearch for / and ?, on by default."
+  :type 'boolean
+  :group 'vimpulse)
+
+(defcustom vimpulse-flash-delay 2
+  "Number of seconds to flash search matches."
+  :type 'integer
+  :group 'vimpulse)
+
+(defvar vimpulse-flash-timer nil
+  "Timer for flashing search results.")
+
 (defadvice isearch-message-prefix (around vimpulse-search activate)
   "Use vi prefix if appropriate."
   (if vimpulse-search-prompt
@@ -51,6 +66,10 @@
            (string= isearch-string ""))
       (isearch-exit)
     ad-do-it))
+
+(defvar viper-re-search)
+(defvar viper-s-forward)
+(defvar viper-s-string)
 
 (defadvice isearch-update-ring (after vimpulse-search activate)
   "Update `viper-s-string'."

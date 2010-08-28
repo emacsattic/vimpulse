@@ -32,6 +32,22 @@
 ;; `vimpulse-global-set-key', `vimpulse-local-set-key' or
 ;; `vimpulse-define-key'. `vimpulse-map' etc. are always careful.
 
+(require 'vimpulse-viper-function-redefinitions)
+(eval-when-compile (require 'vimpulse-utils)) ; v-{with-state,strip-prefix,truncate}
+
+;;; Variables
+(defvar vimpulse-last-command-event nil
+  "Value for overwriting `last-command-event'.
+Used by `vimpulse-careful-pre-hook'.")
+
+(defvar vimpulse-careful-alist nil
+  "Key bindings for which `vimpulse-careful-pre-hook' is active.
+That is, `last-command-event' and `read-char' work differently
+for these bindings. The format is (KEY-VECTOR . COMMAND).")
+
+(defvar vimpulse-careful-map (make-sparse-keymap)
+  "Keymap of bindings overwritten by `vimpulse-map' et al.")
+
 ;;; Advice
 
 ;; For XEmacs, construct a wrap-around advice of the current command
