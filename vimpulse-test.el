@@ -374,22 +374,22 @@ SETUP and TEARDOWN are zero-argument functions to run before and
 after. Mocks and stubs are guaranteed to be released when the
 test is done."
   (with-mocks-and-stubs
-   (unwind-protect
-       (save-excursion
-         (when setup
-           (funcall (if (functionp setup)
-                        setup
-                      `(lambda () ,@setup))))
-         (if fixture
-             (funcall (if (functionp fixture)
-                          fixture
-                        `(lambda () ,@fixture))
-                      test)
-           (funcall test)))
-     (when teardown
-       (funcall (if (functionp teardown)
-                    teardown
-                  `(lambda () ,@teardown)))))))
+    (unwind-protect
+        (save-excursion
+          (when setup
+            (funcall (if (functionp setup)
+                         setup
+                       `(lambda () ,@setup))))
+          (if fixture
+              (funcall (if (functionp fixture)
+                           fixture
+                         `(lambda () ,@fixture))
+                       test)
+            (funcall test)))
+      (when teardown
+        (funcall (if (functionp teardown)
+                     teardown
+                   `(lambda () ,@teardown)))))))
 
 ;;; Test macro: `deftest'
 
@@ -446,35 +446,35 @@ test is done."
              ,@(when doc `(,doc))
              (interactive)
              (with-mocks-and-stubs
-              (let ((current-suite (or (and (boundp 'current-suite)
-                                            current-suite)
-                                       ',current-suite))
-                    test-passed)
-                ;; Run suite fixtures (defaulting to the fixtures of
-                ;; the parent suite, if any).
-                (run-test
-                 (lambda ()
-                   ;; Run test fixtures (hard-coded into the test
-                   ;; function).
-                   (run-test (lambda ()
-                               (condition-case err
-                                   (progn
-                                     ,@body
-                                     (setq test-passed t))
-                                 (error (progn
-                                          (setq suite-passed nil)
-                                          (test-message
-                                           ',test
-                                           current-suite
-                                           (error-message-string err))))))
-                             ',fixture
-                             ',setup
-                             ',teardown))
-                 (or fixture ',suite-fixture)
-                 (or setup ',suite-setup)
-                 (or teardown ',suite-teardown))
-                (when (and test-passed (called-interactively-p 'any))
-                  (message "Test passed!"))))))
+               (let ((current-suite (or (and (boundp 'current-suite)
+                                             current-suite)
+                                        ',current-suite))
+                     test-passed)
+                 ;; Run suite fixtures (defaulting to the fixtures of
+                 ;; the parent suite, if any).
+                 (run-test
+                  (lambda ()
+                    ;; Run test fixtures (hard-coded into the test
+                    ;; function).
+                    (run-test (lambda ()
+                                (condition-case err
+                                    (progn
+                                      ,@body
+                                      (setq test-passed t))
+                                  (error (progn
+                                           (setq suite-passed nil)
+                                           (test-message
+                                            ',test
+                                            current-suite
+                                            (error-message-string err))))))
+                              ',fixture
+                              ',setup
+                              ',teardown))
+                  (or fixture ',suite-fixture)
+                  (or setup ',suite-setup)
+                  (or teardown ',suite-teardown))
+                 (when (and test-passed (called-interactively-p 'any))
+                   (message "Test passed!"))))))
     (if test
         `(macrolet ,deftest-macros
            ,@(when suites
@@ -646,22 +646,22 @@ is specified."
   :shadow t
   `(let ((form ,form))
      (without-mocks-and-stubs
-      (unless form
-        (error "%sassert for %s failed:\n\texpected non-nil, was %s%s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',form form
-               ,(assert-expand form "\t"))))))
+       (unless form
+         (error "%sassert for %s failed:\n\texpected non-nil, was %s%s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',form form
+                ,(assert-expand form "\t"))))))
 
 (defassert assert-not (doc form)
   "Verify that FORM returns nil."
   :shadow t
   `(let ((form ,form))
      (without-mocks-and-stubs
-      (when form
-        (error "%sassert-not for %s failed:\n\texpected non-nil, was %s%s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',form form
-               ,(assert-expand form "\t"))))))
+       (when form
+         (error "%sassert-not for %s failed:\n\texpected non-nil, was %s%s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',form form
+                ,(assert-expand form "\t"))))))
 
 (put 'assert 'lisp-indent-function 'defun)
 (put 'assert-not 'lisp-indent-function 'defun)
@@ -672,19 +672,19 @@ is specified."
   "Verify that FORM returns non-nil."
   `(let ((form ,form))
      (without-mocks-and-stubs
-      (unless form
-        (error "%sassert-that for %s failed:\n\texpected non-nil, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',form form)))))
+       (unless form
+         (error "%sassert-that for %s failed:\n\texpected non-nil, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',form form)))))
 
 (defassert assert-nil (doc form)
   "Verify that FORM returns nil."
   `(let ((form ,form))
      (without-mocks-and-stubs
-      (when form
-        (error "%sassert-nil for %s failed:\n\texpected nil, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',form form)))))
+       (when form
+         (error "%sassert-nil for %s failed:\n\texpected nil, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',form form)))))
 
 ;; xUnit discrepancy: xUnit favors Yoda conditions (expected actual).
 ;; I don't (actual expected).
@@ -693,130 +693,130 @@ is specified."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (unless (equal actual expected)
-        (error "%sassert-equal for %s failed:\n\texpected %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (unless (equal actual expected)
+         (error "%sassert-equal for %s failed:\n\texpected %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-not-equal (doc actual expected)
   "Verify that ACTUAL is not `equal' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (when (equal actual expected)
-        (error "%sassert-not-equal for %s failed:\n\texpected not %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (when (equal actual expected)
+         (error "%sassert-not-equal for %s failed:\n\texpected not %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-eq (doc actual expected)
   "Verify that ACTUAL is `eq' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (unless (eq actual expected)
-        (error "%sassert-eq for %s failed:\n\texpected %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (unless (eq actual expected)
+         (error "%sassert-eq for %s failed:\n\texpected %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-not-eq (doc actual expected)
   "Verify that ACTUAL is not `eq' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (when (eq actual expected)
-        (error "%sassert-not-eq for %s failed:\n\texpected not %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (when (eq actual expected)
+         (error "%sassert-not-eq for %s failed:\n\texpected not %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-eql (doc actual expected)
   "Verify that ACTUAL is `eql' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (unless (eql actual expected)
-        (error "%sassert-eql for %s failed:\n\texpected %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (unless (eql actual expected)
+         (error "%sassert-eql for %s failed:\n\texpected %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-not-eql (doc actual expected)
   "Verify that ACTUAL is not `eql' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (when (eql actual expected)
-        (error "%sassert-not-eql for %s failed:\n\texpected not %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (when (eql actual expected)
+         (error "%sassert-not-eql for %s failed:\n\texpected not %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-= (doc actual expected)
   "Verify that ACTUAL is `=' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (unless (= actual expected)
-        (error "%sassert-= for %s failed:\n\texpected %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (unless (= actual expected)
+         (error "%sassert-= for %s failed:\n\texpected %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-/= (doc actual expected)
   "Verify that ACTUAL is `/=' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (unless (/= actual expected)
-        (error "%sassert-/= for %s failed:\n\texpected not %s, was %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (unless (/= actual expected)
+         (error "%sassert-/= for %s failed:\n\texpected not %s, was %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-string= (doc actual expected)
   "Verify that ACTUAL is `string=' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (unless (string= actual expected)
-        (error "%sassert-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (unless (string= actual expected)
+         (error "%sassert-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-not-string= (doc actual expected)
   "Verify that ACTUAL is not `string=' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
-      (when (string= actual expected)
-        (error "%sassert-not-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',actual expected actual)))))
+       (when (string= actual expected)
+         (error "%sassert-not-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',actual expected actual)))))
 
 (defassert assert-member (doc elt list)
   "Verify that ELT is `member' of LIST."
   `(let ((elt ,elt)
          (list ,list))
      (without-mocks-and-stubs
-      (unless (member elt list)
-        (error "%sassert-member failed:\n\texpected %s in %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               elt list)))))
+       (unless (member elt list)
+         (error "%sassert-member failed:\n\texpected %s in %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                elt list)))))
 
 (defassert assert-memq (doc elt list)
   "Verify that ELT is `memq' of LIST."
   `(let ((elt ,elt)
          (list ,list))
      (without-mocks-and-stubs
-      (unless (memq elt list)
-        (error "%sassert-memq failed:\n\texpected %s in %s\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               elt list)))))
+       (unless (memq elt list)
+         (error "%sassert-memq failed:\n\texpected %s in %s\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                elt list)))))
 
 (defassert assert-match (doc regexp string)
   "Verify that REGEXP matches STRING."
   `(let ((regexp ,regexp)
          (string ,string))
      (without-mocks-and-stubs
-      (unless (string-match regexp string)
-        (error "%sassert-match failed:\n\texpected \"%s\" to match \"%s\"\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               regexp string)))))
+       (unless (string-match regexp string)
+         (error "%sassert-match failed:\n\texpected \"%s\" to match \"%s\"\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                regexp string)))))
 
 (defassert assert-error (doc &rest body)
   "Verify that BODY signals an error."
@@ -827,32 +827,32 @@ is specified."
            (setq failed t))
        (error nil))
      (without-mocks-and-stubs
-      (when failed
-        (error "%sassert-error failed: %s expected to signal an error\n"
-               ,(if (stringp doc) (concat doc "\n\t") "")
-               ',body)))))
+       (when failed
+         (error "%sassert-error failed: %s expected to signal an error\n"
+                ,(if (stringp doc) (concat doc "\n\t") "")
+                ',body)))))
 
 (defassert assert-changed (doc form &rest body)
   "Verify that FORM changes after executing BODY.
 FORM must be quoted."
   `(let* ((form (eval ,form)))
      (assert-not-equal
-      ,@(when doc `(,doc))
-      (progn
-        ,@body
-        ,(eval form))
-      form)))
+       ,@(when doc `(,doc))
+       (progn
+         ,@body
+         ,(eval form))
+       form)))
 
 (defassert assert-not-changed (doc form &rest body)
   "Verify that FORM does not change after executing BODY.
 FORM must be quoted."
   `(let* ((form (eval ,form)))
      (assert-equal
-      ,@(when doc `(,doc))
-      (progn
-        ,@body
-        ,(eval form))
-      form)))
+       ,@(when doc `(,doc))
+       (progn
+         ,@body
+         ,(eval form))
+       form)))
 
 ;;; Mocks/stubs
 
@@ -983,23 +983,23 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
   "Run BODY without mocks."
   (declare (indent 0))
   `(with-mocks
-    (dolist (func mocks-global-alist)
-      (mock-fset (car func) (cdr func)))
-    ,@body))
+     (dolist (func mocks-global-alist)
+       (mock-fset (car func) (cdr func)))
+     ,@body))
 
 (defmacro with-mocks-and-stubs (&rest body)
   "Run BODY, releasing mocks and stubs afterwards."
   (declare (indent 0))
   `(with-mocks
-    (with-stubs
-     ,@body)))
+     (with-stubs
+       ,@body)))
 
 (defmacro without-mocks-and-stubs (&rest body)
   "Run BODY without mocks and stubs."
   (declare (indent 0))
   `(without-mocks
-    (without-stubs
-     ,@body)))
+     (without-stubs
+       ,@body)))
 
 (defalias 'with-stubs-and-mocks 'with-mocks-and-stubs)
 (defalias 'without-stubs-and-mocks 'without-mocks-and-stubs)
@@ -1055,54 +1055,54 @@ This line is not included in the report."
              ([?d] . flob)))
      (vimpulse-augment-keymap map augment-alist)
      (assert-eq
-      "Augment keymap carefully."
-      (lookup-key map "a") 'foo
-      (lookup-key map "b") 'bar
-      (lookup-key map "c") 'baz
-      (lookup-key map "d") 'flob)
+       "Augment keymap carefully."
+       (lookup-key map "a") 'foo
+       (lookup-key map "b") 'bar
+       (lookup-key map "c") 'baz
+       (lookup-key map "d") 'flob)
      (vimpulse-augment-keymap map augment-alist t)
      (assert-eq
-      "Augment keymap forcefully."
-      (lookup-key map "a") 'wibble
-      (lookup-key map "b") 'wobble
-      (lookup-key map "c") 'wubble
-      (lookup-key map "d") 'flob)))
+       "Augment keymap forcefully."
+       (lookup-key map "a") 'wibble
+       (lookup-key map "b") 'wobble
+       (lookup-key map "c") 'wubble
+       (lookup-key map "d") 'flob)))
   (test-truncate
    "Test `vimpulse-truncate'."
    (assert-equal
-    "Positive numbers."
-    (vimpulse-truncate [a b c] 0) []
-    (vimpulse-truncate [a b c] 1) [a]
-    (vimpulse-truncate [a b c] 2) [a b]
-    (vimpulse-truncate [a b c] 3) [a b c]
-    (vimpulse-truncate [a b c] 4) [a b c])
+     "Positive numbers."
+     (vimpulse-truncate [a b c] 0) []
+     (vimpulse-truncate [a b c] 1) [a]
+     (vimpulse-truncate [a b c] 2) [a b]
+     (vimpulse-truncate [a b c] 3) [a b c]
+     (vimpulse-truncate [a b c] 4) [a b c])
    (assert-equal
-    "Negative numbers."
-    (vimpulse-truncate [a b c] -1) [a b]
-    (vimpulse-truncate [a b c] -2) [a]
-    (vimpulse-truncate [a b c] -3) []
-    (vimpulse-truncate [a b c] -4) [])
+     "Negative numbers."
+     (vimpulse-truncate [a b c] -1) [a b]
+     (vimpulse-truncate [a b c] -2) [a]
+     (vimpulse-truncate [a b c] -3) []
+     (vimpulse-truncate [a b c] -4) [])
    (assert-equal
-    "Limit cases."
-    (vimpulse-truncate [] 0) []
-    (vimpulse-truncate [] 3) []))
+     "Limit cases."
+     (vimpulse-truncate [] 0) []
+     (vimpulse-truncate [] 3) []))
   (test-memq-recursive
    "Test `vimpulse-memq-recursive'."
    (assert
-    "Find `a'."
-    (vimpulse-memq-recursive 'a '(a b c))
-    (vimpulse-memq-recursive 'a '(a b c))
-    (vimpulse-memq-recursive 'a '(b (a) c))
-    (vimpulse-memq-recursive 'a '((a) b c a))
-    (vimpulse-memq-recursive 'a '((b c) a)))
+     "Find `a'."
+     (vimpulse-memq-recursive 'a '(a b c))
+     (vimpulse-memq-recursive 'a '(a b c))
+     (vimpulse-memq-recursive 'a '(b (a) c))
+     (vimpulse-memq-recursive 'a '((a) b c a))
+     (vimpulse-memq-recursive 'a '((b c) a)))
    (assert
-    "Find nil."
-    (vimpulse-memq-recursive nil '(nil b c a))
-    (vimpulse-memq-recursive nil '(b (nil) c a))
-    (vimpulse-memq-recursive nil '(t b ((())) c a)))
+     "Find nil."
+     (vimpulse-memq-recursive nil '(nil b c a))
+     (vimpulse-memq-recursive nil '(b (nil) c a))
+     (vimpulse-memq-recursive nil '(t b ((())) c a)))
    (assert-not
-    "Nothing in nil!"
-    (vimpulse-memq-recursive nil nil))))
+     "Nothing in nil!"
+     (vimpulse-memq-recursive nil nil))))
 
 ;; These tests are largely interactive (and heavy), so don't run them
 ;; automatically; add (test-interactive-suite) to .emacs and/or run
@@ -1114,23 +1114,23 @@ This line is not included in the report."
    "Visually delete a word."
    (execute-kbd-macro "wved")
    (assert-string=
-    (buffer-substring 1 47)
-    ";;  buffer is for notes you don't want to save"))
+     (buffer-substring 1 47)
+     ";;  buffer is for notes you don't want to save"))
 
   (test-visual-delete-line
    "Visually delete a line."
    (execute-kbd-macro "Vd")
    (assert-string=
-    (buffer-string)
-    ";; If you want to create a file, visit that file with C-x C-f,
+     (buffer-string)
+     ";; If you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.\n"))
 
   (test-visual-delete-block
    "Visually delete `;; ' prefix."
    (execute-kbd-macro "\C-vjjlld")
    (assert-string=
-    (buffer-string)
-    "This buffer is for notes you don't want to save, and for \
+     (buffer-string)
+     "This buffer is for notes you don't want to save, and for \
 Lisp evaluation.
 If you want to create a file, visit that file with C-x C-f,
 then enter the text in that file's own buffer.\n"))
@@ -1139,8 +1139,8 @@ then enter the text in that file's own buffer.\n"))
    "Visually delete `;; ' prefix, using counts."
    (execute-kbd-macro "\C-v2l2jd")
    (assert-string=
-    (buffer-string)
-    "This buffer is for notes you don't want to save, and for \
+     (buffer-string)
+     "This buffer is for notes you don't want to save, and for \
 Lisp evaluation.
 If you want to create a file, visit that file with C-x C-f,
 then enter the text in that file's own buffer.\n"))
@@ -1149,62 +1149,62 @@ then enter the text in that file's own buffer.\n"))
    "Test E (`vimpulse-end-of-Word')."
    (execute-kbd-macro "wr+d0yEP")
    (assert-string=
-    "Yank and put +his before point."
-    (buffer-substring 1 52)
-    "+his+his buffer is for notes you don't want to save")
+     "Yank and put +his before point."
+     (buffer-substring 1 52)
+     "+his+his buffer is for notes you don't want to save")
    (execute-kbd-macro "EEEwcwfoo")
    (assert-string=
-    "Move to \"for\" and change to \"foo\"."
-    (buffer-substring 1 52)
-    "+his+his buffer is foo notes you don't want to save")
+     "Move to \"for\" and change to \"foo\"."
+     (buffer-substring 1 52)
+     "+his+his buffer is foo notes you don't want to save")
    (execute-kbd-macro "$Ewcw`foo'")
    (assert-string=
-    "Move to next line and change \"If\" to \"`foo'\"."
-    (buffer-substring 79 113)
-    ";; `foo' you want to create a file")
+     "Move to next line and change \"If\" to \"`foo'\"."
+     (buffer-substring 79 113)
+     ";; `foo' you want to create a file")
    (execute-kbd-macro "By2EP")
    (assert-string=
-    "Yank two words and put before point."
-    (buffer-substring 79 122)
-    ";; `foo' you`foo' you want to create a file")
+     "Yank two words and put before point."
+     (buffer-substring 79 122)
+     ";; `foo' you`foo' you want to create a file")
    (execute-kbd-macro "EEEEEwcw(bar)")
    (assert-string=
-    "Change a single-letter word."
-    (buffer-substring 97 126)
-    "you want to create (bar) file")
+     "Change a single-letter word."
+     (buffer-substring 97 126)
+     "you want to create (bar) file")
    (execute-kbd-macro "bldiW")
    (assert-string=
-    "Delete inner Word."
-    (buffer-substring 97 121)
-    "you want to create  file"))
+     "Delete inner Word."
+     (buffer-substring 97 121)
+     "you want to create  file"))
 
   (test-visual-replace
    "Replace with Visual selection."
    (execute-kbd-macro "wvjra")
    (assert-string=
-    "Visually replace parts of two lines."
-    (buffer-string)
-    ";; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+     "Visually replace parts of two lines."
+     (buffer-string)
+     ";; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaf you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.\n")
    (execute-kbd-macro "jjvral.l.")
    (assert-string=
-    "Replace a character and repeat for subsequent characters."
-    (buffer-substring 141 191)
-    ";; aaan enter the text in that file's own buffer.\n")
+     "Replace a character and repeat for subsequent characters."
+     (buffer-substring 141 191)
+     ";; aaan enter the text in that file's own buffer.\n")
    (execute-kbd-macro "$ra")
    (assert-string=
-    "Replace at end of line."
-    (buffer-substring 141 191)
-    ";; aaan enter the text in that file's own buffera\n"))
+     "Replace at end of line."
+     (buffer-substring 141 191)
+     ";; aaan enter the text in that file's own buffera\n"))
 
   (test-change-undo
    "Change a word and undo."
    (let ((vimpulse-want-change-undo t))
      (execute-kbd-macro "wcwfoou")
      (assert-string=
-      (buffer-substring 1 51)
-      ";; This buffer is for notes you don't want to save"))))
+       (buffer-substring 1 51)
+       ";; This buffer is for notes you don't want to save"))))
 
 (provide 'vimpulse-test)
 
