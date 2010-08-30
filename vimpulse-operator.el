@@ -533,6 +533,7 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
     (if dont-save
         (delete-region beg end)
       (kill-region beg end))
+    (goto-char beg)
     (when (eq vimpulse-this-motion-type 'line)
       (save-excursion (newline))
       (when viper-auto-indent

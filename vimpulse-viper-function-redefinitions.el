@@ -31,6 +31,7 @@
     ;; just delete and enter Insert state.
     (setq viper-began-as-replace t)
     (kill-region beg end)
+    (goto-char beg)
     (viper-change-state-to-insert))))
 
 (defun vimpulse-set-replace-cursor-type ()
