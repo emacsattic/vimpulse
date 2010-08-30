@@ -44,7 +44,7 @@ to handle a negative value, which specifies reverse direction."
           count (car args))
     ;; Collect docstring, if any.
     (when (stringp (car body))
-      (setq doc  (list (car body))      ; for splicing
+      (setq doc  (car body)
             body (cdr body)))
     ;; Collect keywords.
     (while (keywordp (setq keyword (car body)))
@@ -67,10 +67,10 @@ to handle a negative value, which specifies reverse direction."
     `(progn
        (dolist (key ',keys)
          (define-key ,map key ',object))
-       ,@(when type
-           `((put ',object 'motion-type ,@type)))
+       ,(when type
+          `(put ',object 'motion-type ,@type))
        (defun ,object ,args
-         ,@doc
+         ,doc
          (interactive "p")
          (let ((,count (if (numberp ,count) ,count 1))
                range)

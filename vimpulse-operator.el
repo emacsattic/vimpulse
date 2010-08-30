@@ -738,8 +738,8 @@ type TYPE. A custom function body may be specified via BODY."
                       (,viper-motion (if (region-active-p)
                                          arg
                                        (cons arg com)))
-                      ,@(unless (eq type 'exclusive)
-                          '((viper-backward-char-carefully))))))))
+                      ,(unless (eq type 'exclusive)
+                         '(viper-backward-char-carefully)))))))
      (put motion-name 'motion-type type)
      `(quote ,motion-name)))
 

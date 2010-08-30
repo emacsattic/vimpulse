@@ -83,8 +83,8 @@ Based on `viper-re-search' and `viper-s-forward'."
              (let ((orig (point)) retval)
                (setq retval (,search-fun regexp bound t count))
                (when (and (not retval) viper-search-wrap-around)
-                 (goto-char ,@(if forward '((point-min))
-                                '((point-max))))
+                 (goto-char ,(if forward '(point-min)
+                                '(point-max)))
                  (setq retval (,search-fun regexp bound t count))
                  (unless retval
                    (goto-char orig)))

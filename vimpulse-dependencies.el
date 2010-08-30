@@ -131,18 +131,18 @@ Off by default."
        (when (get ',sym 'custom-autoload)
          (custom-load-symbol ',sym))
        (put ',sym 'customized-value (list (custom-quote ,val))))
-     ,@(when body
-         `((vimpulse-setq-custom ,@body)))))
+     ,(when body
+        `(vimpulse-setq-custom ,@body))))
 
 (defmacro vimpulse-setq-custom-default (symbol value &rest body)
   "Set the customized default value of SYMBOL to VALUE."
   `(progn
-     (prog1 ,value                       ; return VALUE
+     (prog1 ,value                      ; return VALUE
        (when (get ',symbol 'custom-autoload)
          (custom-load-symbol ',symbol))
        (put ',symbol 'standard-value (list (custom-quote ,value))))
-     ,@(when body
-         `((vimpulse-setq-custom-default ,@body)))))
+     ,(when body
+        `(vimpulse-setq-custom-default ,@body))))
 
 (defmacro vimpulse-setq (sym val &rest body)
   "Set SYM to VAL, defaults included, unless SYM is customized.
@@ -162,8 +162,8 @@ SYM is unquoted. Returns VAL."
       (t
        (setq-default ,sym ,val)
        (setq ,sym ,val)))
-     ,@(when body
-         `((vimpulse-setq ,@body)))))
+     ,(when body
+         `(vimpulse-setq ,@body))))
 
 ;;; Declare and/or initialize variables
 
