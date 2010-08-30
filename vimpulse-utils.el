@@ -391,7 +391,8 @@ If POS if specified, set mark at POS instead."
       (unwind-protect
           (and (fboundp 'cua-set-mark)
                (cua-set-mark))
-        (message "%s" oldmsg))
+        (if oldmsg (message "%s" oldmsg)
+          (message nil)))
       (goto-char opoint)))
    (t
     (let (this-command)
@@ -436,10 +437,10 @@ BEG and END. Returns nil if region is unchanged."
 
 (eval-and-compile
   (cond
-   ((featurep 'xemacs)                   ; XEmacs
+   ((featurep 'xemacs)                  ; XEmacs
     (defalias 'vimpulse-delete-overlay 'delete-extent)
     (defalias 'vimpulse-overlays-at 'extents-at))
-   (t                                    ; GNU Emacs
+   (t                                   ; GNU Emacs
     (defalias 'vimpulse-delete-overlay 'delete-overlay)
     (defalias 'vimpulse-overlays-at 'overlays-at))))
 
