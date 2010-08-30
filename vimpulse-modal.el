@@ -299,14 +299,9 @@ only if called in the same state. The functions `vimpulse-map',
     ;; the binding (stored in `current-binding'); if it isn't bound,
     ;; use `previous-binding'.
     (setq define-func (or define-func 'define-key))
-    (setq key-vector key)
-    (when (stringp key-vector)
-      (condition-case nil
-          (setq key-vector (eval `(kbd ,key-vector)))
-        (error nil))
-      (when (memq key-vector '("" [] nil))
-        (setq key-vector key)))
-    (setq key-vector (vconcat key-vector))
+    (setq key-vector (if (stringp key)
+                         (read-kbd-macro key t)
+                       key))
     (cond
      ;; nil unbinds the key-sequence.
      ((not def)
