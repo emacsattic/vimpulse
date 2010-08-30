@@ -222,7 +222,7 @@ Otherwise output a vector."
              ;; String conversion is impossible if the vector
              ;; contains a non-numerical element.
              (not (memq nil (mapcar 'integerp (append temp-sequence nil)))))
-        (concat "" (vimpulse-truncate temp-sequence length offset))
+        (concat (vimpulse-truncate temp-sequence length offset))
       (vimpulse-truncate temp-sequence length offset))))
 
 (defun vimpulse-memq-recursive (elt tree &optional search-vectors)
