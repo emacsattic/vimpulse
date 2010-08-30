@@ -66,6 +66,8 @@
 ;; and so on. For more on default key bindings, see the GNU Emacs
 ;; Lisp Reference Manual, chapter 22.3: "Format of Keymaps".
 ;;
+;; (info "(elisp)Format of Keymaps")
+;;
 ;; What is done by functions like `vimpulse-make-careful-binding' and
 ;; `vimpulse-map' (which depends on the former) is to generate these
 ;; default bindings automatically. If "AB" is already bound to `foo'
@@ -76,7 +78,7 @@
 ;;     (global-set-key (kbd "A B <t>") 'foo)
 ;;     (global-set-key (kbd "A B C") 'bar)
 ;;
-;; Then, "ABC" runs `bar', while "AB" + any other key than C
+;; Then, "ABC" runs `bar', while "AB" + any key other than C
 ;; runs `foo'.
 ;;
 ;; This almost gets us where we want with regard to Vimpulse, but not
@@ -132,7 +134,7 @@
 ;; shadowing the read-only command loop variables with a
 ;; `let' binding.
 (defmacro vimpulse-advice-command (command)
-  "Make wrap-around advice for shadowing `last-command-event'.
+  "Define an around advice for COMMAND to shadow `last-command-event'.
 XEmacs does not allow us to change its command loop variables
 directly, but shadowing them with a `let' binding works."
   `(defadvice ,command (around vimpulse-careful activate)

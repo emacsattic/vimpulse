@@ -156,7 +156,7 @@
 ;;     (add-to-suite 'test-foo-suite 'test-bar)
 ;;
 ;; NOTE: self-referencing suite definitions should be avoided,
-;; although some safeguards exist to prohibit infinite loops.
+;; although some safeguards exist to prevent infinite loops.
 
 ;;; Fixtures
 

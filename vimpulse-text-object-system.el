@@ -4,7 +4,7 @@
 ;; like diw, daw, ciw, caw. Currently, the most common objects are
 ;; supported:
 ;;
-;;   - paren-blocks: b B { [ ( < > ) ] }
+;;   - bracket-blocks: b B { [ ( < > ) ] }
 ;;   - sentences: s
 ;;   - paragraphs: p
 ;;   - quoted expressions: " and '
@@ -500,22 +500,22 @@ specifies whether to include the quote marks in the range."
   (vimpulse-paren-range arg ?\())
 
 (vimpulse-define-text-object vimpulse-a-bracket (arg)
-  "Select a bracket parenthesis."
+  "Select a square bracket."
   :keys '("a[" "a]")
   (vimpulse-paren-range arg ?\[ nil t))
 
 (vimpulse-define-text-object vimpulse-inner-bracket (arg)
-  "Select inner bracket parenthesis."
+  "Select inner square bracket."
   :keys '("i[" "i]")
   (vimpulse-paren-range arg ?\[))
 
 (vimpulse-define-text-object vimpulse-a-curly (arg)
-  "Select a curly parenthesis."
+  "Select a curly bracket (\"brace\")."
   :keys '("aB" "a{" "a}")
   (vimpulse-paren-range arg ?{ nil t))
 
 (vimpulse-define-text-object vimpulse-inner-curly (arg)
-  "Select inner curly parenthesis."
+  "Select inner curly bracket (\"brace\")."
   :keys '("iB" "i{" "i}")
   (vimpulse-paren-range arg ?{))
 
@@ -530,22 +530,22 @@ specifies whether to include the quote marks in the range."
   (vimpulse-paren-range arg ?<))
 
 (vimpulse-define-text-object vimpulse-a-single-quote (arg)
-  "Select a single quoted expression."
+  "Select a single-quoted expression."
   :keys "a'"
   (vimpulse-quote-range arg ?' t))
 
 (vimpulse-define-text-object vimpulse-inner-single-quote (arg)
-  "Select inner single quoted expression."
+  "Select inner single-quoted expression."
   :keys "i'"
   (vimpulse-quote-range arg ?'))
 
 (vimpulse-define-text-object vimpulse-a-double-quote (arg)
-  "Select a double quoted expression."
+  "Select a double-quoted expression."
   :keys "a\""
   (vimpulse-quote-range arg ?\" t))
 
 (vimpulse-define-text-object vimpulse-inner-double-quote (arg)
-  "Select inner double quoted expression."
+  "Select inner double-quoted expression."
   :keys "i\""
   (vimpulse-quote-range arg ?\"))
 

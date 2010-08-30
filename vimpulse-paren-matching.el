@@ -9,7 +9,7 @@
 ;;
 ;; In Insert mode, Emacs' scheme is deemed best and kept as is.
 ;;
-;; Custom paren-matching LOADED BY DEFAULT.
+;; This code is LOADED BY DEFAULT.
 ;; To avoid loading it, set `vimpulse-enhanced-paren-matching' to nil
 ;; in your .emacs before loading Vimpulse.
 
