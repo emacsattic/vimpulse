@@ -1088,6 +1088,7 @@ buffer.\n"))
   "Test suite for vimpulse-utils.el.
 This line is not included in the report."
   :run t
+  :setup ((require 'vimpulse))
   (test-augment-keymap
    "Test `vimpulse-augment-keymap'."
    (let (augment-alist map)
@@ -1139,6 +1140,7 @@ This line is not included in the report."
 ;; `M-x test-interactive-suite' manually.
 (defsuite test-interactive-suite
   "Interactive test suite for Vimpulse."
+  :setup ((require 'vimpulse))
   :fixture vimpulse-test-buffer
   (test-visual-delete-word
    "Visually delete a word."
