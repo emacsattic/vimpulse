@@ -182,9 +182,7 @@ If OFFSET is specified, skip first elements of VECTOR."
     (setq length (length vector)))
   ;; If LENGTH is negative, convert it to the positive equivalent.
   (when (< length 0)
-    (setq length (+ (length vector) length)))
-  (when (< length 0)
-    (setq length 0))
+    (setq length (max 0 (+ (length vector) length))))
   (if offset
       (setq length (- length offset))
     (setq offset 0))
