@@ -968,7 +968,6 @@ docstring. The variable becomes buffer-local whenever set.")
       (let ((val (viper-p-val arg))
             (com (viper-getcom arg))
             (offset (not no-offset))
-            (case-fold-search viper-case-fold-search)
             (start-point (or init-point (point))))
         (viper-deactivate-mark)
         ;; Smartcase searching: upper-case chars disable case folding.

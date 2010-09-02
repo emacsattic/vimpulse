@@ -203,6 +203,7 @@ Disable anyway if FORCE is t."
   (remove-hook 'pre-command-hook 'vimpulse-flash-hook))
 
 (when vimpulse-incremental-search
+  (defvaralias 'viper-case-fold-search 'case-fold-search)
   (defalias 'viper-search-backward 'vimpulse-search-backward)
   (defalias 'viper-search-forward 'vimpulse-search-forward)
   (defalias 'viper-flash-search-pattern 'vimpulse-flash-search-pattern))
