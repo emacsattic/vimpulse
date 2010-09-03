@@ -116,7 +116,8 @@ the binding is listed in `vimpulse-careful-alist'."
       (funcall define-func keymap temp-sequence def)))
     (when careful-binding
       (add-to-list 'vimpulse-careful-alist
-                   (cons (vimpulse-truncate temp-sequence -1) def)))))
+                   (cons (vimpulse-truncate temp-sequence -1) def)))
+    def))
 
 ;;; Hook run before each command
 
@@ -314,7 +315,8 @@ with `vimpulse-make-careful-binding'."
         (vimpulse-with-state state
           (vimpulse-make-careful-binding modifier-map key def))
       (define-key modifier-map key def))
-    (viper-modify-major-mode mode state modifier-map)))
+    (viper-modify-major-mode mode state modifier-map)
+    def))
 
 (defalias 'vimpulse-define-minor-key 'vimpulse-define-key)
 
@@ -332,7 +334,8 @@ If CAREFUL is non-nil, don't overwrite previous bindings."
 (defun vimpulse-local-set-key (state key def)
   "Modally bind KEY to DEF in STATE, locally.
 STATE is one of `vi-state', `insert-state', `visual-state' or `operator-state'."
-  (viper-add-local-keys state `((,key . ,def))))
+  (viper-add-local-keys state `((,key . ,def)))
+  def)
 
 (defun vimpulse-map-state (state key def &optional modes)
   "Modally bind KEY to DEF in STATE.

@@ -906,7 +906,8 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
                   ,(format "Toggle %s." state-name)
                   ,',@body
                   (when (eq new-state ',state-name)
-                    (run-hooks ',hook))))))))
+                    (run-hooks ',hook))))
+         ',state))))
 
 (when (fboundp 'font-lock-add-keywords)
   (font-lock-add-keywords
