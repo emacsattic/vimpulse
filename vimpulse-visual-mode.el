@@ -1174,7 +1174,7 @@ insertion will be chosen according to this command.
 Returns the insertion point."
   (setq vimpulse-visual-insert-coords nil)
   (let ((nlines (count-lines upper-left lower-right))
-        (col 0))               ; for ?I and ?A, trivial: column is 0
+        (col 0))                 ; for ?I and ?A, trivial: column is 0
     (when (memq i-com '(?a ?c ?i))
       ;; for ?i and ?a, choose the left (the right) rectangle column
       (let ((beg-col (save-excursion
@@ -1235,6 +1235,22 @@ Returns the insertion point."
   (vimpulse-end-undo-step))
 
 (defalias 'viper-exit-insert-state 'vimpulse-exit-insert-state)
+
+(defadvice viper-goto-eol (after vimpulse-visual activate)
+  "Move to end of line in Visual mode."
+  (when vimpulse-visual-mode
+    (end-of-line 1)))
+
+(defadvice viper-forward-char (around vimpulse-activate activate)
+  "Move to end of line in Visual mode."
+  (cond
+   (vimpulse-visual-mode
+    (let ((val (viper-p-val arg)))
+      (forward-char val)
+      (when (and viper-ex-style-motion (bolp))
+        (backward-char))))
+   (t
+    ad-do-it)))
 
 ;;; Key bindings
 

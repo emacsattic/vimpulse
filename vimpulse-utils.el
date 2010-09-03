@@ -686,7 +686,7 @@ That is, the last character is included."
          (end (max from to)))
     (save-excursion
       (goto-char end)
-      (unless (or (eobp) (and (eolp) (not (bolp))))
+      (unless (eobp)
         (setq end (1+ end)))
       (vimpulse-make-motion-range beg end 'inclusive))))
 
