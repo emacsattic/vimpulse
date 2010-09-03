@@ -39,14 +39,14 @@ to handle a negative value, which specifies reverse direction."
   (declare (indent defun))
   (let ((map 'vimpulse-operator-basic-map)
         count doc keys keyword type)
-    ;; Collect COUNT argument.
+    ;; collect COUNT argument
     (setq args (or args (list 'arg))
           count (car args))
-    ;; Collect docstring, if any.
+    ;; collect docstring, if any
     (when (stringp (car body))
       (setq doc  (car body)
             body (cdr body)))
-    ;; Collect keywords.
+    ;; collect keywords
     (while (keywordp (setq keyword (car body)))
       (setq body (cdr body))
       (cond
@@ -62,8 +62,8 @@ to handle a negative value, which specifies reverse direction."
       (setq keys (list keys)))
     (when type
       (setq type `(',type)))
-    ;; Macro expansion: define key bindings, set motion type
-    ;; and define command.
+    ;; macro expansion: define key bindings, set motion type
+    ;; and define command
     `(progn
        (dolist (key ',keys)
          (define-key ,map key ',object))
@@ -124,7 +124,7 @@ argument is specified, it overrides the type of RANGE."
 
 ;;; Text object range functions
 
-;; Word-like expressions (words, sentences, paragraphs).
+;; word-like expressions (words, sentences, paragraphs)
 (defun vimpulse-object-range
   (count backward-func forward-func &optional type)
   "Return a text object range (TYPE BEG END).
@@ -184,15 +184,15 @@ See `vimpulse-object-range' for more details."
       (setq range (vimpulse-motion-range
                    (vimpulse-object-range
                     count backward-func forward-func)))
-      ;; Let `end' be the boundary furthest from point,
-      ;; based on the direction we are going.
+      ;; let `end' be the boundary furthest from point,
+      ;; based on the direction we are going
       (if (< count 0)
           (setq beg (cadr range)
                 end (car range))
         (setq beg (car range)
               end (cadr range)))
-      ;; If INCLUDE-NEWLINES is nil, never move past
-      ;; the line boundaries of the text object.
+      ;; if INCLUDE-NEWLINES is nil, never move past
+      ;; the line boundaries of the text object
       (unless include-newlines
         (setq line-beg (line-beginning-position)
               line-end (line-end-position))
@@ -242,7 +242,7 @@ See `vimpulse-object-range' for more details."
             (when (looking-at "[ \t]*$")
               (forward-line count)
               (setq beg (line-beginning-position))))))
-      ;; Return the range.
+      ;; return the range
       (list (min beg end) (max beg end)))))
 
 (defun vimpulse-inner-object-range
@@ -268,10 +268,10 @@ See `vimpulse-object-range' for more details."
                     count backward-func forward-func))
             beg (car range)
             end (cadr range)))
-    ;; Return the range, including point.
+    ;; return the range, including point
     (list (min beg (point)) (max end (point)))))
 
-;; Parenthetical expressions.
+;; parenthetical expressions
 (defun vimpulse-paren-range (count &optional open close include-parentheses)
   "Return a parenthetical expression range (BEG END).
 The type of parentheses may be specified with OPEN and CLOSE,
@@ -288,8 +288,7 @@ whether to include the parentheses in the range."
       (when (and (not (string= open ""))
                  (looking-at open))
         (forward-char))
-      ;; Find opening and closing paren with
-      ;; Emacs' S-exp facilities.
+      ;; find opening and closing paren with Emacs' S-exp facilities
       (while (progn
                (vimpulse-backward-up-list 1)
                (not (when (looking-at open)
@@ -306,7 +305,7 @@ whether to include the parentheses in the range."
                     (setq end (max (1- end) beg))))
         (if (<= (count-lines beg end) 1)
             (list beg end)
-          ;; Multi-line inner range: select whole lines.
+          ;; multi-line inner range: select whole lines
           (goto-char beg)
           (when (looking-at "[ \f\t\n\r\v]*$")
             (forward-line)
@@ -325,7 +324,7 @@ whether to include the parentheses in the range."
             (goto-char end))
           (list (min beg end) (max beg end)))))))
 
-;; Quoted expressions.
+;; quoted expressions
 (defun vimpulse-quote-range (count &optional quote include-quotes)
   "Return a quoted expression range (BEG END).
 QUOTE is a quote character (default ?\\\"). INCLUDE-QUOTES
@@ -341,16 +340,16 @@ specifies whether to include the quote marks in the range."
       (when (and (not (string= quote ""))
                  (looking-at quote))
         (forward-char))
-      ;; Search forward for a closing quote.
+      ;; search forward for a closing quote
       (while (and (> count 0)
                   (re-search-forward regexp nil t))
         (setq count (1- count))
         (setq end (point))
-        ;; Find the matching opening quote.
+        ;; find the matching opening quote
         (condition-case nil
             (progn
               (setq beg (scan-sexps end -1))
-              ;; Emacs' S-exp logic doesn't work in text mode.
+              ;; Emacs' S-exp logic doesn't work in text mode
               (save-excursion
                 (goto-char beg)
                 (unless (looking-at quote)

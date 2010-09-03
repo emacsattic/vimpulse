@@ -69,21 +69,21 @@ selection on each line."
     ;; This is executed when we do (vimpulse-visual-mode -1).
     ;; It must run without error even if Visual mode is not active.
     (vimpulse-visual-highlight -1)
-    ;; Clean up local variables.
+    ;; clean up local variables
     (dolist (var vimpulse-visual-local-vars)
       (when (assq var vimpulse-visual-vars-alist)
         (set var (cdr (assq var vimpulse-visual-vars-alist))))
       (when (memq var vimpulse-visual-global-vars)
         (kill-local-variable var)))
     (setq vimpulse-visual-region-expanded nil)
-    ;; Deactivate mark.
+    ;; deactivate mark
     (when vimpulse-visual-vars-alist
       (vimpulse-deactivate-mark t))
     (vimpulse-transient-restore)
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
-    ;; If Viper state is not already changed,
-    ;; change it to vi (command) state.
+    ;; if Viper state is not already changed,
+    ;; change it to vi (command) state
     (when (eq viper-current-state 'visual-state)
       (cond
        ((eq vimpulse-visual-previous-state 'emacs-state)
@@ -102,32 +102,32 @@ selection on each line."
   "Activate Visual mode. MODE is `char', `line' or `block'.
 May also be used to change the Visual mode."
   (unless (memq vimpulse-visual-mode '(char line block))
-    ;; We are activating Visual mode for the first time.
+    ;; we are activating Visual mode for the first time
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
     (setq vimpulse-visual-previous-state viper-current-state)
-    ;; Make global variables buffer-local.
+    ;; make global variables buffer-local
     (setq vimpulse-visual-vars-alist nil)
     (vimpulse-visual-block-cleanup-whitespace)
     (vimpulse-transient-remember)
     (dolist (var vimpulse-visual-local-vars)
       (when (and (boundp var)
                  (not (assq var vimpulse-visual-vars-alist)))
-        ;; Remember old value.
+        ;; remember old value
         (add-to-list 'vimpulse-visual-vars-alist
                      (cons var (eval var))))
       (unless (assoc var (buffer-local-variables))
         (make-local-variable var)
         (add-to-list 'vimpulse-visual-global-vars var)))
     (setq vimpulse-visual-region-expanded nil)
-    ;; Re-add hooks in case they were cleared.
+    ;; re-add hooks in case they were cleared
     (add-hook 'pre-command-hook 'vimpulse-visual-pre-command)
     (add-hook 'post-command-hook 'vimpulse-visual-post-command)
     (if (featurep 'xemacs)
         (add-hook 'zmacs-deactivate-region-hook
                   'vimpulse-visual-deactivate-hook)
       (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
-    ;; Activate mark at point.
+    ;; activate mark at point
     (cond
      ((eq mode 'block)
       (set-mark (point))
@@ -135,7 +135,7 @@ May also be used to change the Visual mode."
       (vimpulse-transient-mark -1))
      (t
       (vimpulse-transient-mark 1)
-      ;; Convert active Emacs region to Visual selection, if any.
+      ;; convert active Emacs region to Visual selection, if any
       (cond
        ((region-active-p)
         (vimpulse-visual-contract-region
@@ -143,13 +143,13 @@ May also be used to change the Visual mode."
        (t
         (vimpulse-activate-mark (point))))
       (vimpulse-visual-highlight))))
-  ;; Set the Visual mode.
+  ;; set the Visual mode
   (setq mode (or mode 'char))
   (setq vimpulse-visual-mode mode
         vimpulse-visual-last mode)
   (viper-change-state 'visual-state)
   (viper-restore-cursor-type)           ; use vi cursor
-  ;; Reactivate mark.
+  ;; reactivate mark
   (cond
    ((eq mode 'block)
     (vimpulse-deactivate-mark t)
@@ -233,7 +233,7 @@ Saves the previous state of Transient Mark mode in
        (setq mark-active (region-active-p)))
   (let (deactivate-mark)
     (cond
-     ;; Disable Transient Mark/Cua.
+     ;; disable Transient Mark/Cua
      ((and (integerp arg) (< arg 1))
       (and (fboundp 'cua-mode)
            cua-mode
@@ -243,7 +243,7 @@ Saves the previous state of Transient Mark mode in
            (transient-mark-mode -1))
       (and (boundp 'zmacs-regions)
            (setq zmacs-regions nil)))
-     ;; Enable Transient Mark/Cua.
+     ;; enable Transient Mark/Cua
      (t
       (vimpulse-transient-remember)
       (cond
@@ -281,7 +281,7 @@ Saves the previous state of Transient Mark mode in
           (transient-mark-mode 1)
         (transient-mark-mode -1)))
     (when (boundp 'cua-mode)
-      ;; Prevent Cua mode from setting `deactivate-mark' to t.
+      ;; prevent Cua mode from setting `deactivate-mark' to t
       (let (deactivate-mark)
         (if (vimpulse-visual-before cua-mode)
             (cua-mode 1)
@@ -290,12 +290,12 @@ Saves the previous state of Transient Mark mode in
       (let ((oldval (vimpulse-visual-before zmacs-regions)))
         (setq zmacs-regions oldval)))))
 
-;; Should be replaced with something more readable,
-;; like (vimpulse-visual-historical-value 'transient-mark-mode).
+;; should be replaced with something more readable,
+;; like (vimpulse-visual-historical-value 'transient-mark-mode)
 (defmacro vimpulse-visual-before (&rest body)
   "Evaluate BODY with original system values from before Visual mode.
 This is based on `vimpulse-visual-vars-alist'."
-  ;; This needs to be expanded at runtime, obviously.
+  ;; this needs to be expanded at runtime, obviously
   `(eval `(let ,(mapcar (lambda (elt)
                           `(,(car elt) (quote ,(cdr elt))))
                         vimpulse-visual-vars-alist)
@@ -354,7 +354,7 @@ The boundaries of the Visual selection are deduced from these and
 the current Visual mode via `vimpulse-visual-beginning' and
 `vimpulse-visual-end'."
   (cond
-   ;; In Visual mode, protect the value of `mark-active'.
+   ;; in Visual mode, protect the value of `mark-active'
    (vimpulse-visual-mode
     (let (mark-active)
       (vimpulse-set-region
@@ -419,15 +419,15 @@ See also `vimpulse-visual-reselect'."
   (setq vimpulse-visual-region-expanded nil)
   (let ((last vimpulse-visual-last))
     (cond
-     ;; If no previous selection, try a quick C-x C-x.
+     ;; if no previous selection, try a quick C-x C-x
      ((or (not vimpulse-visual-point)
           (not vimpulse-visual-mark))
       (vimpulse-activate-mark nil)
       (vimpulse-visual-mode 1))
      (t
       (unless vimpulse-visual-mode
-        ;; Protect the previous values of `vimpulse-visual-mark'
-        ;; and `vimpulse-visual-point'.
+        ;; protect the previous values of `vimpulse-visual-mark'
+        ;; and `vimpulse-visual-point'
         (let (vimpulse-visual-mark vimpulse-visual-point)
           (cond
            ((eq last 'line)
@@ -526,15 +526,15 @@ With negative ARG, removes highlighting."
       (vimpulse-delete-overlay vimpulse-visual-overlay))
     (mapc 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
     (setq vimpulse-visual-block-overlays nil)
-    ;; Clean up unreferenced overlays.
+    ;; clean up unreferenced overlays
     (dolist (overlay (vimpulse-overlays-at (point)))
       (when (eq (viper-overlay-get overlay 'face) (vimpulse-region-face))
         (vimpulse-delete-overlay overlay))))
    ((eq vimpulse-visual-mode 'block)
-    ;; Remove any char/line highlighting.
+    ;; remove any char/line highlighting
     (when (viper-overlay-live-p vimpulse-visual-overlay)
       (vimpulse-delete-overlay vimpulse-visual-overlay))
-    ;; Block highlighting isn't perfect.
+    ;; block highlighting isn't perfect
     (condition-case nil
         (vimpulse-visual-highlight-block
          (vimpulse-visual-beginning)
@@ -543,10 +543,10 @@ With negative ARG, removes highlighting."
    (vimpulse-visual-mode                ; char or line
     (let ((beg (vimpulse-visual-beginning))
           (end (vimpulse-visual-end)))
-      ;; Remove any block highlighting.
+      ;; remove any block highlighting
       (mapc 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
       (setq vimpulse-visual-block-overlays nil)
-      ;; Reuse overlay if possible.
+      ;; reuse overlay if possible
       (if (viper-overlay-live-p vimpulse-visual-overlay)
           (viper-move-overlay vimpulse-visual-overlay beg end)
         (setq vimpulse-visual-overlay
@@ -587,23 +587,23 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
               end (save-excursion (goto-char end)
                                   (vimpulse-move-to-column end-col 1)
                                   (point))))
-      ;; Force a redisplay so we can do reliable
-      ;; windows BEG/END calculations.
+      ;; force a redisplay so we can do reliable
+      ;; windows BEG/END calculations
       (sit-for 0)
       (setq window-beg (max (window-start) beg)
             window-end (min (window-end) (1+ end))
             nlines (count-lines window-beg
                                 (min window-end (point-max))))
-      ;; Iterate over those lines of the rectangle which are
-      ;; visible in the currently selected window.
+      ;; iterate over those lines of the rectangle which are
+      ;; visible in the currently selected window
       (goto-char window-beg)
       (dotimes (i nlines)
         (let (row-beg row-end bstring astring)
-          ;; Beginning of row.
+          ;; beginning of row
           (vimpulse-move-to-column beg-col)
           (when (< (current-column) beg-col)
-            ;; Prepend overlay with virtual spaces if we are unable to
-            ;; move directly to the first column.
+            ;; prepend overlay with virtual spaces if we are unable to
+            ;; move directly to the first column
             (setq bstring
                   (propertize
                    (make-string
@@ -612,11 +612,11 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                    (or (get-text-property (1- (point)) 'face)
                        'default))))
           (setq row-beg (point))
-          ;; End of row.
+          ;; end of row
           (vimpulse-move-to-column end-col)
           (when (< (current-column) end-col)
-            ;; Append overlay with virtual spaces if we are unable to
-            ;; move directly to the last column.
+            ;; append overlay with virtual spaces if we are unable to
+            ;; move directly to the last column
             (setq astring
                   (propertize
                    (make-string
@@ -624,8 +624,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                         (- end-col beg-col)
                       (- end-col (current-column)))
                     ?\ ) 'face (vimpulse-region-face)))
-            ;; Place cursor on one of the virtual spaces
-            ;; (only works in GNU Emacs).
+            ;; place cursor on one of the virtual spaces
+            ;; (only works in GNU Emacs)
             (if (= opoint row-beg)
                 (put-text-property
                  0 (min (length astring) 1)
@@ -635,20 +635,20 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                'cursor t astring)))
           (setq row-end (min (point) (line-end-position)))
           ;; XEmacs bug: zero-length extents display
-          ;; end-glyph before start-glyph.
+          ;; end-glyph before start-glyph
           (and (featurep 'xemacs)
                bstring astring
                (= row-beg row-end)
                (setq bstring (prog1 astring
                                (setq astring bstring))))
-          ;; Trim old leading overlays.
+          ;; trim old leading overlays
           (while (and old
                       (setq overlay (car old))
                       (< (viper-overlay-start overlay) row-beg)
                       (/= (viper-overlay-end overlay) row-end))
             (vimpulse-delete-overlay overlay)
             (setq old (cdr old)))
-          ;; Reuse an overlay if possible, otherwise create one.
+          ;; reuse an overlay if possible, otherwise create one
           (cond
            ((and old (setq overlay (car old))
                  (or (= (viper-overlay-start overlay) row-beg)
@@ -666,26 +666,26 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
             (viper-overlay-put overlay 'priority 99)
             (setq new (cons overlay new)))))
         (forward-line 1))
-      ;; Trim old trailing overlays.
+      ;; trim old trailing overlays
       (mapc 'vimpulse-delete-overlay old)
       (setq vimpulse-visual-block-overlays (nreverse new)))))
 
 (defun vimpulse-visual-pre-command ()
   "Run before each command in Visual mode."
   (when vimpulse-visual-mode
-    ;; Refresh Visual restore markers and marks.
+    ;; refresh Visual restore markers and marks
     (vimpulse-set-visual-dimensions)
     (cond
-     ;; Movement command: don't expand region.
+     ;; movement command: don't expand region
      ((vimpulse-movement-cmd-p this-command)
       (setq vimpulse-visual-region-expanded nil))
      (t
-      ;; Add whitespace if necessary for making a rectangle.
+      ;; add whitespace if necessary for making a rectangle
       (and (eq vimpulse-visual-mode 'block)
            (vimpulse-visual-block-add-whitespace))
       (vimpulse-visual-expand-region
-       ;; If in Line mode, don't include trailing newline
-       ;; unless the command has real need of it.
+       ;; if in Line mode, don't include trailing newline
+       ;; unless the command has real need of it
        nil (and (eq vimpulse-visual-mode 'line)
                 (not (vimpulse-needs-newline-p this-command))))))))
 
@@ -693,7 +693,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   "Run after each command in Visual mode."
   (cond
    (vimpulse-visual-mode
-    ;; Quitting: exit to vi (command) mode.
+    ;; quitting: exit to vi (command) mode
     (cond
      (quit-flag                         ; C-g
       (vimpulse-visual-mode -1))
@@ -702,7 +702,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
      ((and (not (region-active-p))
            (not (eq vimpulse-visual-mode 'block)))
       (vimpulse-visual-mode -1))
-     ;; Region was expanded, so contract it.
+     ;; region was expanded, so contract it
      (vimpulse-visual-region-expanded
       (when (eq vimpulse-visual-mode 'block)
         (vimpulse-visual-block-cleanup-whitespace))
@@ -733,7 +733,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
               'vimpulse-visual-deactivate-hook)
   (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
 
-;; Advise viper-intercept-ESC-key to exit Visual mode with ESC.
+;; advise viper-intercept-ESC-key to exit Visual mode with ESC
 (defadvice viper-intercept-ESC-key
   (around vimpulse-ESC-exit-visual-mode activate)
   "Exit Visual mode with ESC."
@@ -753,7 +753,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
      (vimpulse-visual-mode
       (setq mode vimpulse-visual-mode)
       (unless (eq mode 'block)
-        ;; Add replaced text to the kill-ring before the current kill.
+        ;; add replaced text to the kill-ring before the current kill
         (setq inserted-text (current-kill 0))
         (setq replaced-text
               (buffer-substring (region-beginning) (region-end)))
@@ -823,7 +823,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
                        viper-window-top)))
     ad-do-it))
 
-;; Block selection disables Transient Mark mode.
+;; block selection disables Transient Mark mode
 (defadvice deactivate-mark (after vimpulse-visual activate)
   "Deactivate Visual Block mode."
   (when (eq vimpulse-visual-mode 'block)
@@ -835,8 +835,8 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
      "Enable Visual mode in vi (command) state."
      (let ((w (posn-window (event-start (ad-get-arg 0)))))
        (cond
-        ;; If Visual mode is enabled in the window clicked in,
-        ;; adjust region afterwards.
+        ;; if Visual mode is enabled in the window clicked in,
+        ;; adjust region afterwards
         ((with-selected-window w
            vimpulse-visual-mode)
          (vimpulse-visual-highlight -1)
@@ -844,7 +844,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
          (when (eq (selected-window) w)
            (vimpulse-visual-contract-region t)
            (vimpulse-visual-highlight)))
-        ;; Otherwise, if in vi (command) state, enable Visual mode.
+        ;; otherwise, if in vi (command) state, enable Visual mode
         ((with-selected-window w
            (eq viper-current-state 'vi-state))
          ad-do-it
@@ -870,7 +870,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
 (defun vimpulse-movement-cmd-p (command)
   "Whether COMMAND is a \"movement\" command.
 That is, whether it is listed in `vimpulse-movement-cmds'."
-  ;; We use `member' rather than `memq' to allow lambdas.
+  ;; we use `member' rather than `memq' to allow lambdas
   (member command vimpulse-movement-cmds))
 
 (defun vimpulse-needs-newline-p (command)
@@ -947,15 +947,15 @@ each line. Extra arguments to FUNC may be passed via ARGS."
     (save-excursion
       (setq beg (or beg (vimpulse-visual-beginning))
             end (or end (vimpulse-visual-end)))
-      ;; Ensure BEG < END.
+      ;; ensure BEG < END
       (setq beg (prog1 (min beg end)
                   (setq end (max beg end))))
-      ;; Calculate columns.
+      ;; calculate columns
       (goto-char end)
       (setq end-col (current-column))
       (goto-char beg)
       (setq beg-col (current-column))
-      ;; Ensure BEG-COL < END-COL.
+      ;; ensure BEG-COL < END-COL
       (when (> beg-col end-col)
         (setq beg-col (prog1 end-col
                         (setq end-col beg-col)))
@@ -963,7 +963,7 @@ each line. Extra arguments to FUNC may be passed via ARGS."
                     (goto-char end)
                     (move-to-column end-col)
                     (point))))
-      ;; Apply FUNC on each line.
+      ;; apply FUNC on each line
       (while (< (point) end)
         (apply func
                (save-excursion
@@ -1176,18 +1176,18 @@ Returns the insertion point."
   (let ((nlines (count-lines upper-left lower-right))
         (col 0))               ; for ?I and ?A, trivial: column is 0
     (when (memq i-com '(?a ?c ?i))
-      ;; For ?i and ?a, choose the left (the right) rectangle column.
+      ;; for ?i and ?a, choose the left (the right) rectangle column
       (let ((beg-col (save-excursion
                        (goto-char upper-left)
                        (current-column)))
             (end-col (save-excursion
                        (goto-char lower-right)
                        (current-column))))
-        ;; Decide if we use the left or right column.
+        ;; decide if we use the left or right column
         (setq col (max 0 (if (memq i-com '(?c ?i))
                              beg-col
                            (1- end-col))))))
-    ;; Save the information.
+    ;; save the information
     (setq vimpulse-visual-insert-coords
           (list mode i-com upper-left col nlines))
     (save-excursion
@@ -1204,7 +1204,7 @@ Returns the insertion point."
   (viper-move-marker-locally 'vimpulse-exit-point (point))
   (viper-change-state-to-vi)
   (when vimpulse-visual-insert-coords
-    ;; Get the saved info about the Visual selection.
+    ;; get the saved info about the Visual selection
     (let ((mode   (nth 0 vimpulse-visual-insert-coords))
           (i-com  (nth 1 vimpulse-visual-insert-coords))
           (pos    (nth 2 vimpulse-visual-insert-coords))
@@ -1215,9 +1215,9 @@ Returns the insertion point."
         (dotimes (i (1- nlines))
           (forward-line 1)
           (let ((cur-col (vimpulse-move-to-column col)))
-            ;; If we are in Block mode, this line, but do not hit the
+            ;; if we are in Block mode, this line, but do not hit the
             ;; correct column, we check if we should convert tabs
-            ;; and/or append spaces.
+            ;; and/or append spaces
             (if (and (eq mode 'block)
                      (or (/= col cur-col) ; wrong column or
                          (eolp)))         ; end of line
@@ -1231,7 +1231,7 @@ Returns the insertion point."
                        (viper-repeat nil)))
               (viper-repeat nil)))))
       (setq vimpulse-visual-insert-coords nil)))
-  ;; Update undo-list.
+  ;; update undo-list
   (vimpulse-end-undo-step))
 
 (defalias 'viper-exit-insert-state 'vimpulse-exit-insert-state)
@@ -1255,7 +1255,7 @@ Returns the insertion point."
 (define-key vimpulse-visual-basic-map "U" 'vimpulse-upcase)
 (define-key vimpulse-visual-basic-map "u" 'vimpulse-downcase)
 (define-key vimpulse-visual-basic-map ":" 'vimpulse-visual-ex)
-;; Keys that have no effect in Visual mode.
+;; keys that have no effect in Visual mode
 (vimpulse-visual-remap 'viper-repeat 'viper-nil)
 
 (provide 'vimpulse-visual-mode)

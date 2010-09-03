@@ -74,8 +74,8 @@ up in vi keymaps. If REPLACE is non-nil, may overwrite bindings
 in MAP."
   (vimpulse-add-vi-bindings map vimpulse-viper-movement-cmds replace))
 
-;; The default for this function is to replace rather than augment,
-;; as core navigation should be present everywhere.
+;; the default for this function is to replace rather than augment,
+;; as core navigation should be present everywhere
 (defun vimpulse-add-core-movement-cmds (map &optional augment)
   "Add \"core\" movement commands to MAP, forcefully.
 The commands are taken from `vimpulse-core-movement-cmds'.
@@ -103,7 +103,7 @@ If REPLACE is non-nil, may overwrite bindings in MAP."
 The commands are taken from `vimpulse-viper-movement-cmds'.
 If REPLACE is non-nil, may overwrite bindings in MAP."
   (let ((cmds vimpulse-viper-movement-cmds))
-    ;; Remove core movement commands.
+    ;; remove core movement commands
     (dolist (cmd vimpulse-core-movement-cmds)
       (setq cmds (delq cmd cmds)))
     (vimpulse-inhibit-cmds map cmds replace)))
@@ -177,10 +177,10 @@ in vi state and bind them to TO in KEYMAP."
   "Return a copy of VECTOR truncated to LENGTH.
 If LENGTH is negative, skip last elements of VECTOR.
 If OFFSET is specified, skip first elements of VECTOR."
-  ;; If LENGTH is too large, trim it.
+  ;; if LENGTH is too large, trim it
   (when (> length (length vector))
     (setq length (length vector)))
-  ;; If LENGTH is negative, convert it to the positive equivalent.
+  ;; if LENGTH is negative, convert it to the positive equivalent
   (when (< length 0)
     (setq length (max 0 (+ (length vector) length))))
   (if offset
@@ -201,12 +201,12 @@ Otherwise output a vector."
          (key (aref temp-sequence offset))
          (length (length temp-sequence))
          temp-string)
-    ;; If XEmacs, get rid of the event object type.
+    ;; if XEmacs, get rid of the event object type
     (and (featurep 'xemacs) (eventp key)
          (setq key (event-to-character key nil t)))
-    ;; Any keys bound to `universal-argument', `digit-argument' or
+    ;; any keys bound to `universal-argument', `digit-argument' or
     ;; `negative-argument' or bound in `universal-argument-map'
-    ;; are considered prefix keys.
+    ;; are considered prefix keys
     (while (and (or (memq (key-binding (vector key) t)
                           '(universal-argument
                             digit-argument
@@ -219,8 +219,8 @@ Otherwise output a vector."
       (and (featurep 'xemacs) (eventp key)
            (setq key (event-to-character key nil t))))
     (if (and string
-             ;; String conversion is impossible if the vector
-             ;; contains a non-numerical element.
+             ;; string conversion is impossible if the vector
+             ;; contains a non-numerical element
              (not (memq nil (mapcar 'integerp (append temp-sequence nil)))))
         (concat (vimpulse-truncate temp-sequence length offset))
       (vimpulse-truncate temp-sequence length offset))))
@@ -245,7 +245,7 @@ If SEARCH-VECTORS is t, search inside vector elements."
    (t
     (vimpulse-memq-recursive elt (cdr tree) search-vectors))))
 
-;; GNU Emacs 22 lacks `characterp'.
+;; GNU Emacs 22 lacks `characterp'
 (unless (fboundp 'characterp)
   (defalias 'characterp 'integerp))
 
@@ -312,7 +312,7 @@ Returns the new position."
       (when (looking-at regexp)
         (goto-char (match-end 0))))))
 
-;; XEmacs only has `looking-at'.
+;; XEmacs only has `looking-at'
 (unless (fboundp 'looking-back)
   (defun looking-back (regexp &optional limit greedy)
     "Return t if text before point matches regular expression REGEXP."
@@ -352,7 +352,7 @@ Returns the new position."
 
 ;;; Region
 
-;; GNU Emacs 22 lacks `region-active-p'.
+;; GNU Emacs 22 lacks `region-active-p'
 (unless (fboundp 'region-active-p)
   (defun region-active-p ()
     (and transient-mark-mode mark-active)))
@@ -443,7 +443,7 @@ BEG and END. Returns nil if region is unchanged."
     (defalias 'vimpulse-overlays-at 'overlays-at))))
 
 ;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
-;; and REAR-ADVANCE properly in XEmacs.
+;; and REAR-ADVANCE properly in XEmacs
 (defun vimpulse-make-overlay
   (beg end &optional buffer front-advance rear-advance)
   "Create a new overlay with range BEG to END in BUFFER.
@@ -525,7 +525,7 @@ single action."
     (setq vimpulse-undo-list-pointer buffer-undo-list)
     ;; Continually refresh the undo entries for the step,
     ;; ensuring proper synchronization between `buffer-undo-list'
-    ;; and `buffer-undo-tree'.
+    ;; and `buffer-undo-tree'
     (add-hook 'post-command-hook 'vimpulse-refresh-undo-step nil t)))
 
 (defun vimpulse-end-undo-step ()
@@ -602,7 +602,7 @@ If NORMALIZE is non-nil, normalize the range with
         (vimpulse-normalize-motion-range range type)
       (cons type range))))
 
-;; This implements section 1 of motion.txt (Vim Reference Manual).
+;; This implements section 1 of motion.txt (Vim Reference Manual)
 (defun vimpulse-normalize-motion-range (range &optional type)
   "Normalize the beginning and end of a motion range (TYPE FROM TO).
 Returns the normalized range.
@@ -628,9 +628,9 @@ See also `vimpulse-block-range', `vimpulse-line-range',
      (t
       (vimpulse-exclusive-range from to t)))))
 
-;; Ranges returned by these functions have the form (TYPE BEG END) where TYPE
-;; is one of `inclusive', `exclusive', `line' or `block' and BEG and END are
-;; the buffer positions.
+;; Ranges returned by these functions have the form (TYPE BEG END)
+;; where TYPE is one of `inclusive', `exclusive', `line' or `block'
+;; and BEG and END are the buffer positions.
 (defun vimpulse-block-range (from to)
   "Return a blockwise motion range delimited by FROM and TO.
 Like `vimpulse-inclusive-range', but for rectangles:

@@ -96,9 +96,9 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 
 (when (featurep 'xemacs)
   ;; XEmacs shows the tag before the modes, so truncate it to a
-  ;; constant length to avoid excessive flickering.
+  ;; constant length to avoid excessive flickering
   (setq vimpulse-operator-state-id "<OP>") ; 4 characters
-  ;; XEmacs lacks a horizontal bar cursor option.
+  ;; XEmacs lacks a horizontal bar cursor option
   (setq vimpulse-want-operator-pending-cursor nil))
 
 (defun vimpulse-set-operator-cursor-type ()
@@ -115,13 +115,14 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
   (unless (featurep 'xemacs)
     (condition-case nil
         (let (height)
+          ;; make `window-line-height' reliable
           (redisplay)
           (setq height (window-line-height))
           (setq height (+ (nth 0 height) (nth 3 height)))
-          ;; Cut cursor height in half.
+          ;; cut cursor height in half
           (setq height (/ height 2))
           (setq cursor-type (cons 'hbar height))
-          ;; Ensure the cursor is redisplayed.
+          ;; ensure the cursor is redisplayed
           (force-window-update (selected-window))
           (redisplay))
       (error nil))))
@@ -134,7 +135,7 @@ This can be used in the `interactive' form of a command:
 
     (defun foo (beg end)
       (interactive (vimpulse-range))
-      ;; Do foo from BEG to END
+      ;; do foo from BEG to END
       )
 
 When such a command is called interactively, a motion is read from
@@ -165,13 +166,13 @@ from the keyboard. This has no effect in Visual mode."
           vimpulse-this-motion nil
           vimpulse-this-operator this-command)
     (cond
-     ;; If text is selected, use selection boundaries as range.
+     ;; if text is selected, use selection boundaries as range
      ((or vimpulse-visual-mode (region-active-p))
       (when (and whole-lines
                  (not (eq vimpulse-visual-mode 'line)))
         (vimpulse-visual-activate 'line)
         (vimpulse-set-visual-dimensions))
-      ;; Determine range and go to beginning.
+      ;; determine range and go to beginning
       (setq range (vimpulse-visual-range))
       (setq vimpulse-this-motion-type (vimpulse-motion-type range)
             range (vimpulse-motion-range range))
@@ -187,7 +188,7 @@ from the keyboard. This has no effect in Visual mode."
              (vimpulse-range-end range))
           (goto-char (vimpulse-range-beginning range))
           (set-mark  (vimpulse-range-end range)))
-        ;; Disable selection.
+        ;; disable selection
         (if (and vimpulse-visual-mode
                  (fboundp 'vimpulse-visual-mode))
             (vimpulse-visual-mode -1)
@@ -216,10 +217,10 @@ from the keyboard. This has no effect in Visual mode."
                  (when (assq vimpulse-this-motion type-alist)
                    (setq type (cdr (assq vimpulse-this-motion
                                          type-alist))))))
-        ;; Motion reading done: restore the echo area.
+        ;; motion reading done: restore the echo area
         (if oldmsg (message "%s" oldmsg)
           (message nil))
-        ;; With doubled operator ("gqgq" or "gqq"), set motion to current line.
+        ;; with doubled operator ("gqgq" or "gqq"), set motion to current line
         (if (or (eq vimpulse-this-motion vimpulse-this-operator)
                 (member (vimpulse-strip-prefix (this-command-keys) t)
                         '("g??" "gUU" "gqq" "guu" "gww" "g~~")))
@@ -227,19 +228,19 @@ from the keyboard. This has no effect in Visual mode."
           (setq vimpulse-this-motion
                 (vimpulse-operator-remapping vimpulse-this-motion))))
       (cond
-       ;; Quit if motion reading failed.
+       ;; quit if motion reading failed
        ((or (not vimpulse-this-motion)
             (memq vimpulse-this-motion '(viper-nil keyboard-quit))
             (vimpulse-operator-cmd-p vimpulse-this-motion))
         (save-excursion (viper-change-state-to-vi))
         (setq quit-flag t))
        (t
-        ;; Multiply operator count and motion count together.
+        ;; multiply operator count and motion count together
         (when (or current-prefix-arg vimpulse-this-count)
           (setq vimpulse-this-count
                 (* (prefix-numeric-value current-prefix-arg)
                    (prefix-numeric-value vimpulse-this-count))))
-        ;; Determine type to use for type conversion.
+        ;; determine type to use for type conversion
         (when (and (eq type 'inclusive)
                    (memq (vimpulse-motion-type vimpulse-this-motion)
                          '(line inclusive)))
@@ -254,7 +255,7 @@ from the keyboard. This has no effect in Visual mode."
                      (looking-back "^[ \f\t\v]*"))
             (back-to-indentation)))
         (save-excursion (viper-change-state-to-vi))))))
-    ;; Set up repeat.
+    ;; set up repeat
     (unless no-repeat
       (setq vimpulse-last-operator vimpulse-this-operator
             vimpulse-last-motion vimpulse-this-motion
@@ -272,7 +273,7 @@ TYPE may specify the motion type for normalizing the resulting
 range. If REFRESH is t, this function changes point,
 `viper-com-point' and `vimpulse-this-motion-type'."
   (cond
-   ;; REFRESH is nil, so bind global variables.
+   ;; REFRESH is nil, so bind global variables
    ((not refresh)
     (let (viper-com-point vimpulse-this-motion-type)
       (save-excursion
@@ -290,21 +291,21 @@ range. If REFRESH is t, this function changes point,
       (setq vimpulse-this-motion-type
             (or type motion-type 'exclusive))
       (viper-move-marker-locally 'viper-com-point (point))
-      ;; Enable Transient Mark mode so we can reliably
-      ;; detect selection commands.
+      ;; enable Transient Mark mode so we can reliably
+      ;; detect selection commands
       (vimpulse-transient-mark)
       ;; Whatever happens next, we must restore Transient Mark mode
       ;; to its original state afterwards!
       (unwind-protect
           ;; `vimpulse-visual-vars-alist' is used for restoring,
-          ;; so protect it.
+          ;; so protect it
           (let (vimpulse-visual-vars-alist)
             (if (commandp motion)
                 (call-interactively motion)
               (funcall motion count))
             (cond
-             ;; If text has been selected (i.e., it's a text object),
-             ;; return the selection.
+             ;; if text has been selected (i.e., it's a text object),
+             ;; return the selection
              ((and (not already-selection)
                    (or vimpulse-visual-mode (region-active-p)))
               (setq range (vimpulse-visual-range))
@@ -314,13 +315,13 @@ range. If REFRESH is t, this function changes point,
                ((and type (not (eq (car range) type)))
                 (setcar range type)
                 (setq range (vimpulse-normalize-motion-range range))))
-              ;; Deactivate Visual mode/region.
+              ;; deactivate Visual mode/region
               (if (and vimpulse-visual-mode
                        (fboundp 'vimpulse-visual-mode))
                   (vimpulse-visual-mode -1)
                 (vimpulse-deactivate-region)))
-             ;; Otherwise, range is defined by `viper-com-point'
-             ;; and point (Viper type motion).
+             ;; otherwise, range is defined by `viper-com-point'
+             ;; and point (Viper type motion)
              (t
               (setq range (vimpulse-make-motion-range
                            (marker-position viper-com-point)
@@ -341,16 +342,16 @@ of CMD. Both COUNT and CMD may be nil."
         (echo-keystrokes 0.01)
         char digit keys cmd count)
     (while (progn
-             ;; Read a keypress, respecting Emacs version,
-             ;; and convert it to ASCII representation.
+             ;; read a keypress, respecting Emacs version,
+             ;; and convert it to ASCII representation
              (if (featurep 'xemacs)
                  (setq char (event-to-character
                              (next-command-event) nil t))
                (setq char (read-event))
                (when (symbolp char)
                  (setq char (or (get char 'ascii-character) char))))
-             ;; This trick from simple.el's `digit-argument'
-             ;; converts keystrokes like C-0 and C-M-1 to digits.
+             ;; this trick from simple.el's `digit-argument'
+             ;; converts keystrokes like C-0 and C-M-1 to digits
              (if (integerp char)
                  (setq digit (- (logand char ?\177) ?0))
                (setq digit nil))
@@ -360,39 +361,39 @@ of CMD. Both COUNT and CMD may be nil."
              (if no-remap              ; XEmacs doesn't have remapping
                  (setq cmd (key-binding keys t))
                (setq cmd (key-binding keys t t)))
-             ;; This `cond' form determines whether
-             ;; the reading loop will continue.
+             ;; this `cond' form determines whether
+             ;; the reading loop will continue
              (cond
-              ;; If calling itself ("cc"), return current command.
+              ;; if calling itself ("cc"), return current command
               ((eq (vimpulse-strip-prefix
                     (vconcat (this-command-keys))) keys)
                (setq cmd this-command)
                nil)
-              ;; If CMD is a keymap, we need to read more.
+              ;; if CMD is a keymap, we need to read more
               ((keymapp cmd)
                t)
-              ;; Numeric prefix argument.
+              ;; numeric prefix argument
               ((or (memq cmd '(viper-digit-argument digit-argument))
-                   ;; The 0 key runs `viper-beginning-of-line',
-                   ;; so ignore it unless preceded by other digits.
+                   ;; the 0 key runs `viper-beginning-of-line',
+                   ;; so ignore it unless preceded by other digits
                    (and (eq (length keys) 1)
                         (not (keymapp cmd))
                         count
-                        ;; Probably overkill: only 0 bound this way.
+                        ;; probably overkill: only 0 bound this way
                         (memq digit '(0 1 2 3 4 5 6 7 8 9))))
-               ;; Store digits in a string, which is easily converted
-               ;; to a number afterwards.
+               ;; store digits in a string, which is easily converted
+               ;; to a number afterwards
                (setq count (concat (or count "")
                                    (number-to-string digit)))
                t)
-              ;; Catch middle digits like "da2w".
+              ;; catch middle digits like "da2w"
               ((and (not cmd)
                     (> (length keys) 1)
                     (memq digit '(0 1 2 3 4 5 6 7 8 9)))
                (setq count (concat (or count "")
                                    (number-to-string digit)))
-               ;; Remove the digit from the key sequence
-               ;; so we can see if the previous one goes anywhere.
+               ;; remove the digit from the key sequence
+               ;; so we can see if the previous one goes anywhere
                (setq keys (vimpulse-truncate keys -1))
                (setq cmd (key-binding keys))
                t)
@@ -401,23 +402,23 @@ of CMD. Both COUNT and CMD may be nil."
               ((eq cmd 'negative-argument)
                (unless count
                  (setq count "-")))
-              ;; User pressed C-g, so return nil for CMD.
+              ;; user pressed C-g, so return nil for CMD
               ((eq cmd 'keyboard-quit)
                (setq cmd nil))
-              ;; We are done, exit the `while' loop.
+              ;; we are done, exit the `while' loop
               (t
                nil))))
-    ;; Determine COUNT.
+    ;; determine COUNT
     (when (stringp count)
       (if (string= count "-")
           (setq count nil)
         (setq count (string-to-number count))))
-    ;; Return command description.
+    ;; return command description
     (list cmd count)))
 
 ;;; Repeat an operator/motion combination
 
-;; This is used in `viper-d-com' (read by `viper-repeat').
+;; this is used in `viper-d-com' (read by `viper-repeat')
 (defun vimpulse-operator-repeat (arg)
   "Repeat an operator-motion combination.
 ARG is a list of the form (COUNT . COM).
@@ -465,7 +466,7 @@ TYPE is the motion type."
     (cond
      ((eq vimpulse-this-motion-type 'block)
       (setq killed-rectangle (extract-rectangle beg end))
-      ;; Associate the rectangle with the last entry in the kill-ring.
+      ;; associate the rectangle with the last entry in the kill-ring
       (unless kill-ring
         (copy-region-as-kill beg end))
       (put 'killed-rectangle 'previous-kill (current-kill 0))
@@ -497,7 +498,7 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
         (delete-region beg end))))
      ((eq vimpulse-this-motion-type 'block)
       (let ((orig (make-marker)))
-        ;; Associate the rectangle with the last entry in the kill-ring
+        ;; associate the rectangle with the last entry in the kill-ring
         (viper-move-marker-locally
          'orig (vimpulse-visual-block-position 'upper-left beg end))
         (unless kill-ring
@@ -677,10 +678,10 @@ ARGS is passed to `vimpulse-range'."
   (cond
    ((eq viper-current-state 'operator-state)
     ;; ?r is Viper's "dummy operator", associated with
-    ;; `viper-exec-dummy' in `viper-exec-array'.
+    ;; `viper-exec-dummy' in `viper-exec-array'
     (setq com ?r)
     ad-do-it
-    ;; While repeating, put needed values in `viper-d-com'.
+    ;; while repeating, put needed values in `viper-d-com'
     (unless (or (eq this-command 'viper-repeat)
                 (eq viper-intermediate-command 'viper-repeat))
       (unless viper-d-com
@@ -698,8 +699,8 @@ ARGS is passed to `vimpulse-range'."
    (t
     ad-do-it)))
 
-;; This separates the operator-pending part of a Viper motion from the
-;; rest, defining a new command called vimpulse-operator-MOTION.
+;; this separates the operator-pending part of a Viper motion from the
+;; rest, defining a new command called vimpulse-operator-MOTION
 (defmacro vimpulse-operator-map-define
   (viper-motion &optional type &rest body)
   "Define a new command for the Operator-Pending part of VIPER-MOTION.
@@ -744,7 +745,7 @@ type TYPE. A custom function body may be specified via BODY."
      `(quote ,motion-name)))
 
 ;; d%: when point is before the parenthetical expression,
-;; include it in the resulting range.
+;; include it in the resulting range
 (vimpulse-operator-map-define viper-paren-match 'inclusive
   (interactive "P")
   (let ((orig (point)))
@@ -779,7 +780,7 @@ type TYPE. A custom function body may be specified via BODY."
                             arg
                           (cons arg com)))))
 
-;; These motions need wrapper functions to repeat correctly.
+;; these motions need wrapper functions to repeat correctly
 (vimpulse-operator-map-define viper-end-of-Word 'inclusive)
 (vimpulse-operator-map-define viper-end-of-word 'inclusive)
 (vimpulse-operator-map-define viper-find-char-backward 'exclusive)
@@ -790,7 +791,7 @@ type TYPE. A custom function body may be specified via BODY."
 (vimpulse-operator-map-define viper-search-backward 'exclusive)
 (vimpulse-operator-map-define viper-search-forward 'exclusive)
 
-;; Set up motion types for remaining Viper motions.
+;; set up motion types for remaining Viper motions
 (put 'vimpulse-goto-first-line 'motion-type 'line)
 (put 'vimpulse-goto-mark-and-skip-white 'motion-type 'line)
 (put 'vimpulse-end-of-visual-line 'motion-type 'inclusive)

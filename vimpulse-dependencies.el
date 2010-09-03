@@ -7,7 +7,7 @@
   (interactive)
   (message "Vimpulse version is %s" vimpulse-version))
 
-;; Load Viper.
+;; load Viper
 (defvar viper-mode t)
 (defvar viper-inhibit-startup-message t)
 (defvar viper-expert-level 5)
@@ -15,7 +15,7 @@
 (defvar viper-search-wrap-around t)
 (require 'viper)
 
-;; Load undo-tree.el if available, with redo.el as fall-back.
+;; load undo-tree.el if available, with redo.el as fall-back
 (unless (featurep 'undo-tree)
   (condition-case nil
       (require 'undo-tree)
@@ -116,8 +116,8 @@ Off by default."
   :type  'integer
   :group 'vimpulse)
 
-;; The secrets discovered from untold diggings among
-;; the ruins of Customize code.
+;; the secrets discovered from untold diggings among
+;; the ruins of Customize code
 (defun vimpulse-custom-value-p (symbol)
   "Non-nil if SYMBOL has a customized value."
   (or (get symbol 'customized-value)
@@ -149,16 +149,16 @@ Off by default."
 SYM is unquoted. Returns VAL."
   `(progn
      (cond
-      ;; Customized value: just set custom standard value.
+      ;; customized value: just set custom standard value
       ((vimpulse-custom-value-p ',sym)
        (vimpulse-setq-custom-default ,sym ,val))
-      ;; Customized variable: set custom and regular values.
+      ;; customized variable: set custom and regular values
       ((custom-variable-p ',sym)
        (vimpulse-setq-custom-default ,sym ,val)
        (vimpulse-setq-custom ,sym ,val)
        (setq-default ,sym ,val)
        (setq ,sym ,val))
-      ;; Regular variable; set default and local values.
+      ;; regular variable; set default and local values
       (t
        (setq-default ,sym ,val)
        (setq ,sym ,val)))
@@ -438,24 +438,24 @@ The topmost modes have the highest priority.")
 
 (defun vimpulse-configure-variables ()
   "Set various variables, unless customized."
-  ;; Can backspace past start of insert/line.
+  ;; can backspace past start of insert/line
   (vimpulse-setq viper-ex-style-editing nil)
-  ;; Don't create new frame for manpages.
+  ;; don't create new frame for manpages
   (vimpulse-setq woman-use-own-frame nil)
-  ;; Don't prompt upon K key (manpage display).
+  ;; don't prompt upon K key (manpage display)
   (vimpulse-setq woman-use-topic-at-point t)
-  ;; No start-up message.
+  ;; no start-up message
   (vimpulse-setq viper-inhibit-startup-message t)
-  ;; Viper expert level 5.
+  ;; Viper expert level 5
   (vimpulse-setq viper-expert-level 5)
-  ;; Make cursor color consistent.
+  ;; make cursor color consistent
   (vimpulse-setq viper-insert-state-cursor-color
                  viper-vi-state-cursor-color)
-  ;; Cursor moves backwards when exiting Insert state.
+  ;; cursor moves backwards when exiting Insert state
   (vimpulse-setq viper-ESC-moves-cursor-back t)
-  ;; Not in Vim: C-h is indispensable in Emacs.
+  ;; not in Vim: C-h is indispensable in Emacs
   (vimpulse-setq viper-want-ctl-h-help t)
-  ;; Refresh Viper settings.
+  ;; refresh Viper settings
   (viper-change-state-to-vi))
 
 (if (and (boundp 'after-init-time) after-init-time)

@@ -92,8 +92,7 @@ non-nil, advice DEF by means of `vimpulse-advice-command'."
     (and (> (length temp-sequence) 1)
          (eq (aref temp-sequence (1- (length temp-sequence))) t)
          (setq temp-sequence (vimpulse-truncate temp-sequence -1)))
-    ;; The following is from
-    ;; http://tracker.xemacs.org/XEmacs/its/msg2021.
+    ;; from http://tracker.xemacs.org/XEmacs/its/msg2021
     (unless (keymapp submap)
       (setq submap (make-sparse-keymap)))
     (when (fboundp 'set-keymap-default-binding)
@@ -133,19 +132,19 @@ via the `last-command-event' variable and the `read-char'
 functions, respectively."
   (setq vimpulse-last-command-event nil)
   (let ((key-sequence (vconcat (this-command-keys))))
-    ;; If XEmacs, get rid of the event object type.
+    ;; if XEmacs, get rid of the event object type
     (when (featurep 'xemacs)
       (setq key-sequence (events-to-keys key-sequence)))
     (while (and (> (length key-sequence) 1)
                 (vimpulse-careful-check key-sequence))
-      ;; Unread last event.
+      ;; unread last event
       (setq vimpulse-last-command-event
             (elt key-sequence (1- (length key-sequence))))
       (when (featurep 'xemacs)
         (setq vimpulse-last-command-event
               (character-to-event vimpulse-last-command-event)))
       (add-to-list 'unread-command-events vimpulse-last-command-event)
-      ;; Change command loop variables
+      ;; change command loop variables
       (setq vimpulse-last-command-event
             (elt key-sequence (1- (1- (length key-sequence)))))
       (unless (featurep 'xemacs)      ; if XEmacs, do this with advice
@@ -159,7 +158,7 @@ functions, respectively."
 
 ;;; Hook run after each command
 
-;; This merely ensures `vimpulse-last-command-event' is reset.
+;; this merely ensures `vimpulse-last-command-event' is reset
 (defun vimpulse-careful-post-hook ()
   "Erase `vimpulse-last-command-event'."
   (setq vimpulse-last-command-event nil))
@@ -169,9 +168,6 @@ functions, respectively."
 
 ;;; Modal binding functions
 
-;; `vimpulse-make-careful-binding' is general; `vimpulse-map',
-;; `vimpulse-imap', `vimpulse-vmap' and `vimpulse-omap' imitate Vim's
-;; :map, :imap, :vmap and :omap, respectively.
 (defun vimpulse-make-careful-binding
   (keymap key def &optional dont-list define-func)
   "Carefully bind KEY to DEF in KEYMAP.
@@ -208,20 +204,20 @@ only if called in the same state. The functions `vimpulse-map',
                          (read-kbd-macro key t)
                        key))
     (cond
-     ;; nil unbinds the key-sequence.
+     ;; nil unbinds the key-sequence
      ((not def)
       (funcall define-func keymap key-vector def)
       (while (and (> (length key-vector) 1)
                   (not (lookup-key keymap key-vector)))
         (vimpulse-careful-remove key-vector t)
         (setq key-vector (vimpulse-truncate key-vector -1))))
-     ;; `undefined' also unbinds, but less forcefully.
+     ;; `undefined' also unbinds, but less forcefully
      ((eq def 'undefined)
       (if (keymapp (lookup-key keymap key-vector))
           (vimpulse-default-binding keymap key-vector nil t define-func)
         (funcall define-func keymap key-vector def))
       (vimpulse-careful-remove key-vector))
-     ;; Regular binding: convert previous bindings to default bindings.
+     ;; regular binding: convert previous bindings to default bindings
      (t
       (dotimes (i (1- (length key-vector)))
         (setq temp-sequence (vimpulse-truncate key-vector (1+ i)))
@@ -280,7 +276,7 @@ If CAREFUL is non-nil, make a careful binding with
   (let* ((entry (cdr (assq state vimpulse-auxiliary-modes-alist)))
          (aux   (cdr (assq mode (symbol-value entry))))
          (map   (eval (cdr (assq aux vimpulse-state-maps-alist)))))
-    ;; If no auxiliary mode exists, create one.
+    ;; if no auxiliary mode exists, create one
     (unless (keymapp map)
       (setq aux (intern (format "vimpulse-%s-%s" state mode))
             map (intern (format "vimpulse-%s-%s-map" state mode)))
@@ -298,7 +294,7 @@ If CAREFUL is non-nil, make a careful binding with
       (add-to-list 'vimpulse-auxiliary-modes mode)
       (vimpulse-normalize-auxiliary-modes)
       (setq map (eval map)))
-    ;; Define key.
+    ;; define key
     (if careful
         (vimpulse-with-state state
           (vimpulse-make-careful-binding map key def))
@@ -307,6 +303,7 @@ If CAREFUL is non-nil, make a careful binding with
 ;; This modifies the major mode extension keymap, i.e., it's
 ;; a reusable front-end to `viper-modify-major-mode'.
 ;; (By itself, `viper-modify-major-mode' discards the previous keymap.)
+;; Don't use this; use `vimpulse-define-key' instead.
 (defun vimpulse-define-major-key (mode state key def &optional careful)
   "Modally bind KEY to DEF in STATE for major mode MODE.
 STATE is one of `vi-state', `insert-state', `visual-state' or

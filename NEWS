@@ -22,7 +22,6 @@
 ;;    in one place.
 ;;  - For readability and consistency, "Yoda conditions" are
 ;;    universally banned: e.g., (= var 0), not (= 0 var).
-;;  - Furthermore, all "level two" comments (;;) are full sentences.
 ;;
 ;; Version 0.4 [2010-04-26]
 ;;  [vegard_oye at hotmail.com:]
