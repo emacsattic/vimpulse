@@ -220,9 +220,12 @@
 ;; NOTE: if defining a function to use as a fixture, make sure it's
 ;; defined before the tests are run (before the test if using :run t).
 ;;
-;; NOTE 2: a test defined as part of a suite carries with it the
+;; NOTE 2: :setup, :teardown and :fixture are repeated for each test
+;; in the suite, while :wrap is executed once for the whole suite.
+;;
+;; NOTE 3: a test defined as part of a suite carries with it the
 ;; suite's fixtures even when called outside the suite. When the test
-;; is called by a different suite, that suite's fixtures overwrites
+;; is called by a different suite, that suite's fixtures overrides
 ;; the fixtures inherited from the original suite.
 
 ;;; Mocks and stubs
@@ -268,7 +271,9 @@
   (require 'advice))
 
 (eval-and-compile
-  (defvar current-suites nil)
+  (defvar all-suites nil)
+  (defvar all-tests nil)
+  (defvar current-suite nil)
   (defvar test-passed nil)
   (defvar suite-passed nil)
   (defvar deftest-macros nil
@@ -279,12 +284,12 @@
 (defmacro defsuite (suite &rest body)
   "Define a test suite."
   (declare (indent defun))
-  (let* ((parents (and (boundp 'current-suite)
-                       current-suite
-                       (list current-suite)))
+  (let* ((parents (when (and (boundp 'current-suite)
+                             current-suite)
+                    (list current-suite)))
          (current-suite suite)
-         doc form keyword lambda result run
-         suite-fixture suite-setup suite-teardown suite-wrap tests)
+         doc form keyword lambda test-forms run
+         fixture setup teardown wrap tests)
     ;; Collect docstring.
     (when (stringp (car body))
       (setq doc (pop body)))
@@ -299,13 +304,13 @@
             (setq parents (append parents (pop body)))
           (add-to-list 'parents (pop body))))
        ((eq keyword :fixture)
-        (setq suite-fixture (pop body)))
+        (setq fixture (pop body)))
        ((eq keyword :setup)
-        (setq suite-setup (pop body)))
+        (setq setup (pop body)))
        ((eq keyword :teardown)
-        (setq suite-teardown (pop body)))
+        (setq teardown (pop body)))
        ((memq keyword '(:advice :wrap))
-        (setq suite-wrap (pop body)))
+        (setq wrap (pop body)))
        (t
         (pop body))))
     ;; Collect "abbreviated" forms -- that is, test definitions
@@ -316,50 +321,74 @@
         (add-to-list 'tests form))
        ((not (cdr form))
         (add-to-list 'tests (car form)))
-       ((and (symbolp (car form)) (fboundp (car form)))
-        (add-to-list 'result form))
+       ((and (symbolp (car form))
+             (fboundp (car form))
+             (not (test-p (car form))))
+        (add-to-list 'test-forms form))
        (t
-        (add-to-list 'result (append '(deftest) form)))))
-    `(progn
-       ;; Define suite variable.
-       (defvar ,suite ',tests ,doc)
-       ;; Define suite function.
-       (defun ,suite (&optional fixture setup teardown)
-         ,doc
-         (interactive)
-         (let ((current-suites
-                (and (boundp 'current-suites)
-                     current-suites))
-               (current-suite ',suite)
-               (suite-passed t)
-               stubs mocks-alist)
-           (add-to-list 'current-suites ',suite)
-           (dolist (func ,suite)
-             (unless (memq func current-suites)
-               (run-test (lambda ()
-                           (funcall func ',suite-fixture
-                                    ',suite-setup ',suite-teardown))
-                         fixture setup teardown)))
-           (and suite-passed
-                (called-interactively-p 'any)
-                (message "Test suite passed!"))))
-       ;; :wrap function?
-       ,@(when suite-wrap
-           `((defadvice ,suite (around wrap activate)
-               ,@(if (listp suite-wrap)
-                     suite-wrap
-                   `((,suite-wrap ad-do-it))))))
-       ;; Add this suite to other suites?
-       ,@(when parents
-           `((mapc (lambda (suite)
-                     (add-to-suite ',suite suite))
-                   ',parents)))
-       ;; Expand `deftest' calls right now, so that they can pick up
-       ;; on the local value of `current-suite'.
-       ,@(mapcar 'macroexpand result)
-       ;; :run suite.
-       ,@(when run
-           `((,suite))))))
+        (add-to-list 'test-forms (append '(deftest) form)))))
+    ;; Macro expansion: create a `let' binding that test definitions can pick up
+    ;; on, and create the suite function and suite variable
+    `(macrolet ,deftest-macros
+       (let ((current-suite ',suite))
+         (add-to-list 'all-suites ',suite)
+         ;; Add this suite to other suites?
+         ,@(when parents
+             `((mapc (lambda (suite)
+                       (add-to-suite ',suite suite))
+                     ',parents)))
+         (defvar ,suite nil ,doc)
+         (defun ,suite (&rest tests)
+           ,doc
+           (interactive)
+           (let (fail-msg last-msg)
+             (setq tests (or ,suite tests))
+             (dolist (test tests)
+               (setq fail-msg
+                     (with-fixtures ,fixture ,setup ,teardown
+                       (funcall test t)))
+               (unless (eq fail-msg t)
+                 (setq last-msg fail-msg)
+                 (test-message (when (symbolp test) test) ',suite fail-msg)))
+             (when (called-interactively-p)
+               (message "Test suite %s!" (if last-msg "failed" "passed")))
+             ;; Return the last failing test message, or t if all passed.
+             (or last-msg t)))
+         ;; :wrap function?
+         ,@(when wrap
+             `((defadvice ,suite (around wrap activate)
+                 ,@(if (listp wrap)
+                       wrap
+                     `((,wrap ad-do-it))))))
+         ,@test-forms
+         ,@(when run
+             `((,suite)))
+         ',suite))))
+
+(defun empty-suite (&rest tests)
+  "Pseudo-suite for suiteless tests.
+Tests can call themselves via this suite if not associated with
+any other suite."
+  (interactive)
+  (let (fail-msg last-msg)
+    (setq tests (or tests all-tests))
+    (dolist (test tests)
+      (cond
+       ((default-suite test)
+        (setq fail-msg (funcall test))
+        (unless (eq fail-msg t)
+          (setq last-msg fail-msg)))
+       (t
+        (setq fail-msg (funcall test t))
+        (unless (eq fail-msg t)
+          (setq last-msg fail-msg)
+          (test-message (when (symbolp test) test) nil fail-msg)))))
+    (when (called-interactively-p)
+      (message "%s %s!"
+               (if (= (length tests) 1) "Test" "Tests")
+               (if last-msg "failed" "passed")))
+    ;; Return the last failing test message, or t if all passed.
+    (or last-msg t)))
 
 (defun add-to-suite (suite test)
   "Add TEST to SUITE."
@@ -367,49 +396,37 @@
   ;; Suites are basically hooks.
   (add-hook suite test))
 
-(defun run-test (test &optional fixture setup teardown)
-  "Run TEST with fixtures.
-FIXTURE is a one-argument function with which to run TEST;
-SETUP and TEARDOWN are zero-argument functions to run before and
-after. Mocks and stubs are guaranteed to be released when the
-test is done."
-  (with-mocks-and-stubs
-    (unwind-protect
-        (save-excursion
-          (when setup
-            (funcall (if (functionp setup)
-                         setup
-                       `(lambda () ,@setup))))
-          (if fixture
-              (funcall (if (functionp fixture)
-                           fixture
-                         `(lambda () ,@fixture))
-                       test)
-            (funcall test)))
-      (when teardown
-        (funcall (if (functionp teardown)
-                     teardown
-                   `(lambda () ,@teardown)))))))
+(defmacro with-fixtures (fixture setup teardown &rest body)
+  "Run BODY with fixtures.
+FIXTURE is a one-argument function with which to run the contents
+of BODY; SETUP and TEARDOWN are zero-argument functions to run
+before and after. Mocks and stubs are guaranteed to be released."
+  (declare (indent defun))
+  `(let ((fixture ',fixture)
+         (setup ',setup)
+         (teardown ',teardown))
+     (with-mocks-and-stubs
+       (unwind-protect
+           (save-excursion
+             (let (result)
+               (when setup
+                 (funcall setup))
+               (if fixture
+                   (funcall fixture
+                            (lambda ()
+                              (setq result (progn ,@body))))
+                 (setq result (progn ,@body)))
+               result))
+         (when teardown
+           (funcall teardown))))))
 
 ;;; Test macro: `deftest'
 
 (defmacro deftest (test &rest body)
   "Define a test."
   (declare (indent defun))
-  ;; A wee bit of duplication, here. Suites and tests have the same
-  ;; keyword arguments, though the internals differ.
-  (let* ((suites (and (boundp 'current-suite)
-                      current-suite
-                      (list current-suite)))
-         (current-suite (car suites))
-         (suite-fixture (when (boundp 'suite-fixture)
-                          suite-fixture))
-         (suite-setup (when (boundp 'suite-setup)
-                        suite-setup))
-         (suite-teardown (when (boundp 'suite-teardown)
-                           suite-teardown))
-         doc keyword lambda run fixture setup teardown wrap)
-    ;; If TEST is not a name, move it into BODY
+  (let (doc keyword lambda run fixture suites setup teardown wrap)
+    ;; If TEST is not a name (abbreviated form), move it into BODY
     ;; (a nil name creates an anonymous function).
     (unless (symbolp test)
       (setq body (append (list test) body)
@@ -426,7 +443,7 @@ test is done."
       (cond
        ((eq keyword :run)
         (setq run (pop body)))
-       ((eq keyword :suite)
+       ((memq keyword '(:suite :suites))
         (if (listp (car body))
             (setq suites (append suites (pop body)))
           (add-to-list 'suites (pop body))))
@@ -442,62 +459,67 @@ test is done."
         (pop body))))
     ;; Create function body.
     (setq lambda
-          `(lambda (&optional fixture setup teardown)
-             ,@(when doc `(,doc))
+          `(lambda (&optional suite)
+             ,doc
              (interactive)
-             (with-mocks-and-stubs
-               (let ((current-suite (or (and (boundp 'current-suite)
-                                             current-suite)
-                                        ',current-suite))
-                     test-passed)
-                 ;; Run suite fixtures (defaulting to the fixtures of
-                 ;; the parent suite, if any).
-                 (run-test
-                  (lambda ()
-                    ;; Run test fixtures (hard-coded into the test
-                    ;; function).
-                    (run-test (lambda ()
-                                (condition-case err
-                                    (progn
-                                      ,@body
-                                      (setq test-passed t))
-                                  (error (progn
-                                           (setq suite-passed nil)
-                                           (test-message
-                                            ',test
-                                            current-suite
-                                            (error-message-string err))))))
-                              ',fixture
-                              ',setup
-                              ',teardown))
-                  (or fixture ',suite-fixture)
-                  (or setup ',suite-setup)
-                  (or teardown ',suite-teardown))
-                 (when (and test-passed (called-interactively-p 'any))
-                   (message "Test passed!"))))))
-    (if test
+             (let (fail-msg)
+               (setq suite
+                     (or suite
+                         ,@(when test `((default-suite ',test)))
+                         (and (boundp 'current-suite) current-suite)
+                         'empty-suite))
+               (cond
+                ;; SUITE specifies a suite or is nil; call test via suite.
+                ((fboundp suite)
+                 (setq fail-msg (funcall suite ',test)))
+                ;; Non-suite SUITE value (e.g., t); run the test itself.
+                (t
+                 (with-fixtures ,fixture ,setup ,teardown
+                   (condition-case err
+                       (progn ,@body)
+                     (error (prog1 nil
+                              (setq fail-msg
+                                    (error-message-string
+                                     err))))))))
+               (when (called-interactively-p)
+                 (message "Test %s!" (if (eq fail-msg t) "passed" "failed")))
+               ;; Return `fail-msg' if unsuccessful; otherwise return t.
+               (or fail-msg t))))
+    (if (null test)
         `(macrolet ,deftest-macros
-           ,@(when suites
-               `((mapc (lambda (suite)
-                         (add-to-suite suite ',test))
-                       ',suites)))
-           (defun ,test ,@(cdr lambda))
-           ,@(when wrap
-               `((defadvice ,test (around wrap activate)
-                   ,@(if (listp wrap)
-                         wrap
-                       (list wrap)))))
+           (add-to-list 'all-tests ,lambda)
+           (dolist (suite ',suites)
+             (add-to-suite suite ,lambda))
+           (when (and (boundp 'current-suite) current-suite)
+             (add-to-suite current-suite ,lambda))
+           ,lambda
            ,@(when run
-               `((,test))))
-      ;; If nil is passed for TEST, define an anonymous function.
-      ;; This is useful for "abbreviated" suite format.
+               `((funcall ,lambda))))
       `(macrolet ,deftest-macros
-         ,@(when suites
-             `((mapc (lambda (suite)
-                       (add-to-suite suite ,lambda))
-                     ',suites)))
+         (add-to-list 'all-tests ',test)
+         (dolist (suite ',suites)
+           (add-to-suite suite ',test))
+         (when (and (boundp 'current-suite) current-suite)
+           (put ',test 'suite current-suite)
+           (add-to-suite current-suite ',test))
+         (defun ,test ,@(cdr lambda))
+         ,@(when wrap
+             `((defadvice ,test (around wrap activate)
+                 ,@(if (listp wrap)
+                       wrap
+                     (list wrap)))))
          ,@(when run
-             `((funcall ,lambda)))))))
+             `((,test)))
+         ',test))))
+
+(defun test-p (object)
+  "Return non-nil if OBJECT is a test."
+  (member object all-tests))
+
+(defun default-suite (test)
+  "Return the default suite of TEST."
+  (when (symbolp test)
+    (get test 'suite)))
 
 ;; Currently, this produces a warning. Could it produce linkified
 ;; text in a separate buffer instead? (`with-output-to-temp-buffer')
@@ -623,7 +645,8 @@ is specified."
        ;; Add to `deftest-macros' for good measure.
        (eval-and-compile
          (add-to-list 'deftest-macros
-                      '(,name (,@args &rest ,body-var) ,result))))))
+                      '(,name (,@args &rest ,body-var) ,result)))
+       ',name)))
 
 ;; assert { 2.0 }-like display of arguments and their evaluated
 ;; values. Is this sufficient, or should I use `macrolet' to remap
@@ -1013,7 +1036,7 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t))
      ("(\\(assert\\(-[^ ]+\\)*\\)\\>" 1 font-lock-warning-face)
-     ("(\\(with\\(out\\)?-\\(stubs\\|mocks\\|mocks-and-stubs\\|stubs-and-mocks\\)\\)\\>"
+     ("(\\(with\\(out\\)?-\\(fixtures\\|stubs\\|mocks\\|mocks-and-stubs\\|stubs-and-mocks\\)\\)\\>"
       1 font-lock-keyword-face))))
 
 ;;;; Okay, I'm done! Now on to test Vimpulse.
