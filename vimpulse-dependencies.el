@@ -162,8 +162,8 @@ SYM is unquoted. Returns VAL."
       (t
        (setq-default ,sym ,val)
        (setq ,sym ,val)))
-     ,(when body
-         `(vimpulse-setq ,@body))))
+     ,@(when body
+         `((vimpulse-setq ,@body)))))
 
 ;;; Declare and/or initialize variables
 
