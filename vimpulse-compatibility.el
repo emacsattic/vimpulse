@@ -117,6 +117,17 @@ Searches for regular expression if `viper-re-search' is t."
       (vimpulse-flash-search-pattern t))
     (setq vimpulse-this-motion 'viper-search-next)))
 
+(put 'vimpulse-search-backward 'function-documentation
+     (format "Search backward for user-entered text.
+Searches for regular expression if `viper-re-search' is t.
+
+%s" (if (and (fboundp 'isearch-forward)
+             (documentation 'isearch-forward))
+        (format "Below is the documentation string for `isearch-forward',
+which lists available keys:
+
+%s" (documentation 'isearch-forward)))))
+
 (defun vimpulse-search-forward (arg)
   "Search forward for user-entered text.
 Searches for regular expression if `viper-re-search' is t."
@@ -144,6 +155,17 @@ Searches for regular expression if `viper-re-search' is t."
     (unless (string= isearch-string "")
       (vimpulse-flash-search-pattern t))
     (setq vimpulse-this-motion 'viper-search-next)))
+
+(put 'vimpulse-search-forward 'function-documentation
+     (format "Search forward for user-entered text.
+Searches for regular expression if `viper-re-search' is t.
+
+%s" (if (and (fboundp 'isearch-forward)
+             (documentation 'isearch-forward))
+        (format "Below is the documentation string for `isearch-forward',
+which lists available keys:
+
+%s" (documentation 'isearch-forward)))))
 
 (defun vimpulse-flash-search-pattern (&optional only-current)
   "Flash search matches for duration of `vimpulse-flash-delay'."

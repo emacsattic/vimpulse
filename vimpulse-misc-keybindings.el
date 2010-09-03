@@ -53,6 +53,9 @@
 (define-key viper-vi-basic-map ">" 'vimpulse-shift-right)
 (define-key viper-vi-basic-map "~" 'vimpulse-invert-char)
 (define-key viper-vi-basic-map "\"" 'vimpulse-read-register)
+(define-key viper-vi-basic-map "/" 'vimpulse-search-forward)
+(define-key viper-vi-basic-map "?" 'vimpulse-search-backward)
+(define-key viper-vi-kbd-map "/" nil)
 
 ;; Visual bindings
 (define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-char)
