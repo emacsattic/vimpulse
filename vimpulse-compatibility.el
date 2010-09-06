@@ -171,6 +171,7 @@ which lists available keys:
   "Flash search matches for duration of `vimpulse-flash-delay'."
   (let ((lazy-highlight-initial-delay 0)
         (isearch-search-fun-function 'vimpulse-search-fun-function)
+        (isearch-case-fold-search case-fold-search)
         (disable (lambda (&optional arg) (vimpulse-flash-hook t))))
     (when vimpulse-flash-timer
       (if (fboundp 'disable-timeout)

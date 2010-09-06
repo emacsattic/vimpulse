@@ -974,13 +974,8 @@ docstring. The variable becomes buffer-local whenever set.")
         ;; smartcase searching: upper-case chars disable case folding
         (when search-upper-case
           (setq case-fold-search
-                (and case-fold-search
-                     (isearch-no-upper-case-p
-                      viper-s-string viper-re-search))))
-        (and search-upper-case
-             (isearch-no-upper-case-p
-              viper-s-string viper-re-search)
-             viper-case-fold-search)
+                (isearch-no-upper-case-p
+                 viper-s-string viper-re-search)))
         (if forward
             (condition-case nil
                 (progn

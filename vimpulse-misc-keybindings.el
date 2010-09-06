@@ -389,10 +389,10 @@ Equivalent to Vim's C-w prefix.")
 
 (defun vimpulse-search-string (&optional pos thing backward regexp)
   "Find something to search for near POS or point.
- THING is a `thing-at-point', default `symbol'.
- BACKWARD, if t, specifies reverse direction.
- REGEXP, if t, means the string is `regexp-quote'd.
- Returns the empty string if nothing is found."
+THING is a `thing-at-point', default `symbol'.
+BACKWARD, if t, specifies reverse direction.
+REGEXP, if t, means the string is `regexp-quote'd.
+Returns the empty string if nothing is found."
   (save-excursion
     (setq pos (or pos (point))
           thing (or thing 'symbol))
@@ -413,12 +413,12 @@ Equivalent to Vim's C-w prefix.")
 
 (defun vimpulse-search-for-symbol (&optional backward pos search)
   "Search forwards or backwards for the symbol under point.
- If BACKWARD is t, search in the reverse direction.
- SEARCH is a regular expression to use for searching instead of
- the symbol under point; it is wrapped in \"\\\\_<\" and \"\\\\_>\".
- POS specifies an alternative position to search from. Note that
- if POS is specified and at the beginning of a match, that match
- is highlighted rather than skipped past."
+If BACKWARD is t, search in the reverse direction.
+SEARCH is a regular expression to use for searching instead of
+the symbol under point; it is wrapped in \"\\\\_<\" and \"\\\\_>\".
+POS specifies an alternative position to search from. Note that
+if POS is specified and at the beginning of a match, that match
+is highlighted rather than skipped past."
   (setq search (or search (vimpulse-search-string
                            (point) 'symbol backward t)))
   (cond
@@ -446,11 +446,25 @@ Equivalent to Vim's C-w prefix.")
 
 (defun vimpulse-search-forward-for-symbol-at-point ()
   (interactive)
-  (vimpulse-search-for-symbol))
+  (cond
+   ((and (stringp viper-s-string)
+         (not (string= viper-s-string ""))
+         (looking-at viper-s-string))
+    (setq viper-s-forward t)
+    (viper-search-next 1))
+   (t
+    (vimpulse-search-for-symbol))))
 
 (defun vimpulse-search-backward-for-symbol-at-point ()
   (interactive)
-  (vimpulse-search-for-symbol t))
+  (cond
+   ((and (stringp viper-s-string)
+         (not (string= viper-s-string ""))
+         (looking-at viper-s-string))
+    (setq viper-s-forward nil)
+    (viper-search-Next 1))
+   (t
+    (vimpulse-search-for-symbol t))))
 
 ;;; Auto-indent
 
@@ -518,7 +532,7 @@ Doesn't indent with a prefix argument."
 
 (defun vimpulse-jump-backward (arg)
   "Go to older position in jump list.
- To go the other way, press \\[vimpulse-jump-forward]."
+To go the other way, press \\[vimpulse-jump-forward]."
   (interactive "p")
   (let ((current-pos (make-marker)) i)
     (unless vimpulse-mark-list
@@ -595,7 +609,7 @@ To go the other way, press \\[vimpulse-jump-backward]."
 
 (defcustom vimpulse-backspace-restore t
   "Whether Backspace restores the original text in Replace mode.
- On by default."
+On by default."
   :group 'vimpulse
   :type  'boolean)
 
@@ -619,8 +633,8 @@ To go the other way, press \\[vimpulse-jump-backward]."
 
 (defun vimpulse-replace-backspace ()
   "Restore character under cursor.
- If `vimpulse-backspace-restore' is nil,
- call `viper-del-backward-char-in-replace' instead."
+If `vimpulse-backspace-restore' is nil,
+call `viper-del-backward-char-in-replace' instead."
   (interactive)
   (cond
    (vimpulse-backspace-restore
