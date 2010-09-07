@@ -462,7 +462,7 @@ is highlighted rather than skipped past."
          (not (string= viper-s-string ""))
          (looking-at viper-s-string))
     (setq viper-s-forward nil)
-    (viper-search-Next 1))
+    (viper-search-next 1))
    (t
     (vimpulse-search-for-symbol t))))
 
