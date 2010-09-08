@@ -338,7 +338,9 @@ is highlighted rather than skipped past."
   (cond
    ((and (stringp viper-s-string)
          (not (string= viper-s-string ""))
-         (looking-at viper-s-string))
+         (memq last-command
+               '(vimpulse-search-backward-for-symbol-at-point
+                 vimpulse-search-forward-for-symbol-at-point)))
     (setq viper-s-forward t)
     (viper-search-next 1))
    (t
@@ -349,7 +351,9 @@ is highlighted rather than skipped past."
   (cond
    ((and (stringp viper-s-string)
          (not (string= viper-s-string ""))
-         (looking-at viper-s-string))
+         (memq last-command
+               '(vimpulse-search-backward-for-symbol-at-point
+                 vimpulse-search-forward-for-symbol-at-point)))
     (setq viper-s-forward nil)
     (viper-search-next 1))
    (t
