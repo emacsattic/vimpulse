@@ -345,7 +345,19 @@
              (setq tests (or ,suite tests))
              (dolist (test tests)
                (setq fail-msg
-                     (with-fixtures ,fixture ,setup ,teardown
+                     (with-fixtures
+                       ,(if (or (null fixture)
+                                (functionp fixture))
+                            fixture
+                          `(lambda () ,@fixture))
+                       ,(if (or (null setup)
+                                (functionp setup))
+                            setup
+                          `(lambda () ,@setup))
+                       ,(if (or (null teardown)
+                                (functionp teardown))
+                            teardown
+                          `(lambda () ,@teardown))
                        (funcall test t)))
                (unless (eq fail-msg t)
                  (setq last-msg fail-msg)
@@ -474,7 +486,19 @@ before and after. Mocks and stubs are guaranteed to be released."
                  (setq fail-msg (funcall suite ',test)))
                 ;; Non-suite SUITE value (e.g., t); run the test itself.
                 (t
-                 (with-fixtures ,fixture ,setup ,teardown
+                 (with-fixtures
+                   ,(if (or (null fixture)
+                            (functionp fixture))
+                        fixture
+                      `(lambda () ,@fixture))
+                   ,(if (or (null setup)
+                            (functionp setup))
+                        setup
+                      `(lambda () ,@setup))
+                   ,(if (or (null teardown)
+                            (functionp teardown))
+                        teardown
+                      `(lambda () ,@teardown))
                    (condition-case err
                        (progn ,@body)
                      (error (prog1 nil
