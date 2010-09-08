@@ -225,26 +225,6 @@ Otherwise output a vector."
         (concat (vimpulse-truncate temp-sequence length offset))
       (vimpulse-truncate temp-sequence length offset))))
 
-(defun vimpulse-memq-recursive (elt tree &optional search-vectors)
-  "Return non-nil if TREE contains ELT.
-Test for equivalence using `eq'.
-If SEARCH-VECTORS is t, search inside vector elements."
-  (when (and search-vectors
-             (listp tree)
-             (vectorp (car tree)))
-    (setq tree (copy-tree tree))
-    (setcar tree (append (car tree) nil)))
-  (cond
-   ((null tree)
-    nil)
-   ((eq (car tree) elt)
-    tree)
-   ((consp (car tree))
-    (or (vimpulse-memq-recursive elt (car tree) search-vectors)
-        (vimpulse-memq-recursive elt (cdr tree) search-vectors)))
-   (t
-    (vimpulse-memq-recursive elt (cdr tree) search-vectors))))
-
 ;; GNU Emacs 22 lacks `characterp'
 (unless (fboundp 'characterp)
   (defalias 'characterp 'integerp))

@@ -1108,24 +1108,7 @@ This line is not included in the report."
    (assert-equal
      "Limit cases."
      (vimpulse-truncate [] 0) []
-     (vimpulse-truncate [] 3) []))
-  (test-memq-recursive
-   "Test `vimpulse-memq-recursive'."
-   (assert
-     "Find `a'."
-     (vimpulse-memq-recursive 'a '(a b c))
-     (vimpulse-memq-recursive 'a '(a b c))
-     (vimpulse-memq-recursive 'a '(b (a) c))
-     (vimpulse-memq-recursive 'a '((a) b c a))
-     (vimpulse-memq-recursive 'a '((b c) a)))
-   (assert
-     "Find nil."
-     (vimpulse-memq-recursive nil '(nil b c a))
-     (vimpulse-memq-recursive nil '(b (nil) c a))
-     (vimpulse-memq-recursive nil '(t b ((())) c a)))
-   (assert-not
-     "Nothing in nil!"
-     (vimpulse-memq-recursive nil nil))))
+     (vimpulse-truncate [] 3) [])))
 
 ;; These tests are largely interactive (and heavy), so don't run them
 ;; automatically; add (test-interactive-suite) to .emacs and/or run
