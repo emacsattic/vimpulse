@@ -579,6 +579,38 @@ single action."
   "Return the end of RANGE."
   (apply 'max (vimpulse-motion-range range)))
 
+(defun vimpulse-range-height (beg end &optional type)
+  "Return height of range from BEG to END of type TYPE.'
+TYPE may be `block', `line' or `char'."
+  (cond
+   ((eq type 'block)
+    (count-lines beg
+                 (save-excursion
+                   (goto-char end)
+                   (if (and (bolp) (not (eobp)))
+                       (1+ end)
+                     end))))
+   ((eq type 'line)
+    (count-lines beg end))
+   (t
+    nil)))
+
+(defun vimpulse-range-width (beg end &optional type)
+  "Return width of range from BEG to END of type TYPE.'
+TYPE may be `block', `line' or `char'."
+  (cond
+   ((eq type 'block)
+    (abs (- (save-excursion
+              (goto-char end)
+              (current-column))
+            (save-excursion
+              (goto-char beg)
+              (current-column)))))
+   ((eq type 'line)
+    nil)
+   (t
+    (abs (- end beg)))))
+
 (defun vimpulse-motion-type (object &optional raw)
   "Return motion type of OBJECT.
 The type is one of `exclusive', `inclusive', `line' and `block'.

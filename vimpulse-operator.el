@@ -7,25 +7,14 @@
 ;; Defining operator commands is similar to defining commands acting
 ;; on the region. That is, both must have two arguments, BEG and END,
 ;; and an `interactive' specification that stores the relevant range
-;; in those arguments:
+;; in those arguments. The `vimpulse-define-operator' macro takes care
+;; of this. (If you like, you can also convert any region command to
+;; an operator with `vimpulse-convert-to-operator'.)
 ;;
-;;     (defun foo-region (beg end)
-;;       (interactive "r")
-;;       ;; Do stuff from BEG to END
-;;       )
-;;
-;;     (defun foo-operator (beg end)
-;;       (interactive (vimpulse-range))
-;;       ;; Do stuff from BEG to END
-;;       )
-;;
-;; (If you like, you can convert any region command to an operator
-;; with `vimpulse-convert-to-operator'.)
-;;
-;; When the latter command above is run in vi state, `vimpulse-range'
-;; will query the user for a motion and determine the resulting range
-;; to pass on to the command's arguments. In Visual mode, however,
-;; it simply uses the selection boundaries (no querying).
+;; When an operator command is run in vi state, it queries the user
+;; for a motion and determines the resulting range to store in BEG and
+;; END. In Visual mode, it skips the querying and uses the selection
+;; boundaries.
 ;;
 ;; While a motion is read from the keyboard, a temporary Viper state,
 ;; Operator-Pending mode, is entered. This state inherits bindings
@@ -94,6 +83,16 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
 (put 'vimpulse-operator-remap-map
      'remap-alist 'vimpulse-operator-remap-alist)
 
+(defun vimpulse-operator-remap (from to)
+  "Remap FROM to TO in Operator-Pending mode."
+  (vimpulse-remap vimpulse-operator-remap-map from to))
+
+(defun vimpulse-operator-remapping (cmd)
+  "Return Operator-Pending remapping for CMD."
+  (if (featurep 'xemacs)
+      (or (cdr (assq cmd vimpulse-operator-remap-alist)) cmd)
+    (or (command-remapping cmd) cmd)))
+
 (when (featurep 'xemacs)
   ;; XEmacs shows the tag before the modes, so truncate it to a
   ;; constant length to avoid excessive flickering
@@ -127,31 +126,99 @@ awaiting a motion (after \"d\", \"y\", \"c\", etc.)."
           (redisplay))
       (error nil))))
 
+(defmacro vimpulse-define-operator (operator args &rest body)
+  "Define an operator command OPERATOR.
+ARGS is the argument list, which must contain at least two
+arguments: the beginning and end of the range. It is followed by
+an optional docstring and optional keywords:
+
+:repeat BOOLEAN         Let \\[viper-repeat] repeat the command (default).
+:move-point BOOLEAN     Move to beg. of range in vi state (default).
+:whole-lines BOOLEAN    Extend the range to include whole lines.
+:keep-visual BOOLEN     Don't disable Visual selection.
+:motion MOTION          Predefined motion to use in vi state.
+:keys KEYS              A key or a list of keys to bind the command to.
+:map MAP                Keymap to bind :keys in, defaults to
+                        `viper-vi-basic-map'.
+
+The keywords are followed by the operator's body. Thus, a simple
+example may look like:
+
+    (vimpulse-define-operator test (beg end)
+      \"Test operator.\"
+      :repeat nil
+      :whole-lines t
+      (delete-region beg end))
+
+When this command is called interactively, a motion is read from
+the keyboard and the resulting range is stored in BEG and END.
+In Visual mode, the beginning and end of the selection are used.
+The command then proceeds to do whatever it wants to do on the
+text between those buffer positions, like delete it in this case.
+
+If :motion is specified, the operator will use that motion
+instead of reading one from the keyboard. This has no effect
+in Visual mode."
+  (declare (indent defun))
+  (let ((repeat t) (move-point t)
+        (map 'viper-vi-basic-map)
+        beg end doc keep-visual keys keyword motion whole-lines)
+    ;; collect BEG and END arguments
+    (setq beg (or (pop args) 'beg)
+          end (or (pop args) 'end))
+    ;; collect docstring, if any
+    (when (stringp (car body))
+      (setq doc (pop body)))
+    ;; collect keywords
+    (while (keywordp (setq keyword (car body)))
+      (setq body (cdr body))
+      (cond
+       ((eq keyword :repeat)
+        (setq repeat (vimpulse-unquote (pop body))))
+       ((eq keyword :move-point)
+        (setq move-point (vimpulse-unquote (pop body))))
+       ((eq keyword :whole-lines)
+        (setq whole-lines (vimpulse-unquote (pop body))))
+       ((eq keyword :keep-visual)
+        (setq keep-visual (vimpulse-unquote (pop body))))
+       ((eq keyword :motion)
+        (setq motion (vimpulse-unquote (pop body))))
+       ((eq keyword :map)
+        (setq map (vimpulse-unquote (pop body))))
+       ((eq keyword :keys)
+        (setq keys (vimpulse-unquote (pop body))))
+       (t
+        (pop body))))
+    (unless (listp keys)
+      (setq keys (list keys)))
+    ;; macro expansion: define key bindings and define command
+    `(progn
+       (add-to-list 'vimpulse-operators ',operator)
+       (dolist (key ',keys)
+         (define-key ,map key ',operator))
+       (defun ,operator (,beg ,end ,@args)
+         ,doc
+         (interactive
+          (vimpulse-range
+           ,(not repeat) ,(not move-point)
+           ,whole-lines ,keep-visual ',motion))
+         (if (and vimpulse-inhibit-operator
+                  (called-interactively-p))
+             (setq vimpulse-inhibit-operator nil)
+           ,@body)))))
+
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords
+   'emacs-lisp-mode
+   '(("(\\(vimpulse-define-operator\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
+      (1 font-lock-keyword-face)
+      (2 font-lock-function-name-face nil t)))))
+
 (defun vimpulse-range
   (&optional no-repeat dont-move-point whole-lines keep-visual custom-motion)
   "Read a motion and return a range (BEG END).
-In Visual mode, returns the beginning and end of the selection.
-This can be used in the `interactive' form of a command:
-
-    (defun foo (beg end)
-      (interactive (vimpulse-range))
-      ;; do foo from BEG to END
-      )
-
-When such a command is called interactively, a motion is read from
-the keyboard and the resulting range is stored in BEG and END.
-The command then proceeds to do whatever it wants to do on the
-text between those buffer positions. The optional arguments allow
-for some customization:
-
-NO-REPEAT: don't let \\[viper-repeat] repeat the command.
-DONT-MOVE-POINT: don't move to beginning of range in vi state.
-WHOLE-LINES: extend the range to include whole lines.
-KEEP-VISUAL: don't disable Visual selection.
-CUSTOM-MOTION: predefined motion to use in vi state.
-
-If CUSTOM-MOTION is specified, the command will not read a motion
-from the keyboard. This has no effect in Visual mode."
+Belongs in the `interactive' form of a command. Don't use this
+function directly; see `vimpulse-define-operator' instead."
   (let ((range (list (point) (point)))
         (type-alist '((vimpulse-visual-toggle-char . inclusive)
                       (vimpulse-visual-toggle-line . line)
@@ -164,7 +231,8 @@ from the keyboard. This has no effect in Visual mode."
     (setq vimpulse-this-motion-type nil
           vimpulse-this-count nil
           vimpulse-this-motion nil
-          vimpulse-this-operator this-command)
+          vimpulse-this-operator this-command
+          vimpulse-inhibit-operator nil)
     (cond
      ;; if text is selected, use selection boundaries as range
      ((or vimpulse-visual-mode (region-active-p))
@@ -275,9 +343,16 @@ range. If REFRESH is t, this function changes point,
   (cond
    ;; REFRESH is nil, so bind global variables
    ((not refresh)
-    (let (viper-com-point vimpulse-this-motion-type)
-      (save-excursion
-        (vimpulse-calculate-motion-range count motion type t))))
+    (let (obuffer omark opoint viper-com-point vimpulse-this-motion-type)
+      (setq opoint  (point)
+            omark   (mark t)
+            obuffer (current-buffer))
+      (prog1 (vimpulse-calculate-motion-range count motion type t)
+        ;; don't restore point and mark if operator has been disabled
+        (unless vimpulse-inhibit-operator
+          (set-buffer obuffer)
+          (let (mark-active) (set-mark omark))
+          (goto-char opoint)))))
    (t
     (let ((current-prefix-arg count)
           (viper-intermediate-command 'viper-command-argument)
@@ -416,6 +491,68 @@ of CMD. Both COUNT and CMD may be nil."
     ;; return command description
     (list cmd count)))
 
+(defmacro vimpulse-with-operator-message (beg end template &rest body)
+  "Echo an operator message after executing BODY.
+BEG and END specify the text range acted upon.
+TEMPLATE is a string like \"Deleted <N>\", where <N>
+is substituted with the amount of characters or lines,
+which is determined before executing BODY. The range type
+is read from `vimpulse-this-motion-type'.
+
+This macro respects `viper-change-notification-threshold'."
+  (declare (indent defun))
+  `(let* ((beg ,beg) (end ,end)
+          (height (vimpulse-range-height beg end vimpulse-this-motion-type))
+          (width  (vimpulse-range-width beg end vimpulse-this-motion-type))
+          (template (replace-regexp-in-string
+                     "<N>"
+                     (apply 'format
+                            (cond
+                             ((eq vimpulse-this-motion-type 'block)
+                              (list "%s row%s and %s column%s"
+                                    height
+                                    (if (/= (abs height) 1) "s" "")
+                                    width
+                                    (if (/= (abs width) 1) "s" "")))
+                             ((eq vimpulse-this-motion-type 'line)
+                              (list "%s line%s"
+                                    height
+                                    (if (/= (abs height) 1) "s" "")))
+                             (t
+                              (list "%s character%s"
+                                    width
+                                    (if (/= (abs width) 1) "s" "")))))
+                     ,template)))
+     (prog1 (progn ,@body)
+       (when (and template
+                  (not (viper-is-in-minibuffer))
+                  (or (> (or height width)
+                         viper-change-notification-threshold)
+                      (> (or width height)
+                         viper-change-notification-threshold)))
+         (message "%s" template)))))
+
+(when (fboundp 'font-lock-add-keywords)
+  (font-lock-add-keywords
+   'emacs-lisp-mode
+   '(("(\\(vimpulse-with-operator-message\\)\\>" 1 font-lock-keyword-face))))
+
+;; utility macro for converting region commands to operators
+(defmacro vimpulse-convert-to-operator (region-cmd &rest args)
+  "Convert a region command to an operator command.
+Defines a new command with the name REGION-CMD-operator.
+ARGS is passed to `vimpulse-range'."
+  `(vimpulse-define-operator
+     ,(intern (concat (symbol-name region-cmd) "-operator"))
+     (beg end)
+     ,(format "Operator-wrapper for `%s'.\n\n%s"
+              region-cmd (documentation region-cmd t))
+     (,region-cmd beg end)))
+
+(defun vimpulse-operator-cmd-p (cmd)
+  "Return t if CMD is an operator command."
+  (and (memq cmd vimpulse-operators) t))
+
 ;;; Repeat an operator/motion combination
 
 ;; this is used in `viper-d-com' (read by `viper-repeat')
@@ -439,86 +576,69 @@ TYPE is the motion type."
   (let ((vimpulse-this-operator operator)
         (vimpulse-this-motion motion)
         (vimpulse-this-motion-type (or type vimpulse-this-motion-type))
-        beg end range)
+        vimpulse-inhibit-operator beg end range)
     (setq range (vimpulse-calculate-motion-range count motion type)
           beg   (vimpulse-range-beginning range)
           end   (vimpulse-range-end range)
           vimpulse-this-motion-type (vimpulse-motion-type range))
-    (funcall operator beg end)))
+    (unless vimpulse-inhibit-operator
+      (funcall operator beg end))))
 
-(defun vimpulse-region-cmd-p (cmd)
-  "Return t if CMD is a region command."
-  (let ((spec (car (cdr (interactive-form cmd)))))
-    (and (stringp spec)
-         (not (not (string-match "r" spec))))))
+;;; Operators
 
-(defun vimpulse-operator-cmd-p (cmd)
-  "Return t if CMD is an operator command."
-  (vimpulse-memq-recursive 'vimpulse-range (interactive-form cmd) t))
-
-;;; Operators (yank, delete, change)
-
-(defun vimpulse-yank (beg end)
+;; yank, delete, change
+(vimpulse-define-operator vimpulse-yank (beg end)
   "Yank text from BEG to END."
-  (interactive (vimpulse-range t t))
-  (let ((length (abs (- beg end)))
-        last-command)
-    (cond
-     ((eq vimpulse-this-motion-type 'block)
-      (setq killed-rectangle (extract-rectangle beg end))
-      ;; associate the rectangle with the last entry in the kill-ring
-      (unless kill-ring
-        (copy-region-as-kill beg end))
-      (put 'killed-rectangle 'previous-kill (current-kill 0))
-      (vimpulse-operator-message "Saved <N>" beg end)
-      (vimpulse-visual-block-rotate 'upper-left beg end))
-     (t
-      (vimpulse-store-in-current-register beg end)
-      (copy-region-as-kill beg end)
-      (unless (eq vimpulse-this-motion-type 'line)
-        (goto-char beg))
-      (when (and (eolp) (not (bolp)))
-        (backward-char))
-      (vimpulse-operator-message "Saved <N>" beg end)))))
-
-(defun vimpulse-delete (beg end &optional dont-save)
-  "Delete text from BEG to END.
-If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
-  (interactive (vimpulse-range))
-  (let ((length (if (eq vimpulse-this-motion-type 'line)
-                    (count-lines beg end)
-                  (abs (- end beg))))
-        last-command)
-    (cond
-     (dont-save
+  :repeat nil
+  :move-point nil
+  (let (last-command)
+    (vimpulse-with-operator-message beg end "Saved <N>"
       (cond
        ((eq vimpulse-this-motion-type 'block)
-        (delete-rectangle beg end))
-       (t
-        (delete-region beg end))))
-     ((eq vimpulse-this-motion-type 'block)
-      (let ((orig (make-marker)))
+        (setq killed-rectangle (extract-rectangle beg end))
         ;; associate the rectangle with the last entry in the kill-ring
-        (viper-move-marker-locally
-         'orig (vimpulse-visual-block-position 'upper-left beg end))
         (unless kill-ring
           (copy-region-as-kill beg end))
-        (kill-rectangle beg end)
         (put 'killed-rectangle 'previous-kill (current-kill 0))
-        (goto-char orig)
-        (set-marker orig nil)
-        (vimpulse-operator-message "Deleted <N>" beg end)))
-     (t
-      (vimpulse-store-in-current-register beg end)
-      (kill-region beg end)
-      (when (and (eolp) (not (bolp)))
-        (backward-char))
-      (vimpulse-operator-message "Deleted <N>" beg end length)))))
+        (vimpulse-visual-block-rotate 'upper-left beg end))
+       (t
+        (vimpulse-store-in-current-register beg end)
+        (copy-region-as-kill beg end)
+        (unless (eq vimpulse-this-motion-type 'line)
+          (goto-char beg))
+        (when (and (eolp) (not (bolp)))
+          (backward-char)))))))
 
-(defun vimpulse-change (beg end &optional dont-save)
+(vimpulse-define-operator vimpulse-delete (beg end &optional dont-save)
+  "Delete text from BEG to END.
+If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
+  (let (last-command)
+    (vimpulse-with-operator-message beg end "Deleted <N>"
+      (cond
+       (dont-save
+        (if (eq vimpulse-this-motion-type 'block)
+            (delete-rectangle beg end)
+          (delete-region beg end)))
+       ((eq vimpulse-this-motion-type 'block)
+        (let ((orig (make-marker)))
+          ;; associate the rectangle with the last entry in the kill-ring
+          (viper-move-marker-locally
+           'orig (vimpulse-visual-block-position 'upper-left beg end))
+          (unless kill-ring
+            (copy-region-as-kill beg end))
+          (kill-rectangle beg end)
+          (put 'killed-rectangle 'previous-kill (current-kill 0))
+          (goto-char orig)
+          (set-marker orig nil)))
+       (t
+        (vimpulse-store-in-current-register beg end)
+        (kill-region beg end)
+        (when (and (eolp) (not (bolp)))
+          (backward-char)))))))
+
+(vimpulse-define-operator vimpulse-change (beg end &optional dont-save)
   "Change text from BEG to END.
 If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
-  (interactive (vimpulse-range))
   (when vimpulse-want-change-undo
     (vimpulse-start-undo-step))
   (cond
@@ -558,112 +678,143 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
       (vimpulse-store-in-current-register beg end)
       (viper-change beg end)))))
 
-(defun vimpulse-operator-message
-  (template &optional beg end length type)
-  "Echo a message like \"Deleted 2 characters\".
-TEMPLATE is a string like \"Deleted <N>\", where <N>
-is substituted with the amount of characters or lines.
-BEG and END are the range of text. If you specify LENGTH,
-they are ignored.
+;; r, J, =, >, <
+(vimpulse-define-operator vimpulse-replace (beg end)
+  "Replace all selected characters with ARG."
+  :move-point nil
+  :keep-visual t
+  :motion 'forward-char
+  (let (endpos length visual-p)
+    (setq endpos (max beg (1- end)))
+    (unless (and (eq viper-intermediate-command 'viper-repeat)
+                 viper-d-char)
+      (unwind-protect
+          (progn
+            (vimpulse-set-replace-cursor-type)
+            (save-excursion
+              (viper-special-read-and-insert-char))
+            (setq viper-d-char (char-after))
+            (delete-char 1))
+        (viper-restore-cursor-type)
+        (when vimpulse-visual-mode
+          (vimpulse-visual-mode -1)
+          (setq endpos beg))))
+    (cond
+     ((eq vimpulse-this-motion-type 'block)
+      (setq length (abs (- (save-excursion
+                             (goto-char beg)
+                             (current-column))
+                           (save-excursion
+                             (goto-char end)
+                             (current-column)))))
+      (vimpulse-apply-on-block
+       (lambda (beg end)
+         (goto-char beg)
+         (delete-region beg end)
+         (insert (make-string length viper-d-char)))
+       beg end))
+     (t
+      (goto-char beg)
+      (while (< (point) end)
+        (if (looking-at "\n")
+            (forward-char)
+          (delete-char 1)
+          (insert-char viper-d-char 1)))
+      (goto-char endpos)))))
 
-This function respects `viper-change-notification-threshold'."
-  (let* ((beg (or beg (vimpulse-visual-beginning) 1))
-         (end (or end (vimpulse-visual-end) 1))
-         (height (or vimpulse-visual-height 1))
-         (width (or vimpulse-visual-width 1))
-         (type (or type vimpulse-this-motion-type))
-         (length (if (eq type 'line)
-                     (or length (count-lines beg end))
-                   (or length (abs (- end beg)))))
-         (template (replace-regexp-in-string
-                    "<N>"
-                    (apply 'format
-                           (if (eq type 'block)
-                               `("%s row%s and %s column%s"
-                                 ,height
-                                 ,(if (/= 1 (abs height)) "s" "")
-                                 ,width
-                                 ,(if (/= 1 (abs width)) "s" ""))
-                             `(,(if (eq type 'line)
-                                    "%s line%s" "%s character%s")
-                               ,length
-                               ,(if (/= 1 (abs length)) "s" ""))))
-                    template)))
-    (when (and (> length viper-change-notification-threshold)
-               (not (viper-is-in-minibuffer)))
-      (if template (message "%s" template)
-        (message nil)))))
+(vimpulse-define-operator vimpulse-join (beg end)
+  "Join the selected lines."
+  :whole-lines t
+  :motion 'vimpulse-line
+  (let ((num (count-lines beg end)))
+    (unless (> num 2)
+      (setq num 2))
+    (viper-join-lines num)))
 
-(defun vimpulse-store-in-register (register start end)
-  "Store text from START to END in REGISTER."
+(vimpulse-define-operator vimpulse-indent (beg end)
+  "Indent text according to mode."
+  :repeat nil
+  :whole-lines t
+  (indent-region beg end nil)
+  (when viper-auto-indent
+    (back-to-indentation)))
+
+(vimpulse-define-operator vimpulse-shift-left (beg end)
+  "Shift all selected lines to the left."
+  (let ((nlines (count-lines beg end)))
+    (viper-next-line (cons (1- nlines) ?<))))
+
+(vimpulse-define-operator vimpulse-shift-right (beg end)
+  "Shift all selected lines to the right."
+  (let ((nlines (count-lines beg end)))
+    (viper-next-line (cons (1- nlines) ?>))))
+
+;; gq, gu, gU
+(vimpulse-define-operator vimpulse-fill (beg end)
+  "Fill text."
+  :repeat nil
+  :move-point nil
+  (setq end (save-excursion
+              (goto-char end)
+              (skip-chars-backward " ")
+              (point)))
+  (save-excursion
+    (fill-region beg end)))
+
+(vimpulse-define-operator vimpulse-downcase (beg end)
+  "Convert text to lower case."
+  (if (eq vimpulse-this-motion-type 'block)
+      (vimpulse-apply-on-block 'downcase-region beg end)
+    (downcase-region beg end))
+  (when (and viper-auto-indent
+             (looking-back "^[ \f\t\v]*"))
+    (back-to-indentation)))
+
+(vimpulse-define-operator vimpulse-upcase (beg end)
+  "Convert text to upper case."
+  (if (eq vimpulse-this-motion-type 'block)
+      (vimpulse-apply-on-block 'upcase-region beg end)
+    (upcase-region beg end)
+    (when (and viper-auto-indent
+               (looking-back "^[ \f\t\v]*"))
+      (back-to-indentation))))
+
+(vimpulse-define-operator vimpulse-invert-case (beg end)
+  "Convert text to inverted case."
+  (let (char)
+    (save-excursion
+      (cond
+       ((eq vimpulse-this-motion-type 'block)
+        (let (vimpulse-this-motion-type)
+          (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
+       (t
+        (goto-char beg)
+        (while (< beg end)
+          (setq char (following-char))
+          (delete-char 1 nil)
+          (if (eq (upcase char) char)
+              (insert-char (downcase char) 1)
+            (insert-char (upcase char) 1))
+          (setq beg (1+ beg))))))
+    (when (and viper-auto-indent
+               (looking-back "^[ \f\t\v]*"))
+      (back-to-indentation))))
+
+(vimpulse-define-operator vimpulse-invert-char (beg end)
+  "Invert case of character."
+  :keep-visual t
+  :motion 'forward-char
+  (vimpulse-invert-case beg end)
   (cond
-   ((viper-valid-register register '(Letter))
-    (viper-append-to-register
-     (downcase register) start end))
+   (vimpulse-visual-mode
+    (goto-char beg)
+    (vimpulse-visual-mode -1))
    (t
-    (copy-to-register register start end))))
+    (goto-char end))))
 
-(defun vimpulse-store-in-current-register (start end)
-  "Store text from START to END in current register, if any.
-Resets `viper-use-register'."
-  (when viper-use-register
-    (vimpulse-store-in-register viper-use-register start end)
-    (setq viper-use-register nil)))
-
-(defun vimpulse-read-register (&optional register command)
-  "Use COMMAND with REGISTER.
-If called interactively, read REGISTER and COMMAND from keyboard."
-  (interactive)
-  (setq register (or register (read-char)))
-  (when (viper-valid-register register)
-    (setq command (or command (key-binding (read-key-sequence nil))))
-    (when (commandp command)
-      (let ((this-command command)
-            (viper-use-register register))
-        (call-interactively command)))))
-
-;;; Remap non-motion commands to `viper-nil'
-
-(defun vimpulse-operator-remap (from to)
-  "Remap FROM to TO in Operator-Pending mode."
-  (vimpulse-remap vimpulse-operator-remap-map from to))
-
-(defun vimpulse-operator-remapping (cmd)
-  "Return Operator-Pending remapping for CMD."
-  (if (featurep 'xemacs)
-      (or (cdr (assq cmd vimpulse-operator-remap-alist)) cmd)
-    (or (command-remapping cmd) cmd)))
-
-(vimpulse-operator-remap 'undo 'viper-nil)
-(vimpulse-operator-remap 'undo-tree-redo 'viper-nil)
-(vimpulse-operator-remap 'redo 'viper-nil)
-(vimpulse-operator-remap 'vimpulse-put-and-indent 'viper-nil)
-(vimpulse-operator-remap 'vimpulse-Put-and-indent 'viper-nil)
-(vimpulse-operator-remap 'viper-Put-back 'viper-nil)
-(vimpulse-operator-remap 'viper-put-back 'viper-nil)
-(vimpulse-operator-remap 'viper-delete-backward-char 'viper-nil)
-(vimpulse-operator-remap 'viper-delete-char 'viper-nil)
-(vimpulse-operator-remap 'viper-insert 'viper-nil)
-(vimpulse-operator-remap 'viper-intercept-ESC-key 'viper-nil)
-(vimpulse-operator-remap 'viper-line-to-bottom 'viper-nil)
-(vimpulse-operator-remap 'viper-line-to-middle 'viper-nil)
-(vimpulse-operator-remap 'viper-line-to-top 'viper-nil)
-(vimpulse-operator-remap 'viper-repeat 'viper-nil)
-(vimpulse-operator-remap 'viper-substitute 'viper-nil)
-
-;;; Utility macro for converting region commands to operators
-
-(defmacro vimpulse-convert-to-operator (region-cmd &rest args)
-  "Convert a region command to an operator command.
-Defines a new command with the name REGION-CMD-operator.
-ARGS is passed to `vimpulse-range'."
-  (let ((region-cmd (eval region-cmd)))
-    `(defun ,(intern (concat (symbol-name region-cmd) "-operator"))
-       (beg end)
-       ,(format "Operator-wrapper for `%s'.\n\n%s"
-                region-cmd (documentation region-cmd t))
-       (interactive (vimpulse-range ,@args))
-       (,region-cmd beg end))))
+(vimpulse-define-operator vimpulse-rot13 (beg end)
+  "ROT13 encrypt text."
+  (rot13-region beg end))
 
 ;;; Compatibility code allowing old-style Viper motions to work
 
@@ -779,6 +930,24 @@ type TYPE. A custom function body may be specified via BODY."
     (viper-forward-Word (if (region-active-p)
                             arg
                           (cons arg com)))))
+
+;;; remap non-motion commands to `viper-nil'
+(vimpulse-operator-remap 'undo 'viper-nil)
+(vimpulse-operator-remap 'undo-tree-redo 'viper-nil)
+(vimpulse-operator-remap 'redo 'viper-nil)
+(vimpulse-operator-remap 'vimpulse-put-and-indent 'viper-nil)
+(vimpulse-operator-remap 'vimpulse-Put-and-indent 'viper-nil)
+(vimpulse-operator-remap 'viper-Put-back 'viper-nil)
+(vimpulse-operator-remap 'viper-put-back 'viper-nil)
+(vimpulse-operator-remap 'viper-delete-backward-char 'viper-nil)
+(vimpulse-operator-remap 'viper-delete-char 'viper-nil)
+(vimpulse-operator-remap 'viper-insert 'viper-nil)
+(vimpulse-operator-remap 'viper-intercept-ESC-key 'viper-nil)
+(vimpulse-operator-remap 'viper-line-to-bottom 'viper-nil)
+(vimpulse-operator-remap 'viper-line-to-middle 'viper-nil)
+(vimpulse-operator-remap 'viper-line-to-top 'viper-nil)
+(vimpulse-operator-remap 'viper-repeat 'viper-nil)
+(vimpulse-operator-remap 'viper-substitute 'viper-nil)
 
 ;; these motions need wrapper functions to repeat correctly
 (vimpulse-operator-map-define viper-end-of-Word 'inclusive)

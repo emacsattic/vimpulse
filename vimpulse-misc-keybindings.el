@@ -91,7 +91,6 @@ Equivalent to Vim's C-w prefix.")
 
 (define-key viper-vi-basic-map "\C-w" vimpulse-window-map)
 
-
 ;;; Insert mode keys
 
 ;; Vim-like completion keys
@@ -103,75 +102,35 @@ Equivalent to Vim's C-w prefix.")
 ;; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
 
-;;; r, J, =, >, <
+;;; Registers
 
-(defun vimpulse-replace (beg end)
-  "Replace all selected characters with ARG."
-  (interactive (vimpulse-range nil t nil t 'forward-char))
-  (let (endpos length visual-p)
-    (setq endpos (max beg (1- end)))
-    (unless (and (eq viper-intermediate-command 'viper-repeat)
-                 viper-d-char)
-      (unwind-protect
-          (progn
-            (vimpulse-set-replace-cursor-type)
-            (save-excursion
-              (viper-special-read-and-insert-char))
-            (setq viper-d-char (char-after))
-            (delete-char 1))
-        (viper-restore-cursor-type)
-        (when vimpulse-visual-mode
-          (vimpulse-visual-mode -1)
-          (setq endpos beg))))
-    (cond
-     ((eq vimpulse-this-motion-type 'block)
-      (setq length (abs (- (save-excursion
-                             (goto-char beg)
-                             (current-column))
-                           (save-excursion
-                             (goto-char end)
-                             (current-column)))))
-      (vimpulse-apply-on-block
-       (lambda (beg end)
-         (goto-char beg)
-         (delete-region beg end)
-         (insert (make-string length viper-d-char)))
-       beg end))
-     (t
-      (goto-char beg)
-      (while (< (point) end)
-        (if (looking-at "\n")
-            (forward-char)
-          (delete-char 1)
-          (insert-char viper-d-char 1)))
-      (goto-char endpos)))))
+(defun vimpulse-store-in-register (register start end)
+  "Store text from START to END in REGISTER."
+  (cond
+   ((viper-valid-register register '(Letter))
+    (viper-append-to-register
+     (downcase register) start end))
+   (t
+    (copy-to-register register start end))))
 
-(defun vimpulse-join (beg end)
-  "Join the selected lines."
-  (interactive (vimpulse-range nil nil t nil 'vimpulse-line))
-  (let ((num (count-lines beg end)))
-    (unless (> num 2)
-      (setq num 2))
-    (viper-join-lines num)))
+(defun vimpulse-store-in-current-register (start end)
+  "Store text from START to END in current register, if any.
+  Resets `viper-use-register'."
+  (when viper-use-register
+    (vimpulse-store-in-register viper-use-register start end)
+    (setq viper-use-register nil)))
 
-(defun vimpulse-indent (beg end)
-  "Indent text according to mode."
-  (interactive (vimpulse-range t nil t))
-  (indent-region beg end nil)
-  (when viper-auto-indent
-    (back-to-indentation)))
-
-(defun vimpulse-shift-left (beg end)
-  "Shift all selected lines to the left."
-  (interactive (vimpulse-range))
-  (let ((nlines (count-lines beg end)))
-    (viper-next-line (cons (1- nlines) ?<))))
-
-(defun vimpulse-shift-right (beg end)
-  "Shift all selected lines to the right."
-  (interactive (vimpulse-range))
-  (let ((nlines (count-lines beg end)))
-    (viper-next-line (cons (1- nlines) ?>))))
+(defun vimpulse-read-register (&optional register command)
+  "Use COMMAND with REGISTER.
+  If called interactively, read REGISTER and COMMAND from keyboard."
+  (interactive)
+  (setq register (or register (read-char)))
+  (when (viper-valid-register register)
+    (setq command (or command (key-binding (read-key-sequence nil))))
+    (when (commandp command)
+      (let ((this-command command)
+            (viper-use-register register))
+        (call-interactively command)))))
 
 ;;; g0, g$
 
@@ -288,76 +247,6 @@ Equivalent to Vim's C-w prefix.")
   (when (markerp vimpulse-exit-point)
     (goto-char vimpulse-exit-point))
   (viper-insert arg))
-
-;;; gq, gu, gU
-
-(defun vimpulse-fill (beg end)
-  "Fill text."
-  (interactive (vimpulse-range t t))
-  (setq end (save-excursion
-              (goto-char end)
-              (skip-chars-backward " ")
-              (point)))
-  (save-excursion
-    (fill-region beg end)))
-
-(defun vimpulse-downcase (beg end)
-  "Convert text to lower case."
-  (interactive (vimpulse-range))
-  (if (eq vimpulse-this-motion-type 'block)
-      (vimpulse-apply-on-block 'downcase-region beg end)
-    (downcase-region beg end))
-  (when (and viper-auto-indent
-             (looking-back "^[ \f\t\v]*"))
-    (back-to-indentation)))
-
-(defun vimpulse-upcase (beg end)
-  "Convert text to upper case."
-  (interactive (vimpulse-range))
-  (if (eq vimpulse-this-motion-type 'block)
-      (vimpulse-apply-on-block 'upcase-region beg end)
-    (upcase-region beg end)
-    (when (and viper-auto-indent
-               (looking-back "^[ \f\t\v]*"))
-      (back-to-indentation))))
-
-(defun vimpulse-invert-case (beg end)
-  "Convert text to inverted case."
-  (interactive (vimpulse-range))
-  (let (char)
-    (save-excursion
-      (cond
-       ((eq vimpulse-this-motion-type 'block)
-        (let (vimpulse-this-motion-type)
-          (vimpulse-apply-on-block 'vimpulse-invert-case beg end)))
-       (t
-        (goto-char beg)
-        (while (< beg end)
-          (setq char (following-char))
-          (delete-char 1 nil)
-          (if (eq (upcase char) char)
-              (insert-char (downcase char) 1)
-            (insert-char (upcase char) 1))
-          (setq beg (1+ beg))))))
-    (when (and viper-auto-indent
-               (looking-back "^[ \f\t\v]*"))
-      (back-to-indentation))))
-
-(defun vimpulse-invert-char (beg end)
-  "Invert case of character."
-  (interactive (vimpulse-range nil nil nil t 'forward-char))
-  (vimpulse-invert-case beg end)
-  (cond
-   (vimpulse-visual-mode
-    (goto-char beg)
-    (vimpulse-visual-mode -1))
-   (t
-    (goto-char end))))
-
-(defun vimpulse-rot13 (beg end)
-  "ROT13 encrypt text."
-  (interactive (vimpulse-range))
-  (rot13-region beg end))
 
 ;;; +, _
 

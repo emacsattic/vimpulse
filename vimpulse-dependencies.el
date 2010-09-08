@@ -265,6 +265,14 @@ for these bindings. The format is (KEY-VECTOR . COMMAND).")
 (defvar vimpulse-paren-overlay-close nil
   "Overlay used to highlight the closing paren.")
 
+(defvar vimpulse-operators nil
+  "Operator commands defined with `vimpulse-define-operator'.")
+
+(viper-deflocalvar vimpulse-inhibit-operator nil
+  "Inhibit current operator.
+If an operator calls a motion and the motion sets this variable
+to t, the operator code is not executed.")
+
 (defvar vimpulse-operator-basic-map)
 
 (defvar vimpulse-operator-remap-map (make-sparse-keymap))

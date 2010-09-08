@@ -495,27 +495,8 @@ See also `vimpulse-visual-restore'."
   (setq mode (or mode vimpulse-visual-mode)
         beg (or beg (vimpulse-visual-beginning mode))
         end (or end (vimpulse-visual-end mode)))
-  (cond
-   ((eq mode 'block)
-    (setq vimpulse-visual-height
-          (count-lines beg
-                       (save-excursion
-                         (goto-char end)
-                         (if (and (bolp) (not (eobp)))
-                             (1+ end)
-                           end)))
-          vimpulse-visual-width (abs (- (save-excursion
-                                          (goto-char end)
-                                          (current-column))
-                                        (save-excursion
-                                          (goto-char beg)
-                                          (current-column))))))
-   ((eq mode 'line)
-    (setq vimpulse-visual-height (count-lines beg end)
-          vimpulse-visual-width nil))
-   (t
-    (setq vimpulse-visual-height nil
-          vimpulse-visual-width (abs (- end beg))))))
+  (setq vimpulse-visual-height (vimpulse-range-height beg end mode)
+        vimpulse-visual-width  (vimpulse-range-width beg end mode)))
 
 (defun vimpulse-visual-highlight (&optional arg)
   "Highlight Visual selection, depending on region and Visual mode.
