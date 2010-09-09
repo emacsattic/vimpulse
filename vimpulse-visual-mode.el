@@ -492,11 +492,13 @@ See also `vimpulse-visual-restore'."
 (defun vimpulse-set-visual-dimensions (&optional beg end mode)
   "Refresh `vimpulse-visual-height' and `vimpulse-visual-width'."
   (vimpulse-set-visual-markers beg end)
-  (setq mode (or mode vimpulse-visual-mode)
-        beg (or beg (vimpulse-visual-beginning mode))
-        end (or end (vimpulse-visual-end mode)))
-  (setq vimpulse-visual-height (vimpulse-range-height beg end mode)
-        vimpulse-visual-width  (vimpulse-range-width beg end mode)))
+  (let* ((range (vimpulse-visual-range mode))
+         (beg   (or beg (vimpulse-range-beginning range)))
+         (end   (or end (vimpulse-range-end range)))
+         (type  (vimpulse-motion-type range))
+         (range (vimpulse-make-motion-range beg end type)))
+    (setq vimpulse-visual-height (vimpulse-range-height range t)
+          vimpulse-visual-width  (vimpulse-range-width range t))))
 
 (defun vimpulse-visual-highlight (&optional arg)
   "Highlight Visual selection, depending on region and Visual mode.

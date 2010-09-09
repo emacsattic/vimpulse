@@ -504,9 +504,9 @@ is read from `vimpulse-this-motion-type'.
 
 This macro respects `viper-change-notification-threshold'."
   (declare (indent defun))
-  `(let* ((beg ,beg) (end ,end)
-          (height (vimpulse-range-height beg end vimpulse-this-motion-type))
-          (width  (vimpulse-range-width beg end vimpulse-this-motion-type))
+  `(let* ((range (vimpulse-make-motion-range ,beg ,end vimpulse-this-motion-type))
+          (height (vimpulse-range-height range t))
+          (width  (vimpulse-range-width range t))
           (template (replace-regexp-in-string
                      "<N>"
                      (apply 'format
