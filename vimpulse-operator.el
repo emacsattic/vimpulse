@@ -343,15 +343,18 @@ range. If REFRESH is t, this function changes point,
   (cond
    ;; REFRESH is nil, so bind global variables
    ((not refresh)
-    (let (obuffer omark opoint viper-com-point vimpulse-this-motion-type)
-      (setq opoint  (point)
-            omark   (mark t)
-            obuffer (current-buffer))
-      (prog1 (vimpulse-calculate-motion-range count motion type t)
-        ;; don't restore point and mark if operator has been disabled
+    (let ((opoint   (point))
+          (omark    (mark t))
+          (omactive (and (boundp 'mark-active) mark-active))
+          (obuffer  (current-buffer))
+          viper-com-point vimpulse-this-motion-type)
+      (unwind-protect (vimpulse-calculate-motion-range count motion type t)
+        ;; restore point and mark like `save-excursion',
+        ;; but only if the motion hasn't disabled the operator
         (unless vimpulse-inhibit-operator
           (set-buffer obuffer)
           (let (mark-active) (set-mark omark))
+          (and (boundp 'mark-active) (setq mark-active omactive))
           (goto-char opoint)))))
    (t
     (let ((current-prefix-arg count)
