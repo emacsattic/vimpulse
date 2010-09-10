@@ -447,27 +447,6 @@ To go the other way, press \\[vimpulse-jump-forward]."
         (setq vimpulse-mark-list
               (cons current-pos vimpulse-mark-list))))))
 
-(defun vimpulse-jump-backward-globally (arg)
-  (interactive "p")
-  (let ((current-pos (make-marker))
-        global-buffer global-mark global-pos)
-    ;; store current position
-    (move-marker current-pos (point))
-    (add-to-list 'vimpulse-mark-list current-pos)
-    ;; determine global mark, if any
-    (vimpulse-remove-minibuffer-marks)
-    (setq global-mark (car global-mark-ring))
-    (when (markerp global-mark)
-      (setq global-pos    (marker-position global-mark)
-            global-buffer (marker-buffer   global-mark)))
-    (cond
-     ((not (eq (current-buffer) global-buffer))
-      (switch-to-buffer global-buffer))
-     ((eq (mark t) global-pos)
-      (pop-global-mark))
-     (t
-      (vimpulse-jump-backward 1)))))
-
 (defun vimpulse-remove-minibuffer-marks ()
   "Remove minibuffer marks from `global-mark-ring'."
   (let (result)
