@@ -430,7 +430,7 @@ of CMD. Both COUNT and CMD may be nil."
                  (setq char (or (get char 'ascii-character) char))))
              ;; this trick from simple.el's `digit-argument'
              ;; converts keystrokes like C-0 and C-M-1 to digits
-             (if (integerp char)
+             (if (or (characterp char) (integerp char))
                  (setq digit (- (logand char ?\177) ?0))
                (setq digit nil))
              (if (keymapp cmd)
