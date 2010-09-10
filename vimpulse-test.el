@@ -362,7 +362,7 @@
                (unless (eq fail-msg t)
                  (setq last-msg fail-msg)
                  (test-message (when (symbolp test) test) ',suite fail-msg)))
-             (when (called-interactively-p)
+             (when (called-interactively-p 'any)
                (message "Test suite %s!" (if last-msg "failed" "passed")))
              ;; Return the last failing test message, or t if all passed.
              (or last-msg t)))
@@ -395,7 +395,7 @@ any other suite."
         (unless (eq fail-msg t)
           (setq last-msg fail-msg)
           (test-message (when (symbolp test) test) nil fail-msg)))))
-    (when (called-interactively-p)
+    (when (called-interactively-p 'any)
       (message "%s %s!"
                (if (= (length tests) 1) "Test" "Tests")
                (if last-msg "failed" "passed")))
@@ -505,7 +505,7 @@ before and after. Mocks and stubs are guaranteed to be released."
                               (setq fail-msg
                                     (error-message-string
                                      err))))))))
-               (when (called-interactively-p)
+               (when (called-interactively-p 'any)
                  (message "Test %s!" (if (eq fail-msg t) "passed" "failed")))
                ;; Return `fail-msg' if unsuccessful; otherwise return t.
                (or fail-msg t))))
