@@ -67,28 +67,26 @@
   (isearch-update-ring string viper-re-search))
 
 ;; if `viper-search-wrap-around' is t, we want the search to wrap
-(defun vimpulse-search-fun-function (&optional regexp forward)
+(defun vimpulse-search-fun-function ()
   "Return a wrapping search function.
 Based on `viper-re-search' and `viper-s-forward'."
-  (let* ((regexp (or regexp viper-re-search))
-         (forward (or forward viper-s-forward))
-         (search-fun (if regexp
-                         (if forward
-                             're-search-forward
-                           're-search-backward)
-                       (if forward
-                           'search-forward
-                         'search-backward))))
-    (eval `(lambda (regexp &optional bound noerror count)
-             (let ((orig (point)) retval)
-               (setq retval (,search-fun regexp bound t count))
-               (when (and (not retval) viper-search-wrap-around)
-                 (goto-char ,(if forward '(point-min)
-                               '(point-max)))
-                 (setq retval (,search-fun regexp bound t count))
-                 (unless retval
-                   (goto-char orig)))
-               retval)))))
+  `(lambda (regexp &optional bound noerror count)
+     (let ((orig (point))
+           (search-fun (if isearch-regexp
+                           (if isearch-forward
+                               're-search-forward
+                             're-search-backward)
+                         (if isearch-forward
+                             'search-forward
+                           'search-backward)))
+           retval)
+       (setq retval (funcall search-fun regexp bound t count))
+       (when (and (not retval) viper-search-wrap-around)
+         (goto-char (if isearch-forward (point-min) (point-max)))
+         (setq retval (funcall search-fun regexp bound t count))
+         (unless retval
+           (goto-char orig)))
+       retval)))
 
 (defun vimpulse-search-backward (arg)
   "Search backward for user-entered text.
