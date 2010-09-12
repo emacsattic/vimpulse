@@ -1,6 +1,6 @@
 ;;; Code:
 
-(defconst vimpulse-version "0.5"
+(defconst vimpulse-version "0.5+git"
   "The current version of Vimpulse")
 
 (defun vimpulse-version ()
