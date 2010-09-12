@@ -2,43 +2,50 @@
 
 ;; Version 0.4+git [2010-06-??]
 ;;  [vegard_oye at hotmail.com:]
+;;  - [NEW] "/" and "?" use isearch. Matches are highlighted while
+;;    typing; also, isearch shortcuts apply, like "M-c" to toggle
+;;    case-sensitivity. Type "C-h k /" for more details.
 ;;  - [NEW] :undolist or :ul shows the undo history as a tree. This
-;;    uses undo-tree.el, which replaces redo.el for undo/redo.
-;;    Get undo-tree.el from: http://www.emacswiki.org/emacs/UndoTree
-;;  - [NEW] / and ? use isearch. Matches are highlighted while typing;
-;;    also, isearch keystrokes applies, like C-w to yank the text
-;;    under cursor. See `isearch-forward' for more details.
-;;  - [NEW] If `viper-auto-indent' is t, RET extends the comment
-;;    prefix to the next line (with `comment-indent-new-line' from
-;;    newcomment.el).
-;;  - [NEW] Keys: gi, g$, g0.
-;;  - [NEW] C-w has its own prefix map, `vimpulse-window-map'.
+;;    uses undo-tree.el, which replaces redo.el for undo/redo
+;;    (see installation instructions).
+;;  - [NEW] Keybinding functions: `vimpulse-global-set-key',
+;;    `vimpulse-local-set-key', `vimpulse-define-key'. State bindings
+;;    can now be assigned to both minor and major Emacs modes,
+;;    which is useful for writing extensions.
+;;  - [NEW] Keys: "gi", "g0", "g$", "]P", "]p".
 ;;  - [NEW] Lower-case marks are buffer-local -- thanks, Štěpán Němec.
+;;  - [NEW] If `viper-auto-indent' is t, then "RET" extends the
+;;    comment prefix to the next line (with `comment-indent-new-line'
+;;    from newcomment.el).
+;;  - [NEW] "C-w" has its own prefix map, `vimpulse-window-map'.
 ;;  - [FIX] Replace mode's appearance is now more similar to Vim's.
 ;;  - [FIX] Byte compilation errors.
 ;;  - [FIX] Various bugs submitted to the mailing list --
 ;;    thanks, everyone.
+;; -  Operator commands are now defined with the
+;;    `vimpulse-define-operator' macro.
 ;;  - To pacify the compiler, all variables are initially defined
 ;;    in one place.
 ;;  - For readability and consistency, "Yoda conditions" are
 ;;    universally banned: e.g., (= var 0), not (= 0 var).
+;;  - "Change Log" is renamed to "News".
 ;;
 ;; Version 0.4 [2010-04-26]
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] Operator-Pending mode: the cursor's appearance
-;;    changes temporarily after y, d, c, etc.
+;;    changes temporarily after "y", "d", "c", etc.
 ;;  - [NEW] Motion type system: one can change how a motion is
-;;    "interpreted" with v, V and C-v. For example, dvj will
+;;    "interpreted" with "v", "V" and "C-v". For example, "dvj" will
 ;;    delete a characterwise range (the default is linewise).
-;;  - [NEW] Keys: gq, gu, gU, g~, g?.
+;;  - [NEW] Keys: "gq", "gu", "gU", "g~", "g?".
 ;;  - [NEW] Keybinding functions: `vimpulse-omap' and
 ;;    `vimpulse-omap-local'.
 ;;  - [FIX] Vimpulse's text objects handle whitespace
 ;;    more like Vim's.
 ;;  - [FIX] Various bugs submitted to the mailing list --
 ;;    thanks, everyone.
-;;  - The code for applying an "operator" like d to a "motion"
-;;    like w is completely rewritten. Operators are simple
+;;  - The code for applying an "operator" like "d" to a "motion"
+;;    like "w" is completely rewritten. Operators are simple
 ;;    to define (with `vimpulse-range'), and can be applied
 ;;    to regular Emacs movement commands as well.
 ;;  - The text objects have been redefined in terms of the new
@@ -58,9 +65,9 @@
 ;;  - [NEW] Emacs-compatible Visual selection.
 ;;    It is now a Viper state proper, with a user map
 ;;    and a major mode extension map.
-;;    [NEW] Visual keys: u, U, ~, >, <, J, O, gv --
+;;    [NEW] Visual keys: "u", "U", "~", ">", "<", "J", "O", "gv" --
 ;;    thanks, Frank Fischer.
-;;  - [NEW] Movement keys: C-o, C-i, C-w hjkl, gb, gd, N%, +, _.
+;;  - [NEW] Movement keys: "C-o", "C-i", "C-w hjkl", "gb", "gd", "+", "_".
 ;;  - [NEW] Keybinding functions: `vimpulse-map',
 ;;    `vimpulse-imap' and `vimpulse-vmap'.
 ;;  - [NEW] Backspace in Replace mode restores text.
@@ -84,7 +91,7 @@
 ;; Version 0.3.0 [2009-07-03]
 ;;  [laynor at gmail.com:]
 ;;  - [NEW] Register support on text object commands.
-;;  - [NEW] Issuing : in Visual mode has a behavior closer
+;;  - [NEW] Issuing ":" in Visual mode has a behavior closer
 ;;    to Vim's.
 ;;  [jasonspiro3 at gmail.com:]
 ;;  - [FIX] The Enter key now does what it should do -- insert a
@@ -94,16 +101,16 @@
 ;; Version 0.2.6.9 [2009-06-24]
 ;;  [laynor at gmail.com:]
 ;; - [FIX & NEW] Text objects support fixed and integrated with Viper.
-;;   Now count works (e.g., you can do 3caw and it works correctly),
+;;   Now count works (e.g., you can do "3caw" and it works correctly),
 ;;   and it's possible to repeat the commands with ".".
 ;;
 ;; Version 0.2.6.8 [2009-06-22]
 ;;  [laynor at gmail.com:]
 ;; - [NEW] Text object support: paren blocks, sentences, word, Words,
 ;;   quoted expressions, paragraphs. Delete and change commands.
-;;   Example commands: diw, ci(, das, etc.
-;; - [FIX] It's now possible to exit Visual mode by pressing the
-;;   ESC key or ^[.
+;;   Example commands: "diw", "ci(", "das", etc.
+;; - [FIX] It's now possible to exit Visual mode by pressing
+;;   "ESC" or "^[".
 ;;
 ;; Version 0.2.6.7
 ;;  [jasonspiro3 at gmail.com:]
@@ -129,21 +136,21 @@
 ;; Version 0.2.6.4
 ;;  [laynor at gmail.com:]
 ;;  - This can probably be considered a major release.
-;;  - [FIX & NEW] Rewritten Visual mode, v and V variants (no
+;;  - [FIX & NEW] Rewritten Visual mode, "v" and "V" variants (no
 ;;    changes to Visual Block still). It does not use the region like
 ;;    before: highlighting is done through overlays, and the region is
 ;;    set inside the command code before calling the Viper commands.
-;;    = in Visual mode calls `vimpulse-visual-indent-command'. The
+;;    "=" in Visual mode calls `vimpulse-visual-indent-command'. The
 ;;    Visual mode (apart from Block mode) looks and feels like Vim.
 ;;  - [NEW] Enhanced paren-matching. Moving the cursor on a closing
 ;;    paren in Normal mode now highlights the opening paren.
-;;  - [NEW] Pressing RET in Insert mode automatically indents the new
-;;    line.
-;;  - [NEW] ^[ works.
-;;  - [FIX] a<ESC> leaves the cursor in the same location as it was
+;;  - [NEW] Pressing "RET" in Insert mode automatically indents
+;;    the new line.
+;;  - [NEW] "^[" works.
+;;  - [FIX] "a<ESC>" leaves the cursor in the same location as it was
 ;;    before (it advanced the cursor 1 character before --
 ;;    `viper-exit-insert-state's fault).
-;;  - [FIX] cW doesn't suck anymore at the end of a line.
+;;  - [FIX] "cW" doesn't suck anymore at the end of a line.
 ;;
 ;; Version 0.2.6.3:
 ;;  [frank.fischer at s2001.tu-chemnitz.de:]
@@ -152,7 +159,7 @@
 ;;  - Change some Vimpulse and Viper functions to handle Block mode
 ;;    properly.
 ;;  - Update documentation to reflect Visual Block mode.
-;;  - The = key in Visual mode calls `indent-region'.
+;;  - The "=" key in Visual mode calls `indent-region'.
 ;;
 ;; Version 0.2.6.2:
 ;;  [jasonspiro3 at gmail.com:]
@@ -168,9 +175,9 @@
 ;;
 ;; Version 0.2.6.0:
 ;;  [jasonspiro3 at gmail.com:]
-;;  - Merged a patch for the function that powers * and #. Based on
+;;  - Merged a patch for the function that powers "*" and "#". Based on
 ;;    Ryoichi's patch and a cleaned-up version of Weihua's patch --
-;;    thanks. Now * and # will search for entire symbol at point,
+;;    thanks. Now "*" and "#" will search for entire symbol at point,
 ;;    including underscores, not just word at point.
 ;;  - TODO addition.
 ;;
@@ -186,7 +193,7 @@
 ;;  [jasonspiro3 at gmail.com:]
 ;;  I've ignored my local changes for too long. Here they are:
 ;;  - Added keybindings from a Usenet post by Samuel Padgett.
-;;  - Made change (cw, etc.) commands work more like Vim (my code).
+;;  - Made change ("cw", etc.) commands work more like Vim (my code).
 ;;  - I removed (setq ex-cycle-other-window nil); although it is very
 ;;    useful, it merely works around a problem with Viper. I plan to
 ;;    discuss it with the Viper maintainer instead.
@@ -198,13 +205,13 @@
 ;;
 ;; Version 0.2.0.2:
 ;;  [jasonspiro3 at gmail.com:]
-;;  - Small C-w keys and doc fixes.
+;;  - Small "C-w" keys and doc fixes.
 ;;
 ;; Version 0.2.0.1:
 ;;  [cppjavaperl:]
 ;;  - Added support for Visual Block mode (i.e., rectangle selection).
-;;  - Made C-p look for matches *prior* to the cursor and added C-n
-;;    binding to look for matches *before* the cursor. This works more
+;;  - Made "C-p" look for matches PRIOR to the cursor and added "C-n"
+;;    binding to look for matches BEFORE the cursor. This works more
 ;;    like Vim does.
 ;;  [jasonspiro3 at gmail.com:]
 ;;  - Since Vimpulse has no website, I added a prominent pointer at
@@ -213,8 +220,8 @@
 ;; Version 0.2.0.0: Brad merged in several changes, including:
 ;;  - Exit Visual mode when the mark deactivates.
 ;;  - Changed the window manipulation to be global.
-;;  - Added gf (goto file at point).
-;;  - Added \C-] and \C-t, tag jump & pop.
+;;  - Added "gf" (goto file at point).
+;;  - Added "\C-]" and "\C-t", tag jump & pop.
 ;;  - Added a helper function for defining keys.
 ;;  - Commented out `show-paren-function', what is it meant to do?
 ;;

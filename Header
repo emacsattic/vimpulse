@@ -15,12 +15,14 @@
 ;; Keywords: emulations, viper
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el
-;; Git repository: http://www.assembla.com/spaces/vimpulse/
+;; Gitorious project: http://gitorious.org/vimpulse
+;;      For the latest developmental version, clone the repo with:
+;;      git clone git://gitorious.org/vimpulse/vimpulse.git
 ;; Mailing list: <implementations-list at lists.ourproject.org>
 ;;      Subscribe: http://tinyurl.com/implementations-list
 ;;      Newsgroup: nntp://news.gmane.org/gmane.emacs.vim-emulation
 ;;      Archives: http://dir.gmane.org/gmane.emacs.vim-emulation
-;;      You don't have to subscribe.  We usually reply within a few
+;;      You don't have to subscribe. We usually reply within a few
 ;;      days and CC our replies back to you.
 ;; Related: viper.el, viper-in-more-modes.el
 ;;
@@ -34,13 +36,13 @@
 ;;; Commentary:
 
 ;; Vimpulse emulates Vim's most popular features, like Visual mode
-;; and text objects.  Vimpulse is a set of modifications to Viper, the
-;; standard library that emulates vi.  Vimpulse is not a minor mode;
+;; and text objects. Vimpulse is a set of modifications to Viper, the
+;; standard library that emulates vi. Vimpulse is not a minor mode;
 ;; as soon as it is loaded, Viper will start working in a more
 ;; Vim-like way.
 ;;
-;; Vimpulse is under active development.  It works quite well with
-;; GNU Emacs 22.3 and 23.2, as well as XEmacs 21.4.22.  Patches and
+;; Vimpulse is under active development. It works quite well with
+;; GNU Emacs 22.3 and 23.2, as well as XEmacs 21.4.22. Patches and
 ;; feature requests are welcome (see also the file CONTRIBUTE in the
 ;; repository).
 

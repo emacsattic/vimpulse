@@ -4,16 +4,5 @@
 ;;
 ;; Known bugs:
 ;;
-;; - cw with a count doesn't work quite the same as Vim when the point
-;;   is just before a space between words.
-;;     - Fix plan: try cw with a count, then try dwi with a count; or
-;;       ask on a relevant forum how the commands differ; or check
-;;       how it works in vi/Vim, then check the Vim manual for more
-;;       info; then, decide how to best fix it.
-;;         - Vim's behavior seems inconsistent in this case.  I think
-;;           it would be best to make the fix optional (defaulting to
-;;           standard Vim behavior, though), as I (at least) like
-;;           Vimpulse's behavior better in this case.
-;;
 ;; - Undo has problems in XEmacs.
 
