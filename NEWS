@@ -22,7 +22,7 @@
 ;;  - [FIX] Byte compilation errors.
 ;;  - [FIX] Various bugs submitted to the mailing list --
 ;;    thanks, everyone.
-;; -  Operator commands are now defined with the
+;;  -  Operator commands are now defined with the
 ;;    `vimpulse-define-operator' macro.
 ;;  - To pacify the compiler, all variables are initially defined
 ;;    in one place.
