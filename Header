@@ -11,7 +11,7 @@
 ;; Maintainer: Vegard Øye <vegard_oye at hotmail.com>
 ;;      Please send bug reports to the mailing list (see below).
 ;; Created: 23 Aug 2007
-;; Version: 0.4+git
+;; Version: 0.5
 ;; Keywords: emulations, viper
 ;; Human-Keywords: vim, visual-mode, rsi, ergonomics, emacs pinky
 ;; URL: http://www.emacswiki.org/emacs/vimpulse.el

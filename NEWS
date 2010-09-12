@@ -1,6 +1,6 @@
 ;;; News:
 
-;; Version 0.4+git [2010-06-??]
+;; Version 0.5 [2010-09-12]
 ;;  [vegard_oye at hotmail.com:]
 ;;  - [NEW] "/" and "?" use isearch. Matches are highlighted while
 ;;    typing; also, isearch shortcuts apply, like "M-c" to toggle
