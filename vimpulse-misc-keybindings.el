@@ -447,15 +447,6 @@ To go the other way, press \\[vimpulse-jump-forward]."
         (setq vimpulse-mark-list
               (cons current-pos vimpulse-mark-list))))))
 
-(defun vimpulse-remove-minibuffer-marks ()
-  "Remove minibuffer marks from `global-mark-ring'."
-  (let (result)
-    (dolist (mark global-mark-ring)
-      (unless (and (marker-buffer mark)
-                   (minibufferp (marker-buffer mark)))
-        (add-to-list 'result mark t)))
-    (setq global-mark-ring result)))
-
 (defun vimpulse-jump-forward (arg)
   "Go to newer position in jump list.
 To go the other way, press \\[vimpulse-jump-backward]."
