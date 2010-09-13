@@ -289,7 +289,7 @@
                     (list current-suite)))
          (current-suite suite)
          doc form keyword lambda test-forms run
-         fixture setup teardown wrap tests)
+         debug fixture setup teardown wrap tests)
     ;; Collect docstring.
     (when (stringp (car body))
       (setq doc (pop body)))
@@ -311,6 +311,8 @@
         (setq teardown (pop body)))
        ((memq keyword '(:advice :wrap))
         (setq wrap (pop body)))
+       ((eq keyword :debug)
+        (setq debug (pop body)))
        (t
         (pop body))))
     ;; Collect "abbreviated" forms -- that is, test definitions
@@ -327,6 +329,15 @@
         (add-to-list 'test-forms form))
        (t
         (add-to-list 'test-forms (append '(deftest) form)))))
+    (unless (or (symbolp fixture)
+                (functionp fixture))
+      (setq fixture `(lambda () ,@fixture)))
+    (unless (or (symbolp setup)
+                (functionp setup))
+      (setq setup `(lambda () ,@setup)))
+    (unless (or (symbolp teardown)
+                (functionp teardown))
+      (setq teardown `(lambda () ,@teardown)))
     ;; Macro expansion: create a `let' binding that test definitions can pick up
     ;; on, and create the suite function and suite variable
     `(macrolet ,deftest-macros
@@ -338,36 +349,26 @@
                        (add-to-suite ',suite suite))
                      ',parents)))
          (defvar ,suite nil ,doc)
-         (defun ,suite (&rest tests)
+         (defun ,suite (&optional debug &rest tests)
            ,doc
-           (interactive)
-           (let (fail-msg last-msg)
+           (interactive "p")
+           (let ((result t) fail-msg)
+             (if (numberp debug)
+                 (setq debug (/= debug 0))
+               ,@(when debug `((setq debug ,debug))))
              (setq tests (or ,suite tests))
              (dolist (test tests)
                (setq fail-msg
-                     (with-fixtures
-                       ,(if (or (null fixture)
-                                (functionp fixture))
-                            fixture
-                          `(lambda () ,@fixture))
-                       ,(if (or (null setup)
-                                (functionp setup))
-                            setup
-                          `(lambda () ,@setup))
-                       ,(if (or (null teardown)
-                                (functionp teardown))
-                            teardown
-                          `(lambda () ,@teardown))
-                       (funcall test t)))
+                     (with-fixtures ,fixture ,setup ,teardown
+                       (funcall test (if debug 'debug 'batch))))
                (unless (eq fail-msg t)
-                 (setq last-msg fail-msg)
+                 (setq result fail-msg)
                  (test-message (when (symbolp test) test) ',suite fail-msg)))
              (when (if (version< emacs-version "23")
                        (called-interactively-p)
                      (called-interactively-p 'any))
-               (message "Test suite %s!" (if last-msg "failed" "passed")))
-             ;; Return the last failing test message, or t if all passed.
-             (or last-msg t)))
+               (message "Test suite %s!" (if (eq result t) "passed" "failed")))
+             result))
          ;; :wrap function?
          ,@(when wrap
              `((defadvice ,suite (around wrap activate)
@@ -379,32 +380,31 @@
              `((,suite)))
          ',suite))))
 
-(defun empty-suite (&rest tests)
+(defun empty-suite (&optional debug &rest tests)
   "Pseudo-suite for suiteless tests.
 Tests can call themselves via this suite if not associated with
 any other suite."
   (interactive)
-  (let (fail-msg last-msg)
+  (let ((result t) fail-msg)
     (setq tests (or tests all-tests))
     (dolist (test tests)
       (cond
        ((default-suite test)
-        (setq fail-msg (funcall test))
+        (setq fail-msg (funcall test (and debug t)))
         (unless (eq fail-msg t)
-          (setq last-msg fail-msg)))
+          (setq result fail-msg)))
        (t
-        (setq fail-msg (funcall test t))
+        (setq fail-msg (funcall test (if debug 'debug 'batch)))
         (unless (eq fail-msg t)
-          (setq last-msg fail-msg)
+          (setq result fail-msg)
           (test-message (when (symbolp test) test) nil fail-msg)))))
     (when (if (version< emacs-version "23")
               (called-interactively-p)
             (called-interactively-p 'any))
       (message "%s %s!"
                (if (= (length tests) 1) "Test" "Tests")
-               (if last-msg "failed" "passed")))
-    ;; Return the last failing test message, or t if all passed.
-    (or last-msg t)))
+               (if (eq result t) "passed" "failed")))
+    result))
 
 (defun add-to-suite (suite test)
   "Add TEST to SUITE."
@@ -418,30 +418,31 @@ FIXTURE is a one-argument function with which to run the contents
 of BODY; SETUP and TEARDOWN are zero-argument functions to run
 before and after. Mocks and stubs are guaranteed to be released."
   (declare (indent defun))
-  `(let ((fixture ',fixture)
-         (setup ',setup)
-         (teardown ',teardown))
-     (with-mocks-and-stubs
-       (unwind-protect
-           (save-excursion
-             (let (result)
-               (when setup
-                 (funcall setup))
-               (if fixture
-                   (funcall fixture
-                            (lambda ()
-                              (setq result (progn ,@body))))
-                 (setq result (progn ,@body)))
-               result))
-         (when teardown
-           (funcall teardown))))))
+  (let ((resultvar (make-symbol "result")))
+    `(let ((fixture ',fixture)
+           (setup ',setup)
+           (teardown ',teardown))
+       (with-mocks-and-stubs
+         (unwind-protect
+             (save-excursion
+               (let (,resultvar)
+                 (when setup
+                   (funcall setup))
+                 (if fixture
+                     (funcall fixture
+                              (lambda ()
+                                (setq ,resultvar (progn ,@body))))
+                   (setq ,resultvar (progn ,@body)))
+                 ,resultvar))
+           (when teardown
+             (funcall teardown)))))))
 
 ;;; Test macro: `deftest'
 
 (defmacro deftest (test &rest body)
   "Define a test."
   (declare (indent defun))
-  (let (doc keyword lambda run fixture suites setup teardown wrap)
+  (let (debug doc keyword lambda run fixture suites setup teardown wrap)
     ;; If TEST is not a name (abbreviated form), move it into BODY
     ;; (a nil name creates an anonymous function).
     (unless (symbolp test)
@@ -471,50 +472,54 @@ before and after. Mocks and stubs are guaranteed to be released."
         (setq teardown (pop body)))
        ((memq keyword '(:advice :wrap))
         (setq wrap (pop body)))
+       ((eq keyword :debug)
+        (setq debug (pop body)))
        (t
         (pop body))))
+    (unless (or (symbolp fixture)
+                (functionp fixture))
+      (setq fixture `(lambda () ,@fixture)))
+    (unless (or (symbolp setup)
+                (functionp setup))
+      (setq setup `(lambda () ,@setup)))
+    (unless (or (symbolp teardown)
+                (functionp teardown))
+      (setq teardown `(lambda () ,@teardown)))
     ;; Create function body.
     (setq lambda
-          `(lambda (&optional suite)
+          `(lambda (&optional debug suite)
              ,doc
-             (interactive)
-             (let (fail-msg)
+             (interactive "p")
+             (let ((result t))
+               (if (numberp debug)
+                   (setq debug (/= debug 0))
+                 ,@(when debug `((setq debug ,debug))))
                (setq suite
                      (or suite
                          ,@(when test `((default-suite ',test)))
                          (and (boundp 'current-suite) current-suite)
                          'empty-suite))
+               ,@(when debug `(setq debug ,debug))
                (cond
-                ;; SUITE specifies a suite or is nil; call test via suite.
-                ((fboundp suite)
-                 (setq fail-msg (funcall suite ',test)))
-                ;; Non-suite SUITE value (e.g., t); run the test itself.
-                (t
-                 (with-fixtures
-                   ,(if (or (null fixture)
-                            (functionp fixture))
-                        fixture
-                      `(lambda () ,@fixture))
-                   ,(if (or (null setup)
-                            (functionp setup))
-                        setup
-                      `(lambda () ,@setup))
-                   ,(if (or (null teardown)
-                            (functionp teardown))
-                        teardown
-                      `(lambda () ,@teardown))
+                ((eq debug 'batch)
+                 (with-fixtures ,fixture ,setup ,teardown
                    (condition-case err
                        (progn ,@body)
                      (error (prog1 nil
-                              (setq fail-msg
-                                    (error-message-string
-                                     err))))))))
+                              (setq result (error-message-string err)))))))
+                ((eq debug 'debug)
+                 (let ((debug-on-error t))
+                   (setq result nil)
+                   (with-fixtures ,fixture ,setup ,teardown
+                     ,@body
+                     (setq result t))))
+                (t
+                 (setq result (funcall suite debug ',test))))
                (when (if (version< emacs-version "23")
                          (called-interactively-p)
                        (called-interactively-p 'any))
-                 (message "Test %s!" (if (eq fail-msg t) "passed" "failed")))
-               ;; Return `fail-msg' if unsuccessful; otherwise return t.
-               (or fail-msg t))))
+                 (message "Test %s!" (if (eq result t) "passed" "failed")))
+               result)))
     (if (null test)
         `(macrolet ,deftest-macros
            (add-to-list 'all-tests ,lambda)
@@ -1047,6 +1052,10 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
      (with-stubs
        ,@body)))
 
+;; This may seem paranoid, but could be useful for "jesting"
+;; (where you replace `<' with `>=', `=' with `/=', etc.,
+;; run the tests, and weep in despair as they still pass).
+;; See http://jester.sourceforge.net/
 (defmacro without-mocks-and-stubs (&rest body)
   "Run BODY without mocks and stubs."
   (declare (indent 0))
