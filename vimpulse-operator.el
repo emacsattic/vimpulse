@@ -576,8 +576,8 @@ ARGS is passed to `vimpulse-range'."
      (,region-cmd beg end)))
 
 (defun vimpulse-operator-cmd-p (cmd)
-  "Return t if CMD is an operator command."
-  (and (memq cmd vimpulse-operators) t))
+  "Return non-nil if CMD is an operator command."
+  (memq cmd vimpulse-operators))
 
 ;;; Repeat an operator/motion combination
 
