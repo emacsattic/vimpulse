@@ -268,7 +268,8 @@
 
 (eval-when-compile
   (require 'cl)
-  (require 'advice))
+  (require 'advice)
+  (require 'vimpulse-dependencies))
 
 (eval-and-compile
   (defvar all-suites nil)
@@ -364,9 +365,7 @@
                (unless (eq fail-msg t)
                  (setq result fail-msg)
                  (test-message (when (symbolp test) test) ',suite fail-msg)))
-             (when (if (version< emacs-version "23")
-                       (called-interactively-p)
-                     (called-interactively-p 'any))
+             (when (vimpulse-called-interactively-p)
                (message "Test suite %s!" (if (eq result t) "passed" "failed")))
              result))
          ;; :wrap function?
@@ -398,9 +397,7 @@ any other suite."
         (unless (eq fail-msg t)
           (setq result fail-msg)
           (test-message (when (symbolp test) test) nil fail-msg)))))
-    (when (if (version< emacs-version "23")
-              (called-interactively-p)
-            (called-interactively-p 'any))
+    (when (vimpulse-called-interactively-p)
       (message "%s %s!"
                (if (= (length tests) 1) "Test" "Tests")
                (if (eq result t) "passed" "failed")))
@@ -515,9 +512,7 @@ before and after. Mocks and stubs are guaranteed to be released."
                      (setq result t))))
                 (t
                  (setq result (funcall suite debug ',test))))
-               (when (if (version< emacs-version "23")
-                         (called-interactively-p)
-                       (called-interactively-p 'any))
+               (when (vimpulse-called-interactively-p)
                  (message "Test %s!" (if (eq result t) "passed" "failed")))
                result)))
     (if (null test)

@@ -203,9 +203,7 @@ in Visual mode."
            ,(not repeat) ,(not move-point)
            ,whole-lines ,keep-visual ',motion))
          (if (and vimpulse-inhibit-operator
-                  (if (version< emacs-version "23")
-                      (called-interactively-p)
-                    (called-interactively-p 'any)))
+                  (vimpulse-called-interactively-p))
              (setq vimpulse-inhibit-operator nil)
            ,@body)))))
 
