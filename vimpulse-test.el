@@ -269,6 +269,7 @@
 (eval-when-compile
   (require 'cl)
   (require 'advice)
+  (require 'warnings)
   (require 'vimpulse-dependencies))
 
 (eval-and-compile
@@ -277,6 +278,10 @@
   (defvar current-suite nil)
   (defvar test-passed nil)
   (defvar suite-passed nil)
+  (defvar silent-tests nil
+    "If t, don't echo test results.")
+  (defvar logged-tests t
+    "If t, log echoed test results in the *Messages* buffer.")
   (defvar deftest-macros nil
     "Macros that shadow global definitions inside `deftest'."))
 
@@ -353,20 +358,37 @@
          (defun ,suite (&optional debug &rest tests)
            ,doc
            (interactive "p")
-           (let ((result t) fail-msg)
+           (let ((result t)
+                 (logged-tests logged-tests)
+                 (silent-tests silent-tests)
+                 fail-msg own-tests)
              (if (numberp debug)
                  (setq debug (/= debug 0))
                ,@(when debug `((setq debug ,debug))))
-             (setq tests (or ,suite tests))
+             (when (null tests)
+               (setq own-tests t
+                     tests ,suite)
+               (test-message "Test suite `%s' running ..." ',suite))
              (dolist (test tests)
                (setq fail-msg
                      (with-fixtures ,fixture ,setup ,teardown
                        (funcall test (if debug 'debug 'batch))))
-               (unless (eq fail-msg t)
-                 (setq result fail-msg)
-                 (test-message (when (symbolp test) test) ',suite fail-msg)))
-             (when (vimpulse-called-interactively-p)
-               (message "Test suite %s!" (if (eq result t) "passed" "failed")))
+               (if (eq fail-msg t)
+                   (test-message "%sTest `%s' passed!"
+                                 (if own-tests "    " "") test)
+                 (test-message "%sTest `%s' failed!"
+                               (if own-tests "    " "") test)
+                 (test-warning (when (symbolp test) test) ',suite fail-msg)
+                 (setq result fail-msg)))
+             (when own-tests
+               ;; if `silent-tests' is t and the suite is called
+               ;; interactively, echo an unlogged summary
+               (when (and silent-tests (vimpulse-called-interactively-p))
+                 (setq logged-tests nil
+                       silent-tests nil))
+               (if (eq result t)
+                   (test-message "Test suite `%s' passed!" ',suite)
+                 (test-message "Test suite `%s' failed!" ',suite)))
              result))
          ;; :wrap function?
          ,@(when wrap
@@ -384,23 +406,28 @@
 Tests can call themselves via this suite if not associated with
 any other suite."
   (interactive)
-  (let ((result t) fail-msg)
-    (setq tests (or tests all-tests))
+  (let ((result t) own-tests fail-msg)
+    (when (null tests)
+      (setq own-tests t
+            tests all-tests))
     (dolist (test tests)
       (cond
        ((default-suite test)
-        (setq fail-msg (funcall test (and debug t)))
-        (unless (eq fail-msg t)
-          (setq result fail-msg)))
+        (setq fail-msg (funcall test (and debug t))))
        (t
-        (setq fail-msg (funcall test (if debug 'debug 'batch)))
-        (unless (eq fail-msg t)
-          (setq result fail-msg)
-          (test-message (when (symbolp test) test) nil fail-msg)))))
-    (when (vimpulse-called-interactively-p)
-      (message "%s %s!"
-               (if (= (length tests) 1) "Test" "Tests")
-               (if (eq result t) "passed" "failed")))
+        (setq fail-msg (funcall test (if debug 'debug 'batch)))))
+      (if (eq fail-msg t)
+          (test-message "Test `%s' passed!" test)
+        (test-message "Test `%s' failed!" test)
+        (test-warning (when (symbolp test) test) nil fail-msg)
+        (setq result fail-msg)))
+    (when (and silent-tests (vimpulse-called-interactively-p))
+      (setq logged-tests nil
+            silent-tests nil))
+    (when own-tests
+      (test-message "Test%s %s!"
+                    (if (= (length tests) 1) "" "s")
+                    (if (eq result t) "passed" "failed")))
     result))
 
 (defun add-to-suite (suite test)
@@ -487,7 +514,14 @@ before and after. Mocks and stubs are guaranteed to be released."
           `(lambda (&optional debug suite)
              ,doc
              (interactive "p")
-             (let ((result t))
+             (let ((result t)
+                   (logged-tests logged-tests)
+                   (silent-tests silent-tests))
+               ;; if `silent-tests' is t and the test is called
+               ;; interactively, echo the result unlogged
+               (when (and silent-tests (vimpulse-called-interactively-p))
+                 (setq logged-tests nil
+                       silent-tests nil))
                (if (numberp debug)
                    (setq debug (/= debug 0))
                  ,@(when debug `((setq debug ,debug))))
@@ -512,8 +546,6 @@ before and after. Mocks and stubs are guaranteed to be released."
                      (setq result t))))
                 (t
                  (setq result (funcall suite debug ',test))))
-               (when (vimpulse-called-interactively-p)
-                 (message "Test %s!" (if (eq result t) "passed" "failed")))
                result)))
     (if (null test)
         `(macrolet ,deftest-macros
@@ -553,7 +585,7 @@ before and after. Mocks and stubs are guaranteed to be released."
 
 ;; Currently, this produces a warning. Could it produce linkified
 ;; text in a separate buffer instead? (`with-output-to-temp-buffer')
-(defun test-message (test suite &rest strings)
+(defun test-warning (test suite &rest strings)
   "Display warning for TEST in SUITE, consisting of STRINGS.
 STRINGS are separated by a newline and a tab."
   (let (doc message)
@@ -576,6 +608,15 @@ STRINGS are separated by a newline and a tab."
             (setq message (concat message "\n\t" string))
           (setq message string))))
     (display-warning (or suite 'test) message)))
+
+(defmacro test-message (string &rest args)
+  "Conditionally echo a message.
+If `silent-tests' is t, don't echo the message.
+If `logged-tests' is nil, don't log the message
+in the *Messages* buffer."
+  `(let ((message-log-max logged-tests))
+     (unless silent-tests
+       (message ,string ,@args))))
 
 ;;; Assertion macro: `defassert'
 
@@ -1081,7 +1122,8 @@ The buffer contains the familiar *scratch* message,
 with point at position 1 and in vi (command) state."
   (let ((kill-ring kill-ring)
         (kill-ring-yank-pointer kill-ring-yank-pointer)
-        x-select-enable-clipboard)
+        x-select-enable-clipboard
+        message-log-max)
     (with-temp-buffer
       (save-window-excursion
         (switch-to-buffer-other-window (current-buffer))
