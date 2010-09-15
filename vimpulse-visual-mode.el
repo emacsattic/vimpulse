@@ -89,7 +89,9 @@ selection on each line."
        ((eq vimpulse-visual-previous-state 'emacs-state)
         (viper-change-state-to-emacs))
        (t
-        (save-excursion (viper-change-state-to-vi)))))
+        (let (abbrev-mode)
+          (save-excursion
+            (viper-change-state-to-vi))))))
     (kill-local-variable 'vimpulse-visual-previous-state))))
 
 ;;; Activation
