@@ -387,7 +387,10 @@
              (when own-tests
                ;; if `silent-tests' is t and the suite is called
                ;; interactively, echo an unlogged summary
-               (when (and silent-tests (vimpulse-called-interactively-p))
+               (when (and silent-tests
+                          ,(if (version< emacs-version "23")
+                               '(called-interactively-p)
+                             '(called-interactively-p 'any)))
                  (setq logged-tests nil
                        silent-tests nil))
                (if (eq result t)
@@ -409,8 +412,10 @@
   "Pseudo-suite for suiteless tests.
 Tests can call themselves via this suite if not associated with
 any other suite."
-  (interactive)
+  (interactive "p")
   (let ((result t) own-tests fail-msg)
+    (when (numberp debug)
+      (setq debug (/= debug 0)))
     (when (null tests)
       (setq own-tests t
             tests all-tests))
@@ -425,7 +430,11 @@ any other suite."
         (test-message "Test `%s' failed!" test)
         (test-warning (when (symbolp test) test) nil fail-msg)
         (setq result fail-msg)))
-    (when (and silent-tests (vimpulse-called-interactively-p))
+    (when (and silent-tests
+               (with-no-warnings
+                 (if (version< emacs-version "23")
+                     (called-interactively-p)
+                   (called-interactively-p 'any))))
       (setq logged-tests nil
             silent-tests nil))
     (when own-tests
@@ -529,7 +538,10 @@ before and after. Mocks and stubs are guaranteed to be released."
                    (silent-tests silent-tests))
                ;; if `silent-tests' is t and the test is called
                ;; interactively, echo the result unlogged
-               (when (and silent-tests (vimpulse-called-interactively-p))
+               (when (and silent-tests
+                          ,(if (version< emacs-version "23")
+                               '(called-interactively-p)
+                             '(called-interactively-p 'any)))
                  (setq logged-tests nil
                        silent-tests nil))
                (if (numberp debug)
