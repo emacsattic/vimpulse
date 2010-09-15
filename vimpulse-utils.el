@@ -154,7 +154,8 @@ in vi state and bind them to TO in KEYMAP."
 
 (defmacro vimpulse-with-state (state &rest body)
   "Execute BODY with Viper state STATE, then restore previous state."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(let ((new-viper-state ,state)
          (old-viper-state viper-current-state))
      (unwind-protect
@@ -250,7 +251,8 @@ tabs are changed to spaces. (FORCE untabifies regardless.)"
 (defmacro vimpulse-limit (start end &rest body)
   "Eval BODY, but limit point to buffer-positions START and END.
 Both may be nil. Returns position."
-  (declare (indent 2))
+  (declare (indent 2)
+           (debug t))
   `(let ((start (or ,start (point-min)))
          (end   (or ,end   (point-max))))
      (when (> start end)
@@ -264,7 +266,8 @@ Both may be nil. Returns position."
 (defmacro vimpulse-skip (dir bounds &rest body)
   "Eval BODY, but limit point to BOUNDS in DIR direction.
 Returns position."
-  (declare (indent 2))
+  (declare (indent 2)
+           (debug t))
   `(let ((dir ,dir) (bounds ,bounds) start end)
      (setq dir (if (and (numberp dir) (< dir 0)) -1 1))
      (dolist (bound bounds)
@@ -520,6 +523,8 @@ single action."
 
 (defmacro vimpulse-single-undo (&rest body)
   "Execute BODY as a single undo step."
+  (declare (indent 0)
+           (debug t))
   `(unwind-protect
        (progn
          (vimpulse-start-single-undo)

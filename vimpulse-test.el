@@ -289,7 +289,11 @@
 
 (defmacro defsuite (suite &rest body)
   "Define a test suite."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (&define name
+                           [&optional stringp]
+                           [&rest keywordp sexp]
+                           def-body)))
   (let* ((parents (when (and (boundp 'current-suite)
                              current-suite)
                     (list current-suite)))
@@ -441,7 +445,8 @@ any other suite."
 FIXTURE is a one-argument function with which to run the contents
 of BODY; SETUP and TEARDOWN are zero-argument functions to run
 before and after. Mocks and stubs are guaranteed to be released."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   (let ((resultvar (make-symbol "result")))
     `(let ((fixture ',fixture)
            (setup ',setup)
@@ -465,7 +470,12 @@ before and after. Mocks and stubs are guaranteed to be released."
 
 (defmacro deftest (test &rest body)
   "Define a test."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (&define name
+                           [&optional symbolp]
+                           [&optional stringp]
+                           [&rest keywordp sexp]
+                           def-body)))
   (let (debug doc keyword lambda run fixture suites setup teardown wrap)
     ;; If TEST is not a name (abbreviated form), move it into BODY
     ;; (a nil name creates an anonymous function).
@@ -609,14 +619,14 @@ STRINGS are separated by a newline and a tab."
           (setq message string))))
     (display-warning (or suite 'test) message)))
 
-(defmacro test-message (string &rest args)
+(defun test-message (string &rest args)
   "Conditionally echo a message.
 If `silent-tests' is t, don't echo the message.
 If `logged-tests' is nil, don't log the message
 in the *Messages* buffer."
-  `(let ((message-log-max logged-tests))
-     (unless silent-tests
-       (message ,string ,@args))))
+  (let ((message-log-max logged-tests))
+    (unless silent-tests
+      (apply 'message string args))))
 
 ;;; Assertion macro: `defassert'
 
@@ -648,7 +658,10 @@ The first argument in the argument list is the docstring.
 The rest of the arguments are assumed to be repeatable, that is,
 \(assert-macro \"test\" x1 y1 x2 y2 ...), unless a &rest argument
 is specified."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (&define name lambda-list
+                           [&optional stringp]
+                           def-body)))
   (let* (body-var doc-var docstring keyword result shadow)
     (when (stringp (car body))
       (setq docstring (list (pop body))))
@@ -969,7 +982,8 @@ A stub is a temporary function advice shadowing the real
 definition (so the argument list is retained). It is released
 with `release-stubs'. You should stub inside `deftest' only,
 which releases automatically."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(cond
     ((fboundp ',func)
      (add-to-list 'stubs ',func nil 'eq)
@@ -1000,7 +1014,8 @@ Release stubs in `stubs' if unspecified."
 (defmacro with-stubs (&rest body)
   "Run BODY, releasing stubs afterwards.
 Don't use this directly; see `with-mocks-and-stubs' instead."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   `(let ((stubbed-already stubs-global)
          stubs)
      (unwind-protect
@@ -1011,7 +1026,8 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 
 (defmacro without-stubs (&rest body)
   "Run BODY without stubs."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   `(let (stubs-global)        ; stubs are contingent on `stubs-global'
      ,@body))
 
@@ -1021,7 +1037,8 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 A mock is a temporary function redefinition, released with
 `release-mocks'. You should mock inside `deftest' only,
 which releases automatically."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug t))
   `(mock-fset ',func (lambda ,args ,@(or body '(nil)))))
 
 (defun mock-fset (symbol definition)
@@ -1064,7 +1081,8 @@ Release mocks in `mocks-alist' if unspecified."
 (defmacro with-mocks (&rest body)
   "Run BODY, releasing mocks afterwards.
 Don't use this directly; see `with-mocks-and-stubs' instead."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   `(let ((mocked-already mocks-global-alist)
          mocks-alist)
      (unwind-protect
@@ -1075,7 +1093,8 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 
 (defmacro without-mocks (&rest body)
   "Run BODY without mocks."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   `(with-mocks
      (dolist (func mocks-global-alist)
        (mock-fset (car func) (cdr func)))
@@ -1083,7 +1102,8 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 
 (defmacro with-mocks-and-stubs (&rest body)
   "Run BODY, releasing mocks and stubs afterwards."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   `(with-mocks
      (with-stubs
        ,@body)))
@@ -1094,7 +1114,8 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 ;; See http://jester.sourceforge.net/
 (defmacro without-mocks-and-stubs (&rest body)
   "Run BODY without mocks and stubs."
-  (declare (indent 0))
+  (declare (indent 0)
+           (debug t))
   `(without-mocks
      (without-stubs
        ,@body)))

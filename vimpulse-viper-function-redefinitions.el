@@ -592,7 +592,8 @@ Following the keywords is optional code to be executed each time
 the state is enabled or disabled. This is stored in a `defadvice'
 of `viper-change-state'. :advice specifies the advice type
 \(default `after'). The advice runs :hook before completing."
-  (declare (debug (&define name stringp
+  (declare (debug (&define name
+                           [&optional stringp]
                            [&rest [keywordp sexp]]
                            def-body))
            (indent defun))

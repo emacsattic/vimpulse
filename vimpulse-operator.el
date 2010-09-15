@@ -159,7 +159,11 @@ text between those buffer positions, like delete it in this case.
 If :motion is specified, the operator will use that motion
 instead of reading one from the keyboard. This has no effect
 in Visual mode."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (&define name lambda-list
+                           [&optional stringp]
+                           [&rest keywordp sexp]
+                           def-body)))
   (let ((repeat t) (move-point t)
         (map 'viper-vi-basic-map)
         beg end doc keep-visual keys keyword motion whole-lines)
@@ -503,8 +507,10 @@ which is determined before executing BODY. The range type
 is read from `vimpulse-this-motion-type'.
 
 This macro respects `viper-change-notification-threshold'."
-  (declare (indent defun))
-  `(let* ((range (vimpulse-make-motion-range ,beg ,end vimpulse-this-motion-type))
+  (declare (indent defun)
+           (debug (sexp sexp sexp body)))
+  `(let* ((range (vimpulse-make-motion-range
+                  ,beg ,end vimpulse-this-motion-type))
           (height (vimpulse-range-height range t))
           (width  (vimpulse-range-width range t))
           (template (replace-regexp-in-string

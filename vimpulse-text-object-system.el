@@ -36,7 +36,11 @@ a simple example may look somewhat like:
 
 Here, the count is stored in ARG. Note that the body must be able
 to handle a negative value, which specifies reverse direction."
-  (declare (indent defun))
+  (declare (indent defun)
+           (debug (&define name lambda-list
+                           [&optional stringp]
+                           [&rest keywordp sexp]
+                           def-body)))
   (let ((map 'vimpulse-operator-basic-map)
         count doc keys keyword type)
     ;; collect COUNT argument
