@@ -31,7 +31,8 @@
 ;;
 ;;     (test-foo)    ; `M-x test-foo' interactively
 ;;
-;; Alternatively, specify :run t when defining the test:
+;; Alternatively, specify `:run t' when defining the test to run the test
+;; every time the `deftest' form is evaluated:
 ;;
 ;;     (deftest test-foo
 ;;       :run t
@@ -39,8 +40,8 @@
 ;;       (assert (= (* 3 3) 9))
 ;;       (assert (= (% 4 2) 0)))
 ;;
-;; Let's simplify it a bit. Assertions of the same type can grouped
-;; into a single statement:
+;; Let's simplify it a bit. The various `assert-' forms accept multiple (sets
+;; of) arguments similarly to e.g. `setq':
 ;;
 ;;     (deftest test-foo
 ;;       :run t
@@ -71,7 +72,7 @@
 ;;         (* 3 3) 9
 ;;         (% 4 2) 0))
 ;;
-;; If the test fails, these strings show up in the report.
+;; If the test fails, the first line of the docstring shows up in the report.
 ;;
 ;; NOTE: xUnit frameworks often use "Yoda order", e.g.,
 ;; "assertEquals(4, 2 + 2);", where the expected value comes first.
@@ -104,7 +105,7 @@
 ;;           (* 3 3) 9)))
 ;;
 ;; Like tests, the suite is executed with (test-foo-suite),
-;; `M-x test-foo-suite' or :run t in the definition. Suites can also
+;; `M-x test-foo-suite' or `:run t' in the definition. Suites can also
 ;; have docstrings. For brevity, "deftest" can be omitted:
 ;;
 ;;     (defsuite test-foo-suite
@@ -141,7 +142,7 @@
 ;; A suite can include other suites simply by listing the suite names
 ;; in its `defsuite' form. Furthermore, `defsuite' forms may be
 ;; nested. One can also define the test suite first and then add tests
-;; and suites to it, using the :suite keyword or `add-to-suite':
+;; and suites to it, using the `:suite' keyword or `add-to-suite':
 ;;
 ;;     (defsuite test-foo-suite
 ;;       "Example suite.")
@@ -225,8 +226,8 @@
 ;;
 ;; NOTE 3: a test defined as part of a suite carries with it the
 ;; suite's fixtures even when called outside the suite. When the test
-;; is called by a different suite, that suite's fixtures overrides
-;; the fixtures inherited from the original suite.
+;; is called by a different suite, that suite's fixtures temporarily
+;; override the fixtures inherited from the original suite.
 
 ;;; Mocks and stubs
 
