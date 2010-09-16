@@ -25,7 +25,7 @@
 ;; use the `vimpulse-apply-on-block' function.
 
 (eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
-(eval-when-compile (require 'vimpulse-utils))  ; vimpulse-remap
+(eval-when-compile (require 'vimpulse-utils)) ; vimpulse-remap
 
 (declare-function vimpulse-delete "vimpulse-operator" (beg end &optional dont-save))
 (declare-function vimpulse-mark-range "vimpulse-text-object-system" (range &optional widen type))
@@ -260,8 +260,7 @@ May also be used to change the Visual mode."
     (vimpulse-transient-mark -1))
    (t
     (vimpulse-transient-mark 1)
-    (vimpulse-activate-mark)))
-  (vimpulse-set-visual-dimensions))
+    (vimpulse-activate-mark))))
 
 (defun vimpulse-visual-toggle (mode)
   "Enable Visual MODE if this is not the current mode.
@@ -553,7 +552,7 @@ See also `vimpulse-visual-reselect'."
 (defun vimpulse-visual-reselect (&optional mode height width pos)
   "Create a Visual MODE selection of dimensions HEIGHT and WIDTH.
 When called interactively, uses dimensions of previous selection.
-If specified, selects about POS; otherwise selects about point.
+If POS is specified, selects about POS; otherwise about point.
 See also `vimpulse-visual-restore'."
   (interactive)
   (when pos
