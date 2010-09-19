@@ -355,8 +355,6 @@ is highlighted rather than skipped past."
   "Auto Indentation, Vim-style."
   (interactive)
   (let ((col (current-indentation)))
-    (when abbrev-mode
-      (expand-abbrev))
     (if viper-preserve-indent
         (setq viper-preserve-indent nil)
       (setq viper-current-indent col))
