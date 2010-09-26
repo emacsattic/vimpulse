@@ -128,9 +128,9 @@ NLINES is the number of lines in the region.")
   "Vimpulse Visual mode keymap.")
 
 (put 'vimpulse-visual-basic-map 'remap-alist 'vimpulse-visual-remap-alist)
-
-;; keys that have no effect in Visual mode
 (vimpulse-remap vimpulse-visual-basic-map 'viper-repeat 'viper-nil)
+(vimpulse-remap vimpulse-visual-basic-map 'viper-forward-char 'vimpulse-visual-forward-char)
+(vimpulse-remap vimpulse-visual-basic-map 'viper-goto-eol 'vimpulse-visual-goto-eol)
 
 (viper-deflocalvar vimpulse-visual-mode nil
   "Current Visual mode: may be nil, `char', `line' or `block'.")
@@ -956,13 +956,33 @@ it is more useful to exclude the last newline from the region."
   (or (member command vimpulse-newline-cmds)
       (vimpulse-operator-cmd-p command)))
 
-
 ;;; Ex
 
 (defun vimpulse-visual-ex (arg)
   "Call `viper-ex' on region."
   (interactive "p")
   (viper-ex arg))
+
+;;; Movement
+
+(defun vimpulse-visual-forward-char (arg)
+  "Move point, stopping at very end of line in Visual mode."
+  (interactive "P")
+  (cond
+   (vimpulse-visual-mode
+    (let ((val (viper-p-val arg)))
+      (forward-char val)
+      (when (and viper-ex-style-motion (bolp))
+        (backward-char))))
+   (t
+    (viper-forward-char arg))))
+
+(defun vimpulse-visual-goto-eol (arg)
+  "Go to the very end of the line in Visual mode."
+  (interactive "P")
+  (viper-goto-eol arg)
+  (when vimpulse-visual-mode
+    (end-of-line 1)))
 
 ;;; Insert/append
 
@@ -1308,21 +1328,5 @@ Returns the insertion point."
   (vimpulse-end-undo-step))
 
 (defalias 'viper-exit-insert-state 'vimpulse-exit-insert-state)
-
-(defadvice viper-goto-eol (after vimpulse-visual activate)
-  "Move to end of line in Visual mode."
-  (when vimpulse-visual-mode
-    (end-of-line 1)))
-
-(defadvice viper-forward-char (around vimpulse-activate activate)
-  "Move to end of line in Visual mode."
-  (cond
-   (vimpulse-visual-mode
-    (let ((val (viper-p-val arg)))
-      (forward-char val)
-      (when (and viper-ex-style-motion (bolp))
-        (backward-char))))
-   (t
-    ad-do-it)))
 
 (provide 'vimpulse-visual-mode)

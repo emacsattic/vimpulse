@@ -291,9 +291,10 @@ Used by `vimpulse-operator-repeat'.")
     vimpulse-end-of-previous-word vimpulse-goto-definition
     vimpulse-goto-first-line vimpulse-goto-line
     vimpulse-visual-block-rotate vimpulse-visual-exchange-corners
+    vimpulse-visual-forward-char vimpulse-visual-goto-eol
     vimpulse-visual-reselect vimpulse-visual-restore
-    vimpulse-visual-toggle-block vimpulse-visual-toggle-line
-    vimpulse-visual-toggle-char viper-backward-Word
+    vimpulse-visual-toggle-block vimpulse-visual-toggle-char
+    vimpulse-visual-toggle-line viper-backward-Word
     viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
     viper-beginning-of-line viper-digit-argument viper-end-of-Word
