@@ -24,8 +24,9 @@
 ;; write your own utilities using the rect.el library. Alternatively,
 ;; use the `vimpulse-apply-on-block' function.
 
-(eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
-(eval-when-compile (require 'vimpulse-utils)) ; vimpulse-remap
+(eval-when-compile
+  (require 'vimpulse-viper-function-redefinitions) ; `vimpulse-define-state'
+  (require 'vimpulse-utils)) ; `vimpulse-remap'
 
 (declare-function vimpulse-delete "vimpulse-operator" (beg end &optional dont-save))
 (declare-function vimpulse-mark-range "vimpulse-text-object-system" (range &optional widen type))
@@ -39,8 +40,20 @@
 (defvar vimpulse-visual-remap-alist nil
   "Association list of command remappings in Visual mode.")
 
+(viper-deflocalvar vimpulse-visual-vars-alist nil
+  "Association list of pre-Visual variable values.
+When Visual mode is entered, it enables Transient Mark mode.
+When it is exited, it restores Transient Mark mode to whatever it was
+before entering Visual mode. To that end, this variable stores the
+\"old\" value of `transient-mark-mode' (and some other variables)
+before Visual mode changed them.")
+
 (viper-deflocalvar vimpulse-visual-global-vars nil
-  "List of variables that were global.") ; FIXME when? what for?
+  "List of variables that were global before Visual mode.
+Visual mode's toggling of Transient Mark mode is constrained to the
+current buffer by temporarily making `transient-mark-mode' (and other
+variables) buffer-local. When Visual mode is exited, the variables
+listed here are passed to `kill-local-variable'.")
 
 (viper-deflocalvar vimpulse-visual-local-vars
   '(cua-mode
@@ -48,9 +61,6 @@
     transient-mark-mode
     zmacs-regions)
   "System variables that are reset for each Visual session.")
-
-(viper-deflocalvar vimpulse-visual-vars-alist nil
-  "Alist of old variable values.")
 
 (viper-deflocalvar vimpulse-visual-last nil
   "Last active Visual mode.
@@ -117,16 +127,10 @@ NLINES is the number of lines in the region.")
     map)
   "Vimpulse Visual mode keymap.")
 
-(put 'vimpulse-visual-basic-map
-     'remap-alist 'vimpulse-visual-remap-alist)
+(put 'vimpulse-visual-basic-map 'remap-alist 'vimpulse-visual-remap-alist)
 
-;; FIXME single use below
-(defun vimpulse-visual-remap (from to)
-  "Remap FROM to TO in Visual mode."
-  (vimpulse-remap vimpulse-visual-basic-map from to))
-
-;; Keys that have no effect in Visual mode.
-(vimpulse-visual-remap 'viper-repeat 'viper-nil)
+;; keys that have no effect in Visual mode
+(vimpulse-remap vimpulse-visual-basic-map 'viper-repeat 'viper-nil)
 
 (viper-deflocalvar vimpulse-visual-mode nil
   "Current Visual mode: may be nil, `char', `line' or `block'.")
@@ -314,17 +318,14 @@ Otherwise disable Visual mode."
     (when vimpulse-visual-mode
       (message "-- VISUAL BLOCK --"))))
 
-;;; UUOE contest
-;; Should be replaced with something more readable,
-;; like (vimpulse-visual-historical-value 'transient-mark-mode).
-(defmacro vimpulse-visual-before (&rest body)
-  "Evaluate BODY with original system values from before Visual mode.
-This is based on `vimpulse-visual-vars-alist'."
-  ;; This needs to be expanded at runtime, obviously.
-  `(eval `(let ,(mapcar (lambda (elt)
-                          `(,(car elt) (quote ,(cdr elt))))
-                        vimpulse-visual-vars-alist)
-            ,',@body)))
+(defun vimpulse-visual-old-value (var)
+  "Return pre-Visual value of VAR.
+This function returns the \"old\" value listed in
+`vimpulse-visual-vars-alist', if any. Otherwise it returns the
+current value."
+  (if (assq var vimpulse-visual-vars-alist)
+      (cdr (assq var vimpulse-visual-vars-alist))
+    (and (boundp var) var)))
 
 ;;; Visualization
 
@@ -363,7 +364,7 @@ Saves the previous state of Transient Mark mode in
       (vimpulse-transient-remember)
       (cond
        ((and (fboundp 'cua-mode)
-             (vimpulse-visual-before (eq cua-mode t))
+             (vimpulse-visual-old-value 'cua-mode)
              (or (not cua-mode) (numberp arg)))
         (cua-mode 1))
        ((and (fboundp 'transient-mark-mode)
@@ -392,18 +393,18 @@ Saves the previous state of Transient Mark mode in
  Also restores Cua mode."
   (when vimpulse-visual-vars-alist
     (when (boundp 'transient-mark-mode)
-      (if (vimpulse-visual-before transient-mark-mode)
+      (if (vimpulse-visual-old-value 'transient-mark-mode)
           (transient-mark-mode 1)
         (transient-mark-mode -1)))
     (when (boundp 'cua-mode)
       ;; prevent Cua mode from setting `deactivate-mark' to t
       (let (deactivate-mark)
-        (if (vimpulse-visual-before cua-mode)
+        (if (vimpulse-visual-old-value 'cua-mode)
             (cua-mode 1)
           (cua-mode -1))))
     (when (boundp 'zmacs-regions)
-      (let ((oldval (vimpulse-visual-before zmacs-regions)))
-        (setq zmacs-regions oldval)))))
+      (setq zmacs-regions
+            (vimpulse-visual-old-value 'zmacs-regions)))))
 
 (defun vimpulse-visual-beginning (&optional mode force)
   "Return beginning of Visual selection.
@@ -819,18 +820,6 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     (add-hook 'zmacs-deactivate-region-hook
               'vimpulse-visual-deactivate-hook)
   (add-hook 'deactivate-mark-hook 'vimpulse-visual-deactivate-hook))
-
-;; advise viper-intercept-ESC-key to exit Visual mode with ESC
-(defadvice viper-intercept-ESC-key
-  (around vimpulse-ESC-exit-visual-mode activate)
-  "Exit Visual mode with ESC."
-  (let ((viper-ESC-moves-cursor-back (unless (region-active-p)
-                                       viper-ESC-moves-cursor-back))
-        deactivate-mark)
-    (if (and vimpulse-visual-mode
-             (not (input-pending-p)))
-        (vimpulse-visual-mode -1)
-      ad-do-it)))
 
 (defadvice viper-Put-back (around vimpulse-visual activate)
   "Delete selection before pasting in Visual mode."
