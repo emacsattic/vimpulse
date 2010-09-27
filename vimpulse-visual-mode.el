@@ -26,7 +26,7 @@
 
 (eval-when-compile
   (require 'vimpulse-viper-function-redefinitions) ; `vimpulse-define-state'
-  (require 'vimpulse-utils)) ; `vimpulse-remap'
+  (require 'vimpulse-utils))                       ; `vimpulse-remap'
 
 (declare-function vimpulse-delete "vimpulse-operator" (beg end &optional dont-save))
 (declare-function vimpulse-mark-range "vimpulse-text-object-system" (range &optional widen type))
@@ -543,11 +543,7 @@ See also `vimpulse-visual-reselect'."
             (vimpulse-visual-activate-char)))))
       (set-mark vimpulse-visual-mark)
       (goto-char vimpulse-visual-point)
-      (unless (save-excursion
-                (goto-char (max vimpulse-visual-mark
-                                vimpulse-visual-point))
-                (bolp))
-        (vimpulse-visual-contract-region))
+      (vimpulse-visual-contract-region)
       (vimpulse-visual-highlight)))))
 
 (defun vimpulse-visual-reselect (&optional mode height width pos)
