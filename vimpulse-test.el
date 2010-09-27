@@ -270,8 +270,7 @@
 (eval-when-compile
   (require 'cl)
   (require 'advice)
-  (require 'warnings)
-  (require 'vimpulse-dependencies))
+  (require 'warnings))
 
 (eval-and-compile
   (defvar all-suites nil)
