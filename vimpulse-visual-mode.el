@@ -24,9 +24,8 @@
 ;; write your own utilities using the rect.el library. Alternatively,
 ;; use the `vimpulse-apply-on-block' function.
 
-(eval-when-compile
-  (require 'vimpulse-viper-function-redefinitions) ; `vimpulse-define-state'
-  (require 'vimpulse-utils))                       ; `vimpulse-remap'
+(eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
+(eval-when-compile (require 'vimpulse-utils)) ; vimpulse-remap
 
 (declare-function vimpulse-delete "vimpulse-operator" (beg end &optional dont-save))
 (declare-function vimpulse-mark-range "vimpulse-text-object-system" (range &optional widen type))
