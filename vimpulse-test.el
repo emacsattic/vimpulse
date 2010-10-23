@@ -1218,7 +1218,21 @@ This line is not included in the report."
    (assert-equal
      "Limit cases."
      (vimpulse-truncate [] 0) []
-     (vimpulse-truncate [] 3) [])))
+     (vimpulse-truncate [] 3) []))
+  (test-filter-list
+   "Test `vimpulse-filter-list'."
+   (let* ((foo '(a nil b nil c))
+          (bar (cdr foo))
+          (baz (cdr bar)))
+     (assert-equal
+       "Filter whole list."
+       (vimpulse-filter-list foo 'null) '(a b c))
+     (assert-equal
+       "Filter first element."
+       (vimpulse-filter-list foo 'null bar) '(a nil b nil c))
+     (assert-equal
+       "Filter first and second element."
+       (vimpulse-filter-list foo 'null baz) '(a b nil c)))))
 
 ;; These tests are largely interactive (and heavy), so don't run them
 ;; automatically; add (test-interactive-suite) to .emacs and/or run
