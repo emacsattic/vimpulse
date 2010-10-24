@@ -348,8 +348,8 @@
     (unless (or (symbolp teardown)
                 (functionp teardown))
       (setq teardown `(lambda () ,@teardown)))
-    ;; Macro expansion: create a `let' binding that test definitions can pick up
-    ;; on, and create the suite function and suite variable
+    ;; Macro expansion: create a `let' binding that test definitions
+    ;; can pick up on, and create the suite function and suite variable
     `(macrolet ,deftest-macros
        (let ((current-suite ',suite))
          (add-to-list 'all-suites ',suite)
@@ -486,8 +486,8 @@ before and after. Mocks and stubs are guaranteed to be released."
                            [&rest keywordp sexp]
                            def-body)))
   (let (debug doc keyword lambda run fixture suites setup teardown wrap)
-    ;; If TEST is not a name (abbreviated form), move it into BODY
-    ;; (a nil name creates an anonymous function).
+    ;; If TEST is not a name (abbreviated form), move it into BODY.
+    ;; (A nil name creates an anonymous function.)
     (unless (symbolp test)
       (setq body (append (list test) body)
             test nil))
@@ -1015,7 +1015,8 @@ which releases automatically."
         (ad-remove-advice func 'around 'stub)
         (ad-update func))
     (error (release-mock func)))
-  (setq stubs (delq func stubs)))
+  (setq stubs (delq func stubs))
+  func)
 
 (defun release-stubs (&rest funcs)
   "Release stubs for FUNCS.
@@ -1068,13 +1069,13 @@ Don't use this function directly; see `mock' instead."
       (fmakunbound symbol))
     (unless (eq symbol 'message)
       (if oldmsg (message "%s" oldmsg)
-        (message nil)))))
+        (message nil)))
+    symbol))
 
 (defun release-mock (func)
   "Release mock for FUNC."
   (let ((oldmsg (current-message))
-        message-log-max
-        orig def)
+        message-log-max orig def)
     (when (setq orig (assq func mocks-alist))
       (setq def (cdr orig))
       (if def
@@ -1082,7 +1083,8 @@ Don't use this function directly; see `mock' instead."
         (fmakunbound func))
       (setq mocks-alist (assq-delete-all func mocks-alist))
       (if oldmsg (message "%s" oldmsg)
-        (message nil)))))
+        (message nil)))
+    func))
 
 (defun release-mocks (&rest funcs)
   "Release mocks for FUNCS.
@@ -1143,7 +1145,7 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
    '(("(\\(deftest\\|defsuite\\|defassert\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t))
-     ("(\\(assert\\(-[^ ]+\\)*\\)\\>" 1 font-lock-warning-face)
+     ("(\\(assert\\(-[^ ]+\\)*\\|stub\\|mock\\)\\>" 1 font-lock-warning-face)
      ("(\\(with\\(out\\)?-\\(fixtures\\|stubs\\|mocks\\|mocks-and-stubs\\|stubs-and-mocks\\)\\)\\>"
       1 font-lock-keyword-face))))
 
