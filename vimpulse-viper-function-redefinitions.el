@@ -37,6 +37,10 @@
     (goto-char beg)
     (viper-change-state-to-insert))))
 
+(defadvice viper-exit-insert-state (before vimpulse activate)
+  "Refresh `vimpulse-exit-point'."
+  (viper-move-marker-locally 'vimpulse-exit-point (point)))
+
 (defun vimpulse-set-replace-cursor-type ()
   "Display a horizontal bar cursor."
   (unless (featurep 'xemacs)

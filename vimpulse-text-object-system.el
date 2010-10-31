@@ -122,9 +122,7 @@ argument is specified, it overrides the type of RANGE."
          (end (vimpulse-range-end range)))
     (cond
      ((eq type 'exclusive)
-      (if vimpulse-visual-mode
-          (vimpulse-visual-select beg end widen)
-        (vimpulse-set-region beg end widen)))
+      (vimpulse-visual-select beg end widen))
      (t
       (when vimpulse-visual-mode
         (unless (memq type '(line block))

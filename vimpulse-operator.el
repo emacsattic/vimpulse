@@ -179,7 +179,8 @@ in Visual mode."
                            def-body)))
   (let ((repeat t) (move-point t)
         (map 'viper-vi-basic-map)
-        beg end doc keep-visual keys keyword motion whole-lines)
+        beg end doc interactive keep-visual
+        keys keyword motion whole-lines)
     ;; collect BEG and END arguments
     (setq beg (or (pop args) 'beg)
           end (or (pop args) 'end))
@@ -199,15 +200,19 @@ in Visual mode."
        ((eq keyword :keep-visual)
         (setq keep-visual (vimpulse-unquote (pop body))))
        ((eq keyword :motion)
-        (setq motion (vimpulse-unquote (pop body))))
+        (setq motion (vimpulse-unquote (pop body)))
+        (when (null motion)
+          (setq motion (lambda () (interactive) nil))))
        ((eq keyword :map)
         (setq map (vimpulse-unquote (pop body))))
        ((eq keyword :keys)
-        (setq keys (vimpulse-unquote (pop body))))
+        (setq keys (vimpulse-unquote (pop body)))
+        (unless (listp keys)
+          (setq keys (list keys))))
        (t
         (pop body))))
-    (unless (listp keys)
-      (setq keys (list keys)))
+    (when (and (listp (car body)) (eq (car (car body)) 'interactive))
+      (setq interactive (cdr (pop body))))
     ;; macro expansion: define key bindings and define command
     `(progn
        (add-to-list 'vimpulse-operators ',operator)
@@ -216,9 +221,10 @@ in Visual mode."
        (defun ,operator (,beg ,end ,@args)
          ,doc
          (interactive
-          (vimpulse-range
-           ,(not repeat) ,(not move-point)
-           ,whole-lines ,keep-visual ',motion))
+          (append (vimpulse-range
+                   ,(not repeat) ,(not move-point)
+                   ,whole-lines ,keep-visual ',motion)
+                  ,@interactive))
          (if (and vimpulse-inhibit-operator
                   (vimpulse-called-interactively-p))
              (setq vimpulse-inhibit-operator nil)
@@ -686,24 +692,27 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
   (when vimpulse-want-change-undo
     (vimpulse-start-undo-step))
   (cond
+   ((vimpulse-repeat-p)
+    (cond
+     ((eq vimpulse-this-motion-type 'block)
+      (funcall 'vimpulse-block-hook beg end))
+     (t
+      (if dont-save
+          (delete-region beg end)
+        (kill-region beg end))
+      (goto-char beg)
+      (when (eq vimpulse-this-motion-type 'line)
+        (save-excursion (newline))
+        (when viper-auto-indent
+          (indent-according-to-mode)))
+      (viper-yank-last-insertion))))
    ((eq vimpulse-this-motion-type 'block)
     (vimpulse-delete beg end dont-save)
-    (goto-char
-     (vimpulse-visual-create-coords
-      'block ?i
-      (min vimpulse-visual-point vimpulse-visual-mark)
-      (1+ (max vimpulse-visual-point vimpulse-visual-mark))))
-    (viper-insert nil))
-   ((eq viper-intermediate-command 'viper-repeat)
-    (if dont-save
-        (delete-region beg end)
-      (kill-region beg end))
-    (goto-char beg)
-    (when (eq vimpulse-this-motion-type 'line)
-      (save-excursion (newline))
-      (when viper-auto-indent
-        (indent-according-to-mode)))
-    (viper-yank-last-insertion))
+    (set-marker-insertion-type vimpulse-visual-point nil)
+    (set-marker-insertion-type vimpulse-visual-mark nil)
+    (viper-insert nil)
+    (setq vimpulse-block-func 'vimpulse-block-change)
+    (add-hook 'viper-vi-state-hook 'vimpulse-block-hook nil t))
    ((eq vimpulse-this-motion-type 'line)
     (setq viper-began-as-replace t)
     (if dont-save
@@ -722,6 +731,97 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
       (vimpulse-store-in-current-register beg end)
       (viper-change beg end)))))
 
+;;; Insert/append
+
+(vimpulse-define-operator vimpulse-insert (beg end &optional arg)
+  "Insert before point.
+In Visual mode, insert at beginning of selection."
+  :keep-visual t
+  :motion nil
+  (interactive (list current-prefix-arg)) ; ARG
+  (cond
+   ((vimpulse-repeat-p)
+    (cond
+     ((eq vimpulse-this-motion-type 'block)
+      (funcall 'vimpulse-block-hook beg end))
+     (t
+      (goto-char beg)
+      (viper-yank-last-insertion))))
+   ((eq vimpulse-this-motion-type 'block)
+    (vimpulse-visual-block-rotate 'upper-left beg end)
+    (vimpulse-visual-mode -1)
+    (set-marker-insertion-type vimpulse-visual-point nil)
+    (set-marker-insertion-type vimpulse-visual-mark nil)
+    (viper-insert arg)
+    (setq vimpulse-block-func 'vimpulse-block-insert)
+    (add-hook 'viper-vi-state-hook 'vimpulse-block-hook nil t))
+   ((eq vimpulse-this-motion-type 'line)
+    (vimpulse-visual-mode -1)
+    (push-mark end t t)
+    (goto-char beg)
+    (viper-insert arg))
+   (t
+    (goto-char beg)
+    (viper-insert arg))))
+
+(vimpulse-define-operator vimpulse-append (beg end &optional arg)
+  "Append after point.
+In Visual mode, append after end of selection."
+  :keep-visual t
+  :motion nil
+  (interactive (list current-prefix-arg)) ; ARG
+  (cond
+   ((vimpulse-repeat-p)
+    (cond
+     ((eq vimpulse-this-motion-type 'block)
+      (funcall 'vimpulse-block-hook beg end))
+     (t
+      (goto-char end)
+      (viper-yank-last-insertion))))
+   ((eq vimpulse-this-motion-type 'block)
+    (vimpulse-visual-block-rotate 'upper-right beg end)
+    (vimpulse-visual-mode -1)
+    (set-marker-insertion-type vimpulse-visual-point nil)
+    (set-marker-insertion-type vimpulse-visual-mark nil)
+    (goto-char vimpulse-visual-mark)
+    (goto-char vimpulse-visual-point)
+    (viper-insert arg)
+    (setq vimpulse-block-func 'vimpulse-block-append)
+    (add-hook 'viper-vi-state-hook 'vimpulse-block-hook nil t))
+   ((eq vimpulse-this-motion-type 'line)
+    (vimpulse-visual-mode -1)
+    (push-mark end t t)
+    (goto-char end)
+    (viper-insert arg))
+   (t
+    (goto-char end)
+    (viper-append arg))))
+
+(defun vimpulse-block-insert (beg end)
+  (goto-char beg)
+  (viper-yank-last-insertion))
+
+(defun vimpulse-block-append (beg end)
+  (goto-char end)
+  (viper-yank-last-insertion))
+
+(defun vimpulse-block-change (beg end)
+  (goto-char beg)
+  (delete-region beg end)
+  (viper-yank-last-insertion))
+
+(defun vimpulse-block-hook (&optional beg end)
+  (remove-hook 'viper-vi-state-hook 'vimpulse-block-hook t)
+  (setcar viper-d-com 'vimpulse-operator-repeat)
+  (let ((ignore-first-line (null beg)))
+    (vimpulse-apply-on-block
+     (lambda (beg end)
+       (if ignore-first-line
+           (setq ignore-first-line nil)
+         (funcall vimpulse-block-func beg end)))
+     (or beg vimpulse-visual-point)
+     (or end vimpulse-visual-mark))))
+
 ;; r, J, =, >, <
 (vimpulse-define-operator vimpulse-replace (beg end)
   "Replace all selected characters with ARG."
@@ -730,8 +830,7 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
   :motion 'forward-char
   (let (endpos length visual-p)
     (setq endpos (max beg (1- end)))
-    (unless (and (eq viper-intermediate-command 'viper-repeat)
-                 viper-d-char)
+    (unless (and (vimpulse-repeat-p) viper-d-char)
       (unwind-protect
           (progn
             (vimpulse-set-replace-cursor-type)
@@ -891,8 +990,7 @@ insert or remove any spaces."
     (setq com ?r)
     ad-do-it
     ;; while repeating, put needed values in `viper-d-com'
-    (unless (or (eq this-command 'viper-repeat)
-                (eq viper-intermediate-command 'viper-repeat))
+    (unless (vimpulse-repeat-p)
       (unless viper-d-com
         (setq viper-d-com (list nil nil nil nil nil nil)))
       (unless (eq vimpulse-this-motion

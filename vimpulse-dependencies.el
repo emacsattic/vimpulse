@@ -277,6 +277,13 @@ Used by `vimpulse-operator-repeat'.")
   "Last repeated motion.
 Used by `vimpulse-operator-repeat'.")
 
+(defvar vimpulse-block-orientation 'left
+  "Orientation of single-column blocks.
+`left' if beg-col < end-col; `right' if beg-col > end-col.")
+
+(defvar vimpulse-block-func nil
+  "Function to use for repeated block insertion.")
+
 (defvar vimpulse-movement-cmds
   '(backward-char backward-list backward-paragraph backward-sentence
     backward-sexp backward-up-list backward-word beginning-of-buffer

@@ -529,6 +529,8 @@ single action."
     (undo-boundary)
     (remove-hook 'post-command-hook 'vimpulse-refresh-undo-step t)))
 
+(add-hook 'viper-vi-state-hook 'vimpulse-end-undo-step)
+
 (defmacro vimpulse-single-undo (&rest body)
   "Execute BODY as a single undo step."
   (declare (indent 0)
@@ -538,6 +540,11 @@ single action."
          (vimpulse-start-single-undo)
          ,@body)
      (vimpulse-end-single-undo)))
+
+(defun vimpulse-repeat-p ()
+  "Return non-nil if the current command is being repeated."
+  (or (eq viper-intermediate-command 'viper-repeat)
+      (eq this-command 'viper-repeat)))
 
 ;;; Motion type system
 
@@ -692,6 +699,8 @@ the last column is included."
           (if (eolp)
               (vimpulse-make-motion-range beg end 'block)
             (vimpulse-make-motion-range (1+ beg) end 'block)))
+         ((eq vimpulse-block-orientation 'right)
+          (vimpulse-make-motion-range (1+ beg) end 'block))
          (t
           (vimpulse-make-motion-range beg (1+ end) 'block))))
        ((< beg-col end-col)
