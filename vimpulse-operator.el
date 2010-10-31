@@ -143,7 +143,7 @@ to t, the operator code is not executed.")
   "Define an operator command OPERATOR.
 ARGS is the argument list, which must contain at least two
 arguments: the beginning and end of the range. It is followed by
-an optional docstring and optional keywords:
+an optional docstring and optional keywords: \\<viper-vi-basic-map>
 
 :repeat BOOLEAN         Let \\[viper-repeat] repeat the command (default).
 :move-point BOOLEAN     Move to beg. of range in vi state (default).
@@ -774,6 +774,20 @@ If DONT-SAVE is non-nil, don't store the deleted text on `kill-ring'."
     (unless (> num 2)
       (setq num 2))
     (viper-join-lines num)))
+
+(vimpulse-define-operator vimpulse-Join (beg end)
+  "Join the selected lines without changing whitespace.
+\\<viper-vi-basic-map>Like \\[vimpulse-join], but doesn't \
+insert or remove any spaces."
+  :whole-lines t
+  :motion 'vimpulse-line
+  (let ((num (count-lines beg end)))
+    (unless (> num 2)
+      (setq num 2))
+    (dotimes (var (1- num))
+      (move-end-of-line 1)
+      (unless (eobp)
+        (delete-char 1)))))
 
 (vimpulse-define-operator vimpulse-indent (beg end)
   "Indent text according to mode."

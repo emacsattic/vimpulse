@@ -1158,7 +1158,8 @@ Corners are numbered clockwise from 0. For better readability,
 you may use the symbolic values `upper-left', `upper-right',
 `lower-left' and `lower-right'.
 
-This function updates `vimpulse-visual-point' and
+\\<viper-vi-basic-map>This function updates \
+`vimpulse-visual-point' and
 `vimpulse-visual-mark' so that \\[vimpulse-visual-restore]
 restores the selection with the same rotation."
   (interactive
