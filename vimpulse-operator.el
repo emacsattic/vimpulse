@@ -755,12 +755,9 @@ In Visual mode, insert at beginning of selection."
     (viper-insert arg)
     (setq vimpulse-block-func 'vimpulse-block-insert)
     (add-hook 'viper-vi-state-hook 'vimpulse-block-hook nil t))
-   ((eq vimpulse-this-motion-type 'line)
+   (t
     (vimpulse-visual-mode -1)
     (push-mark end t t)
-    (goto-char beg)
-    (viper-insert arg))
-   (t
     (goto-char beg)
     (viper-insert arg))))
 
@@ -788,14 +785,11 @@ In Visual mode, append after end of selection."
     (viper-insert arg)
     (setq vimpulse-block-func 'vimpulse-block-append)
     (add-hook 'viper-vi-state-hook 'vimpulse-block-hook nil t))
-   ((eq vimpulse-this-motion-type 'line)
+   (t
     (vimpulse-visual-mode -1)
     (push-mark end t t)
     (goto-char end)
-    (viper-insert arg))
-   (t
-    (goto-char end)
-    (viper-append arg))))
+    (viper-insert arg))))
 
 (defun vimpulse-block-insert (beg end)
   (goto-char beg)
