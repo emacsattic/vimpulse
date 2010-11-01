@@ -913,7 +913,7 @@ mode-specific modifications to %s.\n\n%s" state-name doc) t))
 (when (fboundp 'font-lock-add-keywords)
   (font-lock-add-keywords
    'emacs-lisp-mode
-   '(("(\\(vimpulse-define-state\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
+   '(("(\\(vimpulse-define-[-[:word:]]+\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t)))))
 

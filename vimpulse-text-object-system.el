@@ -105,13 +105,6 @@ to handle a negative value, which specifies reverse direction."
              (setq range (progn ,@body))
              (vimpulse-mark-range range nil ,@type))))))))
 
-(when (fboundp 'font-lock-add-keywords)
-  (font-lock-add-keywords
-   'emacs-lisp-mode
-   '(("(\\(vimpulse-define-text-object\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
-      (1 font-lock-keyword-face)
-      (2 font-lock-function-name-face nil t)))))
-
 (defun vimpulse-mark-range (range &optional widen type)
   "Mark RANGE, which has the form (BEG END) or (TYPE BEG END).
 If WIDEN is non-nil, expands existing region. If the TYPE
@@ -169,8 +162,8 @@ from the motion types of BACKWARD-FUNC and FORWARD-FUNC."
               backward-range
               (vimpulse-calculate-motion-range
                (abs count) backward-func type t)))
-      (setq beg (apply 'min (vimpulse-motion-range backward-range))
-            end (apply 'max (vimpulse-motion-range forward-range)))
+      (setq beg (vimpulse-range-beginning backward-range)
+            end (vimpulse-range-end forward-range))
       (unless type
         (setq type 'exclusive)
         (dolist (elt types)

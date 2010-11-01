@@ -230,13 +230,6 @@ in Visual mode."
              (setq vimpulse-inhibit-operator nil)
            ,@body)))))
 
-(when (fboundp 'font-lock-add-keywords)
-  (font-lock-add-keywords
-   'emacs-lisp-mode
-   '(("(\\(vimpulse-define-operator\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
-      (1 font-lock-keyword-face)
-      (2 font-lock-function-name-face nil t)))))
-
 (defun vimpulse-range
   (&optional no-repeat dont-move-point whole-lines keep-visual custom-motion)
   "Read a motion and return a range (BEG END).
