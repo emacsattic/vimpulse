@@ -312,9 +312,10 @@ Used by `vimpulse-operator-repeat'.")
     viper-goto-char-forward viper-goto-eol viper-goto-line
     viper-insert viper-intercept-ESC-key viper-line-to-bottom
     viper-line-to-middle viper-line-to-top viper-next-line
-    viper-paren-match viper-previous-line viper-search-Next
-    viper-search-backward viper-search-forward viper-search-next
-    viper-window-bottom viper-window-middle viper-window-top)
+    viper-paren-match viper-previous-line viper-scroll-screen
+    viper-scroll-screen-back viper-search-Next viper-search-backward
+    viper-search-forward viper-search-next viper-window-bottom
+    viper-window-middle viper-window-top)
   "List of commands that move point.
 If listed here, the region is not expanded to the
 Visual selection before the command is executed.")
