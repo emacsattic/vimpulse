@@ -2,9 +2,11 @@
 
 ;;; Compatibility
 (defmacro vimpulse-called-interactively-p ()
-  (if (version< emacs-version "23")
-      '(called-interactively-p)
-    '(called-interactively-p 'any)))
+  (if (condition-case nil
+          (progn (called-interactively-p 'any) t)
+        (error nil))
+      '(called-interactively-p 'any)
+    '(called-interactively-p)))
 
 ;;; Version
 (defconst vimpulse-version "0.5+git"
