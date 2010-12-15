@@ -167,11 +167,11 @@ Equivalent to Vim's C-w prefix.")
 ;;; gb
 
 (defun vimpulse-beginning-of-Word-p ()
-  (save-excursion
-    (or (bobp)
-        (when (viper-looking-at-alpha)
-          (backward-char)
-          (not (viper-looking-at-alpha))))))
+  (and (looking-at "[^[:space:]]")
+       (or (bobp)
+           (save-excursion
+             (backward-char)
+             (looking-at "[[:space:]]")))))
 
 (defun vimpulse-end-of-previous-word (arg)
   "Move point to end of previous word."
@@ -181,10 +181,14 @@ Equivalent to Vim's C-w prefix.")
         (com (viper-getcom arg)))
     (when com
       (viper-move-marker-locally 'viper-com-point (point)))
-    (unless (vimpulse-beginning-of-Word-p)
+    (when (and (looking-at "[^[:space:]]")
+               (not (vimpulse-beginning-of-Word-p)))
       (viper-backward-Word 1))
+    (when (bolp)
+      (skip-syntax-backward " >"))
     (viper-backward-Word val)
-    (viper-end-of-Word '(1 . ?r))
+    (let (viper-com-point)
+      (viper-end-of-Word '(1 . ?r)))
     (unless com
       (backward-char))
     (when com
