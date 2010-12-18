@@ -213,16 +213,13 @@ state (say, Insert mode), this function can detect that binding
 only if called in the same state. The functions `vimpulse-map',
 `vimpulse-imap' and `vimpulse-vmap' take care of this."
   (let (key-vector temp-sequence current-binding previous-binding)
-    ;; For each subset of KEY-VECTOR (stored in `temp-sequence'), check
-    ;; the binding (stored in `current-binding'); if it isn't bound,
-    ;; use `previous-binding'.
     (setq define-func (or define-func 'define-key))
-    (setq key-vector (if (stringp key)
-                         (read-kbd-macro key t)
-                       key))
+    (setq key-vector (if (stringp key) (read-kbd-macro key t) key))
+    (when (equal key-vector [])
+      (setq key-vector (vconcat key)))
     (cond
      ;; nil unbinds the key-sequence
-     ((not def)
+     ((null def)
       (funcall define-func keymap key-vector def)
       (while (and (> (length key-vector) 1)
                   (not (lookup-key keymap key-vector)))
@@ -237,6 +234,9 @@ only if called in the same state. The functions `vimpulse-map',
      ;; regular binding: convert previous bindings to default bindings
      (t
       (dotimes (i (1- (length key-vector)))
+        ;; For each subset of KEY-VECTOR (stored in `temp-sequence'),
+        ;; check the binding (stored in `current-binding'); if it
+        ;; isn't bound, use `previous-binding'.
         (setq temp-sequence (vimpulse-truncate key-vector (1+ i)))
         (setq current-binding (lookup-key keymap temp-sequence t))
         (when (or (numberp current-binding) (not current-binding))
