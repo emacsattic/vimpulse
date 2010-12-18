@@ -358,14 +358,27 @@ expression for determining the keymap of MODE.")
                          (eval (cdr (assq 'intercept-map mode)))) t))
     ;; refresh `viper--key-maps'
     (setq viper--key-maps (vimpulse-make-keymap-alist))
-    ;; make `minor-mode-map-alist' buffer-local in older Emacs versions
-    ;; lacking `emulation-mode-map-alists'
-    (unless (and (fboundp 'add-to-ordered-list)
-                 (boundp 'emulation-mode-map-alists))
+    (cond
+     ;; make `minor-mode-map-alist' buffer-local in older Emacs versions
+     ;; lacking `emulation-mode-map-alists'
+     ((or (not (boundp 'emulation-mode-map-alists))
+          (not (fboundp 'add-to-ordered-list)))
       (set (make-local-variable 'minor-mode-map-alist)
            (viper-append-filter-alist
             (append viper--intercept-key-maps viper--key-maps)
-            minor-mode-map-alist)))))
+            minor-mode-map-alist)))
+     ;; ensure Viper maps come first in `emulation-mode-map-alists'
+     ((or (not (eq (car-safe emulation-mode-map-alists)
+                   'viper--intercept-key-maps))
+          (not (eq (car (cdr-safe emulation-mode-map-alists))
+                   'viper--key-maps)))
+      (let ((temp (copy-sequence emulation-mode-map-alists)))
+        (setq temp (delq 'viper--intercept-key-maps temp)
+              temp (delq 'viper--key-maps temp))
+        (setq emulation-mode-map-alists
+              (append '(viper--intercept-key-maps
+                        viper--key-maps)
+                      temp)))))))
 
 (defalias 'viper-normalize-minor-mode-map-alist 'vimpulse-normalize-minor-mode-map-alist)
 
