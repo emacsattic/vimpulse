@@ -93,12 +93,10 @@ Mark is buffer-local unless GLOBAL."
 (defun vimpulse-mark-swap-out ()
   "Cf. `register-swap-out'."
   (and buffer-file-name
-       (dolist (marks-alist '(vimpulse-local-marks-alist
-                              vimpulse-global-marks-alist))
-         (dolist (elt (symbol-value marks-alist))
-           (and (markerp (cddr elt))
-                (eq (marker-buffer (cddr elt)) (current-buffer))
-                (setcdr (cdr elt) (marker-position (cddr elt))))))))
+       (dolist (elt vimpulse-global-marks-alist)
+         (and (markerp (cddr elt))
+              (eq (marker-buffer (cddr elt)) (current-buffer))
+              (setcdr (cdr elt) (marker-position (cddr elt)))))))
 
 (defun vimpulse-get-mark (char)
   (or (cdr (assq char (if (< char ?Z)
