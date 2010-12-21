@@ -99,7 +99,7 @@ Mark is buffer-local unless GLOBAL."
               (setcdr (cdr elt) (marker-position (cddr elt)))))))
 
 (defun vimpulse-get-mark (char)
-  (or (cdr (assq char (if (< char ?Z)
+  (or (cdr (assq char (if (<= char ?Z)
                           vimpulse-global-marks-alist
                         vimpulse-local-marks-alist)))
       (error "No such mark: %c" char)))
