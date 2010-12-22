@@ -1148,4 +1148,83 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 
 (provide 'test-framework)
 
+;;; Worklog
+
+;; 2010-09-14: Add `silent-tests' and `logged-tests' variables
+;;
+;;      By default, tests and suites log their results in the
+;;      *Messages* buffer. If `logged-tests' is nil, results are not
+;;      logged; if `silent-tests' is t, results are not even echoed.
+;;
+;;      Exception: if `silent-tests' is t and a test or suite is
+;;      called interactively, the result is echoed, but not logged.
+;;
+;; 2010-09-13: Add DEBUG parameter to tests and suites
+;;
+;;      This provides verbose output useful on a per-test basis.
+;;      Normally, tests are run in "batch mode", where the test code
+;;      is wrapped in a protective `condition-case' form. This is
+;;      usually what we want, since it doesn't halt code execution
+;;      when tests are loaded in .emacs. Thus, if something fails, we
+;;      will get a warning, but Emacs will still load to the best of
+;;      its ability.
+;;
+;;      Otherwise, in "debug mode", the debugger is entered on error
+;;      and execution is halted. This mode is enabled by running a
+;;      test or suite interactively, or by passing t to the DEBUG
+;;      parameter, e.g., (test t). The "debug mode" sets
+;;      `debug-on-error' to t.
+;;
+;;      Incidentally, the DEBUG parameter is also used for selecting
+;;      among the different "clauses" of a test function. In the
+;;      "internal" cases, DEBUG is either `batch' or `debug', and the
+;;      test silently returns t if it passes or returns an error
+;;      message string if it fails (or it enters the debugger). When
+;;      tests are run as part of a suite, they are run in this way.
+;;      The suite collects all error messages and presents them to the
+;;      user.
+;;
+;;      In the "user" cases, DEBUG is either nil (the default) or t,
+;;      and the test looks for a suite to present it. The test calls a
+;;      suite which in turn runs the test "internally". In sketch:
+;;
+;;      +--------+    +-------------------+    +---------------+
+;;      | (test) | => | (suite ... 'test) | => | (test 'batch) |
+;;      +--------+    +-------------------+    +---------------+
+;;
+;;      If DEBUG is nil (the default when called programmatically),
+;;      the test is ultimately called in "batch mode". If DEBUG is t
+;;      (the default when called interactively), the test is
+;;      ultimately called in "debug mode". A :debug keyword argument
+;;      may be specified to let a test be called in "debug mode" by
+;;      default, but this should be used carefully.
+;;
+;; 2010-09-03: Fix long-standing compilation issues
+;;
+;;      To let `defsuite' be wrapped around `deftest', there were two
+;;      strategies for making the two "communicate": either at compile
+;;      time or at run time. The former was tried first, with partial
+;;      results: tests would work uncompiled and the file would
+;;      compile without warnings -- but the tests wouldn't work
+;;      compiled.
+;;
+;;      Now, we make the communication happen at run time instead.
+;;      The macro expansion of `defsuite' is a `let' form which the
+;;      expansion of `deftest', running inside the form, can pick up
+;;      on. The tests now compile properly, with (ahem) considerable
+;;      speed gains.
+;;
+;;      We also try to disentangle the confusing relationship between
+;;      suites and tests. Since the current suite is always included
+;;      in the failure report, suites, not tests, are charged with the
+;;      task of reporting failures. A test function consists of two
+;;      clauses: either the test will call a suite to run itself (and
+;;      report any failure), or it will execute its test code and
+;;      return the result. If the test succeeds, the return value is
+;;      t; otherwise it is an error message string, which the calling
+;;      suite collects and reports.
+;;
+;;      Any suite can be called to run any test. If a test is not
+;;      associated with a suite, it may default to `empty-suite'.
+
 ;;; test-framework.el ends here
