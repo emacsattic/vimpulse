@@ -23,9 +23,8 @@
 (defun vimpulse-kill-current-buffer ()
   "Kill the current buffer."
   (interactive)
-  ;; if the buffer which was initiated by emacsclient,
-  ;; call `server-edit' from server.el to avoid
-  ;; "Buffer still has clients" message
+  ;; if the buffer was initiated by emacsclient, call `server-edit'
+  ;; from server.el to avoid "Buffer still has clients" message
   (if (and (boundp 'server-buffer-clients)
            (fboundp 'server-edit)
            server-buffer-clients)
