@@ -1118,4 +1118,56 @@ docstring. The variable becomes buffer-local whenever set.")
 (defalias 'viper-end-of-word 'vimpulse-end-of-word)
 (defalias 'viper-end-of-Word 'vimpulse-end-of-Word)
 
+;; `ex-cmd-read-exit', bound by Viper to SPC, is buggy: e.g.,
+;; ":s/foo/set bar" exits the minibuffer before "bar" is typed
+(defun vimpulse-ex-cmd-read-exit ()
+  (interactive)
+  (setq viper-incomplete-ex-cmd t)
+  (let ((quit-regex1 (concat
+                      "\\(" "^set[ \t]*"
+                      "\\|" "^edit[ \t]*"
+                      "\\|" "^[nN]ext[ \t]*"
+                      "\\|" "unm[ \t]*"
+                      "\\|" "^[ \t]*rep"
+                      "\\)"))
+        (quit-regex2 (concat
+                      "[a-zA-Z][ \t]*"
+                      "\\(" "!" "\\|" ">>"
+                      "\\|" "\\+[0-9]+"
+                      "\\)"
+                      "*[ \t]*$"))
+        (stay-regex (concat
+                     "\\(" "^[ \t]*$"
+                     "\\|" "[?/].*"
+                     "\\|" "[ktgjmsz][ \t]*$"
+                     "\\|" "^[ \t]*ab.*"
+                     "\\|" "tr[ansfer \t]*"
+                     "\\|" "sr[ \t]*"
+                     "\\|" "mo.*"
+                     "\\|" "^[ \t]*k?ma[^p]*"
+                     "\\|" "^[ \t]*fi.*"
+                     "\\|" "v?gl.*"
+                     "\\|" "[vg][ \t]*$"
+                     "\\|" "jo.*"
+                     "\\|" "^[ \t]*ta.*"
+                     "\\|" "^[ \t]*una.*"
+                     "\\|" "^[ \t]*\\([`'][a-z]\\|[.,%]\\)*[ \t]*su.*"
+                     "\\|" "^[ \t]*\\([`'][a-z]\\|[.,%]\\)*[ \t]*s[^a-z].*"
+                     "\\|" "['`][a-z][ \t]*"
+                     "\\|" "\\(r\\|re\\|rea\\|read\\)[ \t]*!"
+                     "\\|" "\\(w\\|wr\\|wri\\|writ.?\\)[ \t]+!"
+                     "\\|" "![ \t]*[a-zA-Z].*"
+                     "\\)"
+                     "!*")))
+    (save-window-excursion
+      (setq viper-ex-work-buf (get-buffer-create viper-ex-work-buf-name))
+      (set-buffer viper-ex-work-buf)
+      (goto-char (point-max)))
+    (cond ((viper-looking-back quit-regex1) (exit-minibuffer))
+          ((viper-looking-back stay-regex)  (insert " "))
+          ((viper-looking-back quit-regex2) (exit-minibuffer))
+          (t (insert " ")))))
+
+(defalias 'ex-cmd-read-exit 'vimpulse-ex-cmd-read-exit)
+
 (provide 'vimpulse-viper-function-redefinitions)
