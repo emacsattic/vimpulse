@@ -428,21 +428,36 @@ BEG and END. Returns nil if region is unchanged."
 ;;; Overlays (extents in XEmacs)
 
 (eval-and-compile
-  (cond
-   ((featurep 'xemacs)                  ; XEmacs
-    (defalias 'vimpulse-delete-overlay 'delete-extent)
-    (defalias 'vimpulse-overlays-at 'extents-at))
-   (t                                   ; GNU Emacs
-    (defalias 'vimpulse-delete-overlay 'delete-overlay)
-    (defalias 'vimpulse-overlays-at 'overlays-at))))
+  (defalias 'vimpulse-overlay-p
+    (if (featurep 'xemacs) 'extentp 'overlayp))
+  (defalias 'vimpulse-make-overlay
+    (if (featurep 'xemacs) 'make-extent 'make-overlay))
+  (defalias 'vimpulse-overlay-live-p
+    (if (featurep 'xemacs) 'extent-live-p 'overlayp))
+  (defalias 'vimpulse-move-overlay
+    (if (featurep 'xemacs) 'set-extent-endpoints 'move-overlay))
+  (defalias 'vimpulse-overlay-start
+    (if (featurep 'xemacs) 'extent-start-position 'overlay-start))
+  (defalias 'vimpulse-overlay-end
+    (if (featurep 'xemacs) 'extent-end-position 'overlay-end))
+  (defalias 'vimpulse-overlay-buffer
+    (if (featurep 'xemacs) 'extent-object 'overlay-buffer))
+  (defalias 'vimpulse-overlay-get
+    (if (featurep 'xemacs) 'extent-property 'overlay-get))
+  (defalias 'vimpulse-overlay-put
+    (if (featurep 'xemacs) 'set-extent-property 'overlay-put))
+  (defalias 'vimpulse-copy-overlay
+    (if (featurep 'xemacs) 'copy-extent 'copy-overlay))
+  (defalias 'vimpulse-delete-overlay
+    (if (featurep 'xemacs) 'delete-extent 'delete-overlay))
+  (defalias 'vimpulse-overlays-at
+    (if (featurep 'xemacs) 'extents-at 'overlays-at)))
 
-;; `viper-make-overlay' doesn't handle FRONT-ADVANCE
-;; and REAR-ADVANCE properly in XEmacs
 (defun vimpulse-make-overlay
   (beg end &optional buffer front-advance rear-advance)
-  "Create a new overlay with range BEG to END in BUFFER.
-In XEmacs, create an extent."
+  "Create a new overlay from BEG to END in BUFFER."
   (cond
+   ;; in XEmacs, create an extent
    ((featurep 'xemacs)
     (let ((extent (make-extent beg end buffer)))
       (set-extent-property extent 'start-open front-advance)
@@ -464,7 +479,7 @@ In XEmacs, change the `begin-glyph' property."
       (set-glyph-face string face))
     (set-extent-begin-glyph overlay string))
    (t
-    (viper-overlay-put overlay 'before-string string))))
+    (vimpulse-overlay-put overlay 'before-string string))))
 
 (defun vimpulse-overlay-after-string (overlay string &optional face)
   "Set the `after-string' property of OVERLAY to STRING.
@@ -478,7 +493,17 @@ In XEmacs, change the `end-glyph' property."
       (set-glyph-face string face))
     (set-extent-end-glyph overlay string))
    (t
-    (viper-overlay-put overlay 'after-string string))))
+    (vimpulse-overlay-put overlay 'after-string string))))
+
+(defun vimpulse-set-overlay
+  (overlay beg end &optional buffer &rest properties)
+  "Set the endpoints and properties of OVERLAY."
+  (vimpulse-move-overlay overlay beg end buffer)
+  (while properties
+    (setq properties
+          (vimpulse-overlay-put
+           overlay (pop properties) (pop properties))))
+  overlay)
 
 ;;; Undo
 
