@@ -45,7 +45,7 @@ elisp: $(ELFILES)
 
 .PHONY: big
 big: $(BIGSRC)
-	mkdir $(BIGDIR)
+	test -d $(BIGDIR) || mkdir $(BIGDIR)
 	sed "/(\(provide\|require\|declare-function\) \('\|\)vimpulse-/d" $(BIGSRC) > $(BIGDIR)/vimpulse.el
 
 .SUFFIXES: .el .elc
