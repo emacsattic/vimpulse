@@ -1,4 +1,4 @@
-;; test-framework.el --- framework for testing -*- coding: utf-8 -*-
+;; test-framework.el --- framework for unit testing -*- coding: utf-8 -*-
 
 ;; Author: Vegard Øye <vegard_oye at hotmail.com>
 ;; Created: May 2010
@@ -6,16 +6,12 @@
 
 ;;; Commentary:
 
-;; Yeah, I am rolling my own framework. The pre-existing frameworks
-;; all had their good points, but none offered every feature I needed.
-;; Plus it's more fun this way. :)
-;;
-;; The framework currently provides assertions, tests, suites,
-;; fixtures, mocks and stubs.
+;; This file provides assertions, tests, suites, fixtures,
+;; mocks, stubs and a lengthy description thereof.
 
 ;;; Tests
 
-;; A simple test may look like this:
+;; A simple test may look like:
 ;;
 ;;     (deftest test-foo
 ;;       (assert (= (+ 2 2) 4))
@@ -27,8 +23,7 @@
 ;;
 ;;     (test-foo)    ; `M-x test-foo' interactively
 ;;
-;; Alternatively, specify `:run t' when defining the test to run the test
-;; every time the `deftest' form is evaluated:
+;; To run the test when it's defined, specify `:run t':
 ;;
 ;;     (deftest test-foo
 ;;       :run t
@@ -36,8 +31,11 @@
 ;;       (assert (= (* 3 3) 9))
 ;;       (assert (= (% 4 2) 0)))
 ;;
-;; Let's simplify it a bit. The various `assert-' forms accept multiple
-;; (sets of) arguments, similarly to, e.g., `setq':
+;; Note that it's a good idea to name tests with a prefix like "test-"
+;; to avoid overwriting other functions.
+;;
+;; Let's simplify it a bit. Most `assert-' forms defined here accept
+;; multiple (sets of) arguments, similarly to, e.g., `setq':
 ;;
 ;;     (deftest test-foo
 ;;       :run t
@@ -46,8 +44,7 @@
 ;;         (= (* 3 3) 9)
 ;;         (= (% 4 2) 0)))
 ;;
-;; This is Lisp, after all! Furthermore, `assert-=' removes the
-;; `=' noise (and makes the failure report more specific):
+;; This is Lisp, after all! To remove the `=' noise, use `assert-=':
 ;;
 ;;     (deftest test-foo
 ;;       :run t
@@ -55,6 +52,11 @@
 ;;         (+ 2 2) 4
 ;;         (* 3 3) 9
 ;;         (% 4 2) 0))
+;;
+;; Note that xUnit frameworks often use the reverse order, e.g.,
+;; "assertEquals(4, 2 + 2);", where the expected value comes first.
+;; Here, however, the expectation always comes last, mirroring the
+;; original code.
 ;;
 ;; At this point it's advisable to add some documentation. Tests as
 ;; well as assertions can have docstrings:
@@ -68,92 +70,88 @@
 ;;         (* 3 3) 9
 ;;         (% 4 2) 0))
 ;;
-;; If the test fails, the first line of the string shows up in the report.
+;; If the test fails, these strings show up in the failure report.
+;; (Note, again, that the forms must be ordered as shown above for
+;; the report to make sense.)
 ;;
-;; NOTE: xUnit frameworks often use "Yoda order", e.g.,
-;; "assertEquals(4, 2 + 2);", where the expected value comes first.
-;; Here, however, the expected value follows the actual. (Although
-;; `=' is symmetrical, the failure reports depend on the order.)
+;; Related actions may be grouped together with `assert-progn', or
+;; `should' for a more BDD-like name. It only checks the last form:
 ;;
-;; NOTE 2: `assert' only accepts multiple arguments inside `deftest'.
+;;     (deftest test-baz
+;;       "A list."
+;;       (let ((list '(a b c)))
+;;         (should
+;;           "Push element to the front."
+;;           (push 'd list)
+;;           (eq (first list) 'd))))
+;;
+;; This is both readable and robust: should the assertion crash
+;; midways, the preceding docstring provides context in the failure
+;; report. To that end, `should' statements may be nested:
+;;
+;;     (deftest test-baz
+;;       "A list."
+;;       (let ((list '(a b c)))
+;;         (should
+;;           "Push elements to the front."
+;;           (push 'd list)
+;;           (should (eq (first list) 'd))
+;;           (push 'e list)
+;;           (should (eq (first list) 'e)))))
+;;
+;; BDD aliases are defined for all assertions: `should-eq' instead
+;; of `assert-eq', `should-=' instead of `assert-=', and so on.
+;; `should' can be used in most cases, though: it provides a recursive
+;; inspection of the failing form. The alias for `assert' is
+;; `should-all', which checks each and every form.
+;;
+;; NOTE: `assert' only accepts multiple arguments inside `deftest'.
 ;; Outside `deftest' it's a different macro (defined by cl.el).
-;;
-;; NOTE 3: it's a good idea to name tests with a prefix, e.g.,
-;; "test-". This avoids accidently overwriting other functions.
 
 ;;; Test suites
 
 ;; Tests can be grouped into suites with `defsuite'. The most
-;; straightforward way is to just wrap it around them:
+;; straightforward way is simply to wrap it around them:
+;;
+;;     (defsuite test-foo-suite
+;;       (deftest test-foo
+;;         (assert-=
+;;           (+ 2 2) 4))
+;;       (deftest test-bar
+;;         (assert-=
+;;           (* 3 3) 9)))
+;;
+;; Like tests, the suite is executed with (test-foo-suite),
+;; `M-x test-foo-suite' or `:run t' in the definition. Suites
+;; can also have docstrings:
 ;;
 ;;     (defsuite test-foo-suite
 ;;       "Example suite."
 ;;       :run t
 ;;       (deftest test-foo
-;;         "Example test."
-;;         (assert-=
-;;           "Elementary truth."
-;;           (+ 2 2) 4))
-;;       (deftest test-bar
-;;         "Another example test."
-;;         (assert-=
-;;           "More elementary truth."
-;;           (* 3 3) 9)))
-;;
-;; Like tests, the suite is executed with (test-foo-suite),
-;; `M-x test-foo-suite' or `:run t' in the definition. Suites can also
-;; have docstrings. For brevity, "deftest" can be omitted:
-;;
-;;     (defsuite test-foo-suite
-;;       "Example suite."
-;;       :run t
-;;       (test-foo
-;;        "Example test."
 ;;        (assert-=
-;;          "Elementary truth."
-;;          (+ 2 2) 4))
-;;       (test-bar
-;;        "Another example test."
-;;        (assert-=
-;;          "More elementary truth."
-;;          (* 3 3) 9)))
+;;          (+ 2 2) 4)))
 ;;
-;; One can go even further and remove the test names themselves:
-;;
-;;     (defsuite test-foo-suite
-;;       "Example suite."
-;;       :run t
-;;       ("Example test."
-;;        (assert-=
-;;          "Elementary truth."
-;;          (+ 2 2) 4))
-;;       ("Another example test."
-;;        (assert-=
-;;          "More elementary truth."
-;;          (* 3 3) 9)))
-;;
-;; This might be suitable for small suites, but in general it's better
-;; to give each test a name by which they can be called afterwards.
-;;
-;; A suite can include other suites simply by listing the suite names
-;; in its `defsuite' form. Furthermore, `defsuite' forms may be
-;; nested. One can also define the test suite first and then add tests
+;; One can also define the test suite first and then add tests
 ;; and suites to it, using the `:suite' keyword or `add-to-suite':
 ;;
 ;;     (defsuite test-foo-suite
 ;;       "Example suite.")
 ;;
 ;;     (deftest test-foo
-;;       "Example test."
 ;;       :suite test-foo-suite
 ;;       (assert-=
-;;         "Elementary truth."
 ;;         (+ 2 2) 4))
+;;
+;;     (deftest test-bar
+;;       (assert-=
+;;         (* 3 3) 9))
 ;;
 ;;     (add-to-suite 'test-foo-suite 'test-bar)
 ;;
-;; NOTE: self-referencing suite definitions should be avoided,
-;; although some safeguards exist to prevent infinite loops.
+;; Furthermore, `defsuite' forms may nested. (Self-referencing suite
+;; definitions should be avoided, although some safeguards exist to
+;; prevent infinite loops.)
 
 ;;; Fixtures
 
@@ -166,10 +164,10 @@
 ;;       "Example suite."
 ;;       :setup ((wibble) (wobble))
 ;;       :teardown ((wubble) (flob))
-;;       (test-foo
-;;        ...)
-;;       (test-bar
-;;        ...))
+;;       (deftest test-foo
+;;         ...)
+;;       (deftest test-bar
+;;         ...))
 ;;
 ;; However, this may not be enough: what if the setup and teardown
 ;; need to share variables, or the test should be wrapped in a macro
@@ -187,15 +185,19 @@
 ;;                      (funcall body))   ; run test
 ;;                    (wubble)
 ;;                    (flob)))
-;;       (test-foo
-;;        ...)
-;;       (test-bar
-;;        ...))
+;;       (deftest test-foo
+;;         ...)
+;;       (deftest test-bar
+;;         ...))
+;;
+;; As shown above, the function must contain (funcall body) somewhere
+;; in its definition for the test to be run at all.
 ;;
 ;; There's also the :wrap keyword argument, which specifies an
 ;; around-advice for the whole test, e.g., :wrap ((wobble) ad-do-it).
-;; (See `defadvice' for more details.) The arguments are executed in
-;; the following order:
+;; See the docstring of `defadvice' for more details on advice. While
+;; the other fixtures are repeated for each test in the suite, :wrap
+;; is executed once for the whole suite. The order is:
 ;;
 ;;                  +-------------------+
 ;;                  |:wrap              |
@@ -211,19 +213,13 @@
 ;;                  |  +--------------+ |
 ;;                  +-------------------+
 ;;
-;; Any single test may also specify these arguments. In that case, the
-;; suite fixtures are wrapped around the test fixtures.
-;;
-;; NOTE: if defining a function to use as a fixture, make sure it's
-;; defined before the tests are run (before the test if using :run t).
-;;
-;; NOTE 2: :setup, :teardown and :fixture are repeated for each test
-;; in the suite, while :wrap is executed once for the whole suite.
-;;
-;; NOTE 3: a test defined as part of a suite carries with it the
-;; suite's fixtures even when called outside the suite. When the test
+;; A test defined as part of a suite carries with it the suite's
+;; fixtures even when called outside the suite. However, when the test
 ;; is called by a different suite, that suite's fixtures temporarily
 ;; override the fixtures inherited from the original suite.
+;;
+;; When defining a function to use as a fixture, make sure to define
+;; it before the tests are run (before the test if using `:run t').
 
 ;;; Mocks and stubs
 
@@ -271,15 +267,20 @@
 (eval-and-compile
   (defvar all-suites nil)
   (defvar all-tests nil)
-  (defvar current-suite nil)
-  (defvar test-passed nil)
-  (defvar suite-passed nil)
   (defvar silent-tests nil
     "If t, don't echo test results.")
   (defvar logged-tests t
     "If t, log echoed test results in the *Messages* buffer.")
   (defvar deftest-macros nil
-    "Macros that shadow global definitions inside `deftest'."))
+    "Macros that shadow global definitions inside `deftest'.")
+  (defvar assert-name nil
+    "Name of the current assertion.")
+  (defvar assert-string nil
+    "Textual description of the current assertion.")
+  (defvar test-string nil
+    "Textual description of the current test.")
+  (defvar suite-name nil
+    "Name of the current suite."))
 
 ;;; Test suite macro: `defsuite'
 
@@ -290,96 +291,118 @@
                            [&optional stringp]
                            [&rest keywordp sexp]
                            def-body)))
-  (let* ((parents (when (and (boundp 'current-suite)
-                             current-suite)
-                    (list current-suite)))
-         (current-suite suite)
-         doc form keyword lambda test-forms run
-         debug fixture setup teardown wrap tests)
-    ;; Collect docstring.
+  (let (debug doc dont-add fixture keyword parents run setup teardown wrap)
+    ;; collect docstring
     (when (stringp (car body))
       (setq doc (pop body)))
-    ;; Collect keywords.
+    ;; collect keywords
     (while (keywordp (car body))
       (setq keyword (pop body))
       (cond
        ((eq keyword :run)
-        (setq run (pop body)))
+        (setq run (pop body))
+        (unless run
+          (setq dont-add t)))
        ((memq keyword '(:parent :suite))
         (if (listp (car body))
             (setq parents (append parents (pop body)))
           (add-to-list 'parents (pop body))))
        ((eq keyword :fixture)
-        (setq fixture (pop body)))
+        (setq fixture (pop body))
+        (unless (or (symbolp fixture)
+                    (functionp fixture))
+          (setq fixture `(lambda () ,@fixture))))
        ((eq keyword :setup)
-        (setq setup (pop body)))
+        (setq setup (pop body))
+        (unless (or (symbolp setup)
+                    (functionp setup))
+          (setq setup `(lambda () ,@setup))))
        ((eq keyword :teardown)
-        (setq teardown (pop body)))
+        (setq teardown (pop body))
+        (unless (or (symbolp teardown)
+                    (functionp teardown))
+          (setq teardown `(lambda () ,@teardown))))
        ((memq keyword '(:advice :wrap))
         (setq wrap (pop body)))
        ((eq keyword :debug)
         (setq debug (pop body)))
        (t
         (pop body))))
-    ;; Collect "abbreviated" forms -- that is, test definitions
-    ;; lacking the `deftest' symbol and/or a test name.
-    (while (setq form (pop body))
-      (cond
-       ((symbolp form)
-        (add-to-list 'tests form))
-       ((not (cdr form))
-        (add-to-list 'tests (car form)))
-       ((and (symbolp (car form))
-             (fboundp (car form))
-             (not (test-p (car form))))
-        (add-to-list 'test-forms form))
-       (t
-        (add-to-list 'test-forms (append '(deftest) form)))))
-    (unless (or (symbolp fixture)
-                (functionp fixture))
-      (setq fixture `(lambda () ,@fixture)))
-    (unless (or (symbolp setup)
-                (functionp setup))
-      (setq setup `(lambda () ,@setup)))
-    (unless (or (symbolp teardown)
-                (functionp teardown))
-      (setq teardown `(lambda () ,@teardown)))
-    ;; Macro expansion: create a `let' binding that test definitions
-    ;; can pick up on, and create the suite function and suite variable
+    ;; macro expansion
     `(macrolet ,deftest-macros
-       (let ((current-suite ',suite))
+       (when (and (boundp 'suite-name) suite-name ,(not dont-add))
+         (add-to-suite suite-name ',suite))
+       ;; create a `let' binding that test definitions can pick up on
+       (let ((suite-name ',suite))
          (add-to-list 'all-suites ',suite)
-         ;; Add this suite to other suites?
-         ,@(when parents
-             `((mapc (lambda (suite)
-                       (add-to-suite ',suite suite))
-                     ',parents)))
+         (dolist (suite ',parents)
+           (add-to-suite suite ',suite))
+         ;; create the suite function and suite variable
          (defvar ,suite nil ,doc)
          (defun ,suite (&optional debug &rest tests)
            ,doc
            (interactive "p")
-           (let ((result t)
-                 (logged-tests logged-tests)
+           (let ((logged-tests logged-tests)
                  (silent-tests silent-tests)
-                 fail-msg own-tests)
-             (if (numberp debug)
-                 (setq debug (/= debug 0))
-               ,@(when debug `((setq debug ,debug))))
-             (when (null tests)
+                 (suite-name ',suite)
+                 (passed t)
+                 own-tests)
+             (setq debug (or debug ',debug))
+             (unless (memq debug '(batch debug))
+               (setq debug (if debug 'debug 'batch)))
+             (unless tests
                (setq own-tests t
                      tests ,suite)
                (test-message "Test suite `%s' running ..." ',suite))
              (dolist (test tests)
-               (setq fail-msg
-                     (with-fixtures ,fixture ,setup ,teardown
-                       (funcall test (if debug 'debug 'batch))))
-               (if (eq fail-msg t)
-                   (test-message "%sTest `%s' passed!"
+               (let (test-string assert-name assert-string error-string)
+                 (if (eq debug 'debug)
+                     (let ((debug-on-error t))
+                       (with-fixtures ,fixture ,setup ,teardown
+                         (funcall test 'batch)))
+                   (condition-case err
+                       ,(if (eq suite 'empty-suite)
+                            '(funcall test
+                                      (unless (default-suite test)
+                                        'batch))
+                          `(with-fixtures ,fixture ,setup ,teardown
+                             (funcall test 'batch)))
+                     (error (prog1 nil
+                              (setq error-string
+                                    (error-message-string err))))))
+                 (if (null error-string)
+                     (test-message "%sTest `%s' passed!"
+                                   (if own-tests "    " "") test)
+                   (test-message "%sTest `%s' failed!"
                                  (if own-tests "    " "") test)
-                 (test-message "%sTest `%s' failed!"
-                               (if own-tests "    " "") test)
-                 (test-warning (when (symbolp test) test) ',suite fail-msg)
-                 (setq result fail-msg)))
+                   (test-warning
+                    ',(if (eq suite 'empty-suite) 'test suite)
+                    (replace-regexp-in-string
+                     "\n\\([\n]*\\)\\'" "" ; remove extra trailing newlines
+                     (replace-regexp-in-string
+                      "\\`[ \t\n]*" "" ; remove leading space
+                      (replace-regexp-in-string
+                       "\\(\n\\)[^\n]" "\n\t" ; indent message
+                       (format "%s%s\n\n%s\n"
+                               ,(if (and doc (not (eq suite 'empty-suite)))
+                                    (format "%s\n\n" doc) "")
+                               (if test-string
+                                   (format "%s (%s)" test-string test)
+                                 (format "%s" test))
+                               (cond
+                                ((and assert-name assert-string)
+                                 (format "`%s' failed: %s\n\n%s"
+                                         assert-name
+                                         assert-string
+                                         error-string))
+                                (assert-name
+                                 (format "`%s' failed:\n\n%s"
+                                         assert-name error-string))
+                                (t
+                                 (format "%s" error-string))))
+                       nil nil 1))
+                     nil nil 1))
+                   (setq passed nil))))
              (when own-tests
                ;; if `silent-tests' is t and the suite is called
                ;; interactively, echo an unlogged summary
@@ -389,60 +412,30 @@
                              '(called-interactively-p 'any)))
                  (setq logged-tests nil
                        silent-tests nil))
-               (if (eq result t)
+               (if passed
                    (test-message "Test suite `%s' passed!" ',suite)
                  (test-message "Test suite `%s' failed!" ',suite)))
-             result))
+             passed))
          ;; :wrap function?
          ,@(when wrap
              `((defadvice ,suite (around wrap activate)
                  ,@(if (listp wrap)
                        wrap
                      `((,wrap ad-do-it))))))
-         ,@test-forms
-         ,@(when run
-             `((,suite)))
+         ,@body
+         (when ,run (,suite))
          ',suite))))
 
-(defun empty-suite (&optional debug &rest tests)
+(defsuite empty-suite
   "Pseudo-suite for suiteless tests.
-Tests can call themselves via this suite if not associated with
-any other suite."
-  (interactive "p")
-  (let ((result t) own-tests fail-msg)
-    (when (numberp debug)
-      (setq debug (/= debug 0)))
-    (when (null tests)
-      (setq own-tests t
-            tests all-tests))
-    (dolist (test tests)
-      (cond
-       ((default-suite test)
-        (setq fail-msg (funcall test (and debug t))))
-       (t
-        (setq fail-msg (funcall test (if debug 'debug 'batch)))))
-      (if (eq fail-msg t)
-          (test-message "Test `%s' passed!" test)
-        (test-message "Test `%s' failed!" test)
-        (test-warning (when (symbolp test) test) nil fail-msg)
-        (setq result fail-msg)))
-    (when (and silent-tests
-               (with-no-warnings
-                 (if (version< emacs-version "23")
-                     (called-interactively-p)
-                   (called-interactively-p 'any))))
-      (setq logged-tests nil
-            silent-tests nil))
-    (when own-tests
-      (test-message "Test%s %s!"
-                    (if (= (length tests) 1) "" "s")
-                    (if (eq result t) "passed" "failed")))
-    result))
+Tests can call themselves via this suite if not associated
+with any other suite.")
 
 (defun add-to-suite (suite test)
   "Add TEST to SUITE."
-  (eval `(defvar ,suite nil))
-  ;; Suites are basically hooks.
+  (unless (boundp suite)
+    (eval `(defsuite ,suite)))
+  ;; suites are basically hooks
   (add-hook suite test))
 
 (defmacro with-fixtures (fixture setup teardown &rest body)
@@ -452,6 +445,8 @@ of BODY; SETUP and TEARDOWN are zero-argument functions to run
 before and after. Mocks and stubs are guaranteed to be released."
   (declare (indent defun)
            (debug t))
+  ;; create an uninterned symbol to avoid overwriting
+  ;; any internal bindings in :fixture
   (let ((resultvar (make-symbol "result")))
     `(let ((fixture ',fixture)
            (setup ',setup)
@@ -481,151 +476,72 @@ before and after. Mocks and stubs are guaranteed to be released."
                            [&optional stringp]
                            [&rest keywordp sexp]
                            def-body)))
-  (let (debug doc keyword lambda run fixture suites setup teardown wrap)
-    ;; If TEST is not a name (abbreviated form), move it into BODY.
-    ;; (A nil name creates an anonymous function.)
-    (unless (symbolp test)
-      (setq body (append (list test) body)
-            test nil))
-    ;; Collect parent suite.
-    (when (symbolp (car body))
-      (add-to-list 'suites (pop body)))
-    ;; Collect docstring.
+  (let (debug doc dont-add keyword run suites)
+    ;; collect docstring
     (when (stringp (car body))
       (setq doc (pop body)))
-    ;; Collect keywords.
+    ;; collect keywords
     (while (keywordp (car body))
       (setq keyword (pop body))
       (cond
+       ((eq keyword :debug)
+        (setq debug (pop body)))
        ((eq keyword :run)
-        (setq run (pop body)))
+        (setq run (pop body))
+        (unless run
+          (setq dont-add t)))
        ((memq keyword '(:suite :suites))
         (if (listp (car body))
             (setq suites (append suites (pop body)))
           (add-to-list 'suites (pop body))))
-       ((eq keyword :fixture)
-        (setq fixture (pop body)))
-       ((eq keyword :setup)
-        (setq setup (pop body)))
-       ((eq keyword :teardown)
-        (setq teardown (pop body)))
-       ((memq keyword '(:advice :wrap))
-        (setq wrap (pop body)))
-       ((eq keyword :debug)
-        (setq debug (pop body)))
        (t
         (pop body))))
-    (unless (or (symbolp fixture)
-                (functionp fixture))
-      (setq fixture `(lambda () ,@fixture)))
-    (unless (or (symbolp setup)
-                (functionp setup))
-      (setq setup `(lambda () ,@setup)))
-    (unless (or (symbolp teardown)
-                (functionp teardown))
-      (setq teardown `(lambda () ,@teardown)))
-    ;; Create function body.
-    (setq lambda
-          `(lambda (&optional debug suite)
-             ,doc
-             (interactive "p")
-             (let ((result t)
-                   (logged-tests logged-tests)
-                   (silent-tests silent-tests))
-               ;; if `silent-tests' is t and the test is called
-               ;; interactively, echo the result unlogged
-               (when (and silent-tests
-                          ,(if (version< emacs-version "23")
-                               '(called-interactively-p)
-                             '(called-interactively-p 'any)))
-                 (setq logged-tests nil
-                       silent-tests nil))
-               (if (numberp debug)
-                   (setq debug (/= debug 0))
-                 ,@(when debug `((setq debug ,debug))))
-               (setq suite
-                     (or suite
-                         ,@(when test `((default-suite ',test)))
-                         (and (boundp 'current-suite) current-suite)
-                         'empty-suite))
-               ,@(when debug `(setq debug ,debug))
-               (cond
-                ((eq debug 'batch)
-                 (with-fixtures ,fixture ,setup ,teardown
-                   (condition-case err
-                       (progn ,@body)
-                     (error (prog1 nil
-                              (setq result (error-message-string err)))))))
-                ((eq debug 'debug)
-                 (let ((debug-on-error t))
-                   (setq result nil)
-                   (with-fixtures ,fixture ,setup ,teardown
-                     ,@body
-                     (setq result t))))
-                (t
-                 (setq result (funcall suite debug ',test))))
-               result)))
-    (if (null test)
-        `(macrolet ,deftest-macros
-           (add-to-list 'all-tests ,lambda)
-           (dolist (suite ',suites)
-             (add-to-suite suite ,lambda))
-           (when (and (boundp 'current-suite) current-suite)
-             (add-to-suite current-suite ,lambda))
-           ,lambda
-           ,@(when run
-               `((funcall ,lambda))))
-      `(macrolet ,deftest-macros
-         (add-to-list 'all-tests ',test)
-         (dolist (suite ',suites)
-           (add-to-suite suite ',test))
-         (when (and (boundp 'current-suite) current-suite)
-           (put ',test 'suite current-suite)
-           (add-to-suite current-suite ',test))
-         (defun ,test ,@(cdr lambda))
-         ,@(when wrap
-             `((defadvice ,test (around wrap activate)
-                 ,@(if (listp wrap)
-                       wrap
-                     (list wrap)))))
-         ,@(when run
-             `((,test)))
-         ',test))))
+    ;; macro expansion
+    `(macrolet ,deftest-macros
+       (add-to-list 'all-tests ',test)
+       (dolist (suite ',suites)
+         (add-to-suite suite ',test))
+       (when (and (boundp 'suite-name) suite-name)
+         (put ',test 'suite suite-name)
+         (unless ,dont-add
+           (add-to-suite suite-name ',test)))
+       (defun ,test (&optional debug suite)
+         ,doc
+         (interactive "p")
+         (let ((suite (or suite (default-suite ',test 'empty-suite)))
+               (logged-tests logged-tests)
+               (silent-tests silent-tests))
+           ;; if `silent-tests' is t and the test is called
+           ;; interactively, echo the result unlogged
+           (when (and silent-tests
+                      ,(if (version< emacs-version "23")
+                           '(called-interactively-p)
+                         '(called-interactively-p 'any)))
+             (setq logged-tests nil
+                   silent-tests nil))
+           (cond
+            ((or (eq debug 'batch)
+                 (eq suite (and (boundp 'suite-name) suite-name)))
+             (setq test-string ,doc
+                   assert-name nil
+                   assert-string nil)
+             ,@body t)
+            (t
+             (funcall suite (or debug ',debug) ',test)))))
+       (when ,run (,test))
+       ',test)))
 
-(defun test-p (object)
-  "Return non-nil if OBJECT is a test."
-  (member object all-tests))
-
-(defun default-suite (test)
+(defun default-suite (test &optional default)
   "Return the default suite of TEST."
-  (when (symbolp test)
-    (get test 'suite)))
+  (or (when (symbolp test)
+        (get test 'suite))
+      default))
 
 ;; Currently, this produces a warning. Could it produce linkified
 ;; text in a separate buffer instead? (`with-output-to-temp-buffer')
-(defun test-warning (test suite &rest strings)
-  "Display warning for TEST in SUITE, consisting of STRINGS.
-STRINGS are separated by a newline and a tab."
-  (let (doc message)
-    (if (and (functionp test)
-             (stringp (setq doc (documentation test))))
-        (add-to-list 'strings
-                     (concat (if test (format "(%s) " test) "")
-                             (substring doc 0
-                                        (string-match "\n" doc))
-                             "\n"))
-      (when test
-        (add-to-list 'strings (format "In `%s':\n" test))))
-    (when (stringp (setq doc (get suite 'variable-documentation)))
-      (add-to-list 'strings
-                   (substring doc 0 (string-match "\n" doc))))
-    (dolist (string strings)
-      (when (and (stringp string)
-                 (not (string= string "")))
-        (if message
-            (setq message (concat message "\n\t" string))
-          (setq message string))))
-    (display-warning (or suite 'test) message)))
+(defun test-warning (suite message)
+  "Display MESSAGE warning for SUITE."
+  (display-warning suite message))
 
 (defun test-message (string &rest args)
   "Conditionally echo a message.
@@ -638,8 +554,8 @@ in the *Messages* buffer."
 
 ;;; Assertion macro: `defassert'
 
-;; This is hairy. What it does is to implement different ways of
-;; calling an assertion macro:
+;; The following is rather hairy. What it actually does is to
+;; implement different ways of calling an assertion macro:
 ;;
 ;;     (assert-equal foo bar)
 ;;     (assert-equal
@@ -653,8 +569,9 @@ in the *Messages* buffer."
 ;;       foo bar
 ;;       baz qux)
 ;;
-;; Assertions must be macros, not functions, to use the unevaluated
-;; expressions in the failure report.
+;; Assertions must be macros, not functions, to be able to use the
+;; unevaluated expressions in the failure report. Thus we wind up
+;; with a macro whose expansion is another macro definition.
 (defmacro defassert (name args &rest body)
   "Define an assertion macro.
 
@@ -670,304 +587,417 @@ is specified."
            (debug (&define name lambda-list
                            [&optional stringp]
                            def-body)))
-  (let* (body-var doc-var docstring keyword result shadow)
+  (let (aliases def docstring keyword param restvar shadow)
+    (setq param (copy-sequence args))
     (when (stringp (car body))
-      (setq docstring (list (pop body))))
+      (setq docstring (pop body)))
     (while (keywordp (car body))
       (setq keyword (pop body))
       (cond
+       ((memq keyword '(:alias :aliases))
+        (setq aliases (pop body))
+        (unless (listp aliases)
+          (setq aliases (list aliases))))
        ((eq keyword :shadow)
         (setq shadow (pop body)))
        (t
         (pop body))))
-    (if (memq '&rest args)
-        ;; If &rest is specified, just make a `let' wrapper for the
-        ;; documentation argument.
-        (setq body-var (car (last args))
-              args (nbutlast args 2)
-              doc-var (or (pop args) 'doc)
-              result
-              ;; This is an expression for calculating the macro
-              ;; definition, which in turn is evaluated to get the
-              ;; macro expansion.
-              `(let ((,doc-var
-                      (when (and (> (length ,body-var) 1)
-                                 (stringp (car ,body-var)))
-                        (pop ,body-var))))
-                 ,@body))
-      ;; Repeatable argument list: iterate through the arguments.
-      (setq body-var 'body
-            doc-var (or (when (> (length args) 1)
-                          (pop args)) 'doc)
-            result
-            ;; Like above, code for making code for making the
-            ;; expansion.
-            `(let ((result '(progn)) ,doc-var)
-               (if (and (> (length ,body-var) 0)
-                        ,@(when (> (length args) 1)
-                            `((/= (mod (length ,body-var)
-                                       ,(length args))
-                                  0)))
-                        (stringp ,(car args)))
-                   ;; Grab first argument as docstring if appropriate,
-                   ;; then store the remaining in `body-var' for
-                   ;; iteration.
-                   (setq ,doc-var ,(car args)
-                         ,@(when (cdr args)
-                             `(,body-var (append (list ,@(cdr args))
-                                                 ,body-var))))
-                 (setq ,body-var (append (list ,@args) ,body-var)))
-               ;; Go through `body-var' and bind the arguments to
+    (if (memq '&rest param)
+        ;; if &rest is specified, just make a `let' wrapper
+        ;; for the documentation argument
+        (setq restvar (car (last param))
+              param (nbutlast param 2)
+              def `(let ((name ',name)
+                         (doc (when (stringp (car-safe ,restvar))
+                                (pop ,restvar))))
+                     `(progn (setq assert-name ',name
+                                   assert-string ,doc)
+                             (let (assert-name assert-string)
+                               ,,@body t))))
+      ;; repeatable argument list: iterate through the arguments
+      (setq restvar 'body
+            def
+            ;; grab first argument as docstring if appropriate
+            `(let* ((name ',name)
+                    (doc (when (and (> (length ,restvar) 0)
+                                    ,@(when (> (length param) 1)
+                                        `((/= (mod (length ,restvar)
+                                                   ,(length param)) 0)))
+                                    (stringp ,(car-safe param)))
+                           ,(car param)))
+                    def)
+               ;; then store the remainder in `restvar' for iteration
+               (if doc
+                   (setq ,restvar (append (list ,@(cdr param)) ,restvar))
+                 (setq ,restvar (append (list ,@param) ,restvar)))
+               ;; Go through `restvar' and bind the arguments to
                ;; successive values, evaluating the assertion's
-               ;; definition each time. The concatenation of these
-               ;; evaluations is the macro's expansion (stored in
-               ;; `result').
-               (while ,body-var
+               ;; definition each time. The concatenation of
+               ;; these evaluations is the macro's expansion
+               ;; (stored in `def').
+               (while ,restvar
                  ,@(mapcar (lambda (var)
-                             `(setq ,var (pop ,body-var))) args)
-                 (add-to-list 'result (progn ,@body) t))
-               result)))
+                             `(setq ,var (pop ,restvar))) param)
+                 (add-to-list 'def (progn ,@body) t))
+               `(progn (setq assert-name ',name
+                             assert-string ,doc)
+                       (let (assert-name assert-string)
+                         ,@def t)))))
     `(progn
-       ;; Define assertion macro unless :shadow is t.
-       ,@(unless shadow
-           `((defmacro ,name (,@args &rest ,body-var)
-               ,@docstring
-               (declare (indent defun))
-               ,result)))
-       ;; Add to `deftest-macros' for good measure.
-       (eval-and-compile
-         (add-to-list 'deftest-macros
-                      '(,name (,@args &rest ,body-var) ,result)))
+       ;; define assertion macro unless :shadow is t,
+       ;; in which case just store it for macro-letting
+       ,(if shadow
+            `(eval-and-compile
+               (add-to-list 'deftest-macros
+                            '(,name (,@param &rest ,restvar) ,def))
+               (put ',name 'lisp-indent-function 'defun))
+          `(defmacro ,name (,@param &rest ,restvar)
+             ,docstring
+             (declare (indent defun))
+             ,def))
+       ;; define aliases
+       ,@(mapcar (lambda (name)
+                   `(defassert ,name ,args
+                      ,docstring
+                      ,@body))
+                 aliases)
        ',name)))
 
 ;; assert { 2.0 }-like display of arguments and their evaluated
-;; values. Is this sufficient, or should I use `macrolet' to remap
+;; values. Is this sufficient, or should we use `macrolet' to remap
 ;; (assert (eq foo bar)) to (assert-eq foo bar)?
-(eval-and-compile
-  (defun assert-expand (form &optional prefix)
-    "Return evalutions for arguments in function call FORM."
-    (setq prefix (or prefix ""))
-    (apply 'concat
-           (mapcar
-            (lambda (exp)
-              (format "\n%s%s => %s"
-                      prefix exp (eval exp)))
-            (and (listp form)
-                 (and (functionp (car form)))
-                 (cdr form))))))
+(defun make-eval-description (form eval &optional indent)
+  "Return a string mapping FORM to EVAL.
+EVAL is an evaluation tree as returned by `make-eval-tree'.
+Example output when FORM is (= (+ (1+ 2) 2) 4):
 
-(defassert assert (doc form)
+    (= (+ (1+ 2) 2) 4) => nil
+       (+ (1+ 2) 2) => 5
+          (1+ 2) => 3"
+  (let ((indent (or indent 0)) description val)
+    (cond
+     ((and (or (equal form eval)
+               (eq (car-safe form) 'quote))
+           ;; always print the root form
+           (> indent 0))
+      "")
+     ((make-eval-tree-p (car-safe form))
+      (setq val (car eval))
+      ;; strip strings of text properties for readability
+      (when (stringp val)
+        (setq val (copy-sequence val))
+        (set-text-properties 0 (length val) nil val))
+      (setq description (format "%s%S => %S\n"
+                                (make-string indent ?\ )
+                                form val)
+            indent (+ indent (length (format "%S" (car form))) 2))
+      (while (cadr eval)
+        (setq description
+              (concat description
+                      (make-eval-description
+                       (cadr form) (cadr eval)
+                       indent))
+              form (cdr form)
+              eval (cdr eval)))
+      description)
+     (t
+      (when (stringp eval)
+        (setq eval (copy-sequence eval))
+        (set-text-properties 0 (length eval) nil eval))
+      (format "%s%S => %S\n"
+              (make-string indent ?\ )
+              form eval)))))
+
+(defun make-eval-tree (form)
+  "Return evalution tree for FORM.
+The tree is structurally similar to FORM, but all the
+function symbols have been replaced with their return values.
+For example, (+ 2 2) evaluates to (4 2 2).
+
+Note that macros are not expanded beforehand. Instead, forms
+listed in `evaluated-forms' are evaluated as regular functions.
+Other forms are just replaced by their return value."
+  (let (args elt rest sym tail)
+    (cond
+     ((make-eval-tree-p (car-safe form))
+      (setq form (copy-sequence form)
+            sym (car form)
+            rest (cdr form)
+            tail (mapcar 'make-eval-tree rest))
+      (dolist (arg tail)
+        (if (make-eval-tree-p (car-safe (pop rest)))
+            (setq args (append args (list (list 'quote (car arg)))))
+          (setq args (append args (list (list 'quote arg))))))
+      (setq sym (eval (append (list sym) args)))
+      (setcar form sym)
+      (setcdr form tail)
+      form)
+     (t
+      (eval form)))))
+
+(defun make-eval-tree-p (sym)
+  "Whether SYM may be evaluated as a function."
+  (or (functionp sym)
+      (memq sym evaluated-forms)))
+
+(defvar evaluated-forms
+  '(and
+    if
+    or
+    prog1
+    progn
+    save-excursion
+    save-restriction
+    unless
+    when)
+  "Special forms whose arguments may be evaluated by `make-eval-tree'.
+This might yield a more throughout evaluation than the regular
+control flow: for example, `and' normally stops at the first nil
+argument, skipping the rest. On the bright side, the upshot of
+evaluating all arguments is more information.")
+
+(defassert assert (form)
   "Verify that FORM returns non-nil."
+  :alias (assert-that should-and should-all)
   :shadow t
-  `(let ((form ,form))
+  `(let* ((form ',form)
+          (eval (make-eval-tree form))
+          (retval (if (and (listp form) (listp eval))
+                      (car-safe eval)
+                    eval)))
      (without-mocks-and-stubs
-       (unless form
-         (error "%sassert for %s failed:\n\texpected non-nil, was %s%s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',form form
-                ,(assert-expand form "\t"))))))
+       (unless retval
+         (error (replace-regexp-in-string
+                 "\\(\n\\)\\(?:.\\|\n\\)*\\'"
+                 ", expected non-nil\n"
+                 (make-eval-description form eval)
+                 nil nil 1))))))
 
-(defassert assert-not (doc form)
-  "Verify that FORM returns nil."
-  :shadow t
-  `(let ((form ,form))
-     (without-mocks-and-stubs
-       (when form
-         (error "%sassert-not for %s failed:\n\texpected non-nil, was %s%s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',form form
-                ,(assert-expand form "\t"))))))
-
-(put 'assert 'lisp-indent-function 'defun)
-(put 'assert-not 'lisp-indent-function 'defun)
-
-;; `assert'-derivatives, on the other hand, can be defined
-;; straightforwardly.
-(defassert assert-that (doc form)
+(defassert assert-not (form)
   "Verify that FORM returns non-nil."
-  `(let ((form ,form))
+  :alias (assert-nil should-nor should-all-not)
+  `(let* ((form ',form)
+          (eval (make-eval-tree form))
+          (retval (if (and (listp form) (listp eval))
+                      (car-safe eval)
+                    eval)))
      (without-mocks-and-stubs
-       (unless form
-         (error "%sassert-that for %s failed:\n\texpected non-nil, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',form form)))))
+       (when retval
+         (error (replace-regexp-in-string
+                 "\\(\n\\)\\(?:.\\|\n\\)*\\'"
+                 ", expected nil\n"
+                 (make-eval-description form eval)
+                 nil nil 1))))))
 
-(defassert assert-nil (doc form)
-  "Verify that FORM returns nil."
-  `(let ((form ,form))
-     (without-mocks-and-stubs
-       (when form
-         (error "%sassert-nil for %s failed:\n\texpected nil, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',form form)))))
+(defassert assert-progn (&rest body)
+  "Verify that the last form in BODY returns non-nil."
+  :alias should
+  (let ((form (car (last body)))
+        (body (butlast body 1)))
+    `(let* ((form ',form)
+            (eval (progn ,@body (make-eval-tree form)))
+            (retval (if (and (listp form) (listp eval))
+                        (car-safe eval)
+                      eval)))
+       (without-mocks-and-stubs
+         (unless retval
+           (error (replace-regexp-in-string
+                   "\\(\n\\)\\(?:.\\|\n\\)*\\'"
+                   ", expected non-nil\n"
+                   (make-eval-description form eval)
+                   nil nil 1)))))))
 
-;; xUnit discrepancy: xUnit favors Yoda conditions (expected actual).
-;; I don't (actual expected).
-(defassert assert-equal (doc actual expected)
+(defassert assert-not-progn (&rest body)
+  "Verify that the last form in BODY returns nil."
+  :alias should-not
+  (let ((form (car (last body)))
+        (body (butlast body 1)))
+    `(let* ((form ',form)
+            (eval (progn ,@body (make-eval-tree form)))
+            (retval (if (and (listp form) (listp eval))
+                        (car-safe eval)
+                      eval)))
+       (without-mocks-and-stubs
+         (when retval
+           (error (replace-regexp-in-string
+                   "\\(\n\\)\\(?:.\\|\n\\)*\\'"
+                   ", expected nil\n"
+                   (make-eval-description form eval)
+                   nil nil 1)))))))
+
+;; xUnit discrepancy: xUnit favors "Yoda conditions"
+;; (expected actual). We don't (actual expected).
+(defassert assert-equal (actual expected)
   "Verify that ACTUAL is `equal' to EXPECTED."
+  :alias should-equal
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (equal actual expected)
-         (error "%sassert-equal for %s failed:\n\texpected %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected %S"
+                ',actual actual expected)))))
 
-(defassert assert-not-equal (doc actual expected)
+(defassert assert-not-equal (actual expected)
   "Verify that ACTUAL is not `equal' to EXPECTED."
+  :alias should-not-equal
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (when (equal actual expected)
-         (error "%sassert-not-equal for %s failed:\n\texpected not %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected not %S"
+                ',actual actual expected)))))
 
-(defassert assert-eq (doc actual expected)
+(defassert assert-eq (actual expected)
+  :alias should-eq
   "Verify that ACTUAL is `eq' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (eq actual expected)
-         (error "%sassert-eq for %s failed:\n\texpected %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected %S"
+                ',actual actual expected)))))
 
-(defassert assert-not-eq (doc actual expected)
+(defassert assert-not-eq (actual expected)
+  :alias should-not-eq
   "Verify that ACTUAL is not `eq' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (when (eq actual expected)
-         (error "%sassert-not-eq for %s failed:\n\texpected not %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected not %S"
+                ',actual actual expected)))))
 
-(defassert assert-eql (doc actual expected)
+(defassert assert-eql (actual expected)
+  :alias should-eql
   "Verify that ACTUAL is `eql' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (eql actual expected)
-         (error "%sassert-eql for %s failed:\n\texpected %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected %S"
+                ',actual actual expected)))))
 
-(defassert assert-not-eql (doc actual expected)
+(defassert assert-not-eql (actual expected)
+  :alias should-not-eql
   "Verify that ACTUAL is not `eql' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (when (eql actual expected)
-         (error "%sassert-not-eql for %s failed:\n\texpected not %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected not %S"
+                ',actual actual expected)))))
 
-(defassert assert-= (doc actual expected)
+(defassert assert-= (actual expected)
+  :alias should-=
   "Verify that ACTUAL is `=' to EXPECTED."
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (= actual expected)
-         (error "%sassert-= for %s failed:\n\texpected %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected %S"
+                ',actual actual expected)))))
 
-(defassert assert-/= (doc actual expected)
+(defassert assert-/= (actual expected)
   "Verify that ACTUAL is `/=' to EXPECTED."
+  :alias should-/=
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (/= actual expected)
-         (error "%sassert-/= for %s failed:\n\texpected not %s, was %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected not %S"
+                ',actual actual expected)))))
 
-(defassert assert-string= (doc actual expected)
+(defassert assert-string= (actual expected)
   "Verify that ACTUAL is `string=' to EXPECTED."
+  :alias should-string=
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (unless (string= actual expected)
-         (error "%sassert-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected %S"
+                ',actual actual expected)))))
 
-(defassert assert-not-string= (doc actual expected)
+(defassert assert-not-string= (actual expected)
   "Verify that ACTUAL is not `string=' to EXPECTED."
+  :alias should-not-string=
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
        (when (string= actual expected)
-         (error "%sassert-not-string= for %s failed:\n\texpected \"%s\", was \"%s\"\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',actual expected actual)))))
+         (error "%S was %S, expected not %S"
+                ',actual actual expected)))))
 
-(defassert assert-member (doc elt list)
+(defassert assert-member (elt list)
   "Verify that ELT is `member' of LIST."
+  :alias should-member
   `(let ((elt ,elt)
          (list ,list))
      (without-mocks-and-stubs
        (unless (member elt list)
-         (error "%sassert-member failed:\n\texpected %s in %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
+         (error "expected %S in %S"
                 elt list)))))
 
-(defassert assert-memq (doc elt list)
+(defassert assert-memq (elt list)
   "Verify that ELT is `memq' of LIST."
+  :alias should-memq
   `(let ((elt ,elt)
          (list ,list))
      (without-mocks-and-stubs
        (unless (memq elt list)
-         (error "%sassert-memq failed:\n\texpected %s in %s\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
+         (error "expected %S in %S"
                 elt list)))))
 
-(defassert assert-match (doc regexp string)
+(defassert assert-match (regexp string)
   "Verify that REGEXP matches STRING."
+  :alias should-match
   `(let ((regexp ,regexp)
          (string ,string))
      (without-mocks-and-stubs
        (unless (string-match regexp string)
-         (error "%sassert-match failed:\n\texpected \"%s\" to match \"%s\"\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
+         (error "expected \"%S\" to match \"%S\""
                 regexp string)))))
 
-(defassert assert-error (doc &rest body)
+(defassert assert-error (&rest body)
   "Verify that BODY signals an error."
-  `(let (failed)
-     (condition-case nil
-         (progn
-           ,@body
-           (setq failed t))
-       (error nil))
-     (without-mocks-and-stubs
-       (when failed
-         (error "%sassert-error failed: %s expected to signal an error\n"
-                ,(if (stringp doc) (concat doc "\n\t") "")
-                ',body)))))
+  :alias should-error
+  (let ((body (if (> (length body) 1)
+                  `(progn ,@body)
+                (car-safe body)))
+        (failvar (make-symbol "failed")))
+    `(let (,failvar)
+       (condition-case nil
+           (progn
+             ,body
+             (setq ,failvar t))
+         (error nil))
+       (without-mocks-and-stubs
+         (when ,failvar
+           (error "%S expected to signal an error"
+                  ',body))))))
 
-(defassert assert-changed (doc form &rest body)
+(defassert assert-changed (form &rest body)
   "Verify that FORM changes after executing BODY.
 FORM must be quoted."
-  `(let* ((form (eval ,form)))
-     (assert-not-equal
-       ,@(when doc `(,doc))
-       (progn
-         ,@body
-         ,(eval form))
-       form)))
+  :alias should-change
+  (let ((form (eval form)))
+    `(let ((form ,form))
+       (assert-not-equal
+         (progn
+           ,@body
+           ,form)
+         form))))
 
-(defassert assert-not-changed (doc form &rest body)
+(defassert assert-not-changed (form &rest body)
   "Verify that FORM does not change after executing BODY.
 FORM must be quoted."
-  `(let* ((form (eval ,form)))
-     (assert-equal
-       ,@(when doc `(,doc))
-       (progn
-         ,@body
-         ,(eval form))
-       form)))
+  :alias should-not-change
+  (let ((form (eval form)))
+    `(let ((form ,form))
+       (assert-equal
+         (progn
+           ,@body
+           ,form)
+         form))))
 
 ;;; Mocks/stubs
 
@@ -983,7 +1013,7 @@ FORM must be quoted."
 (defvar mocks-global-alist nil
   "Alist of all mocks in all contexts.")
 
-;; Stubs are made with advice, so the number of arguments is unchanged.
+;; stubs are made with advice, so the number of arguments is unchanged
 (defmacro stub (func &rest body)
   "Stub out FUNC.
 A stub is a temporary function advice shadowing the real
@@ -1040,7 +1070,7 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
   `(let (stubs-global)        ; stubs are contingent on `stubs-global'
      ,@body))
 
-;; Mocks are temporary function rebindings.
+;; mocks are temporary function rebindings
 (defmacro mock (func args &rest body)
   "Mock FUNC.
 A mock is a temporary function redefinition, released with
@@ -1118,10 +1148,10 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
      (with-stubs
        ,@body)))
 
-;; This may seem paranoid, but could be useful for "jesting"
+;; This might seem paranoid, but could be useful for "jesting"
 ;; (where you replace `<' with `>=', `=' with `/=', etc.,
 ;; run the tests, and weep in despair as they still pass).
-;; See http://jester.sourceforge.net/
+;; See http://jester.sourceforge.net/ for details.
 (defmacro without-mocks-and-stubs (&rest body)
   "Run BODY without mocks and stubs."
   (declare (indent 0)
@@ -1141,15 +1171,65 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
    '(("(\\(deftest\\|defsuite\\|defassert\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t))
-     ("(\\(assert\\(-[^ ]+\\)*\\|stub\\|mock\\)\\>" 1 font-lock-warning-face)
+     ("(\\(\\(?:assert\\|should\\)\\(-[^ ]+\\)*\\|stub\\|mock\\)\\>" 1 font-lock-warning-face)
      ("(\\(with\\(out\\)?-\\(fixtures\\|stubs\\|mocks\\|mocks-and-stubs\
 \\|stubs-and-mocks\\)\\)\\>"
       1 font-lock-keyword-face))))
 
-(provide 'test-framework)
-
 ;;; Worklog
 
+;; 2011-02-19: Code cleanup and BDD aliases
+;;
+;;      Tests and test suites now return t if they pass and nil if
+;;      they fail. Everything pertaining to the failure report is
+;;      handled by global variables and by signaling an `error'.
+;;      The error is caught by the calling suite, which formats it
+;;      and presents it as a warning.
+;;
+;;      Thus, whether a test crashes (because of code changes) or just
+;;      fails (because of a wrong assertion), it is handled in the
+;;      same way. The calling suite wraps each test in a protective
+;;      `condition-case' form, so that code execution is never halted
+;;      and each test in the suite is given a go. (To halt execution,
+;;      one has to explicitly ask for it with the :debug keyword.)
+;;
+;;      The upshot of these "nonlocal exits" is nesting of tests.
+;;      For example, one might write a test for verifying that some
+;;      behavior is properly initialized, and another test for
+;;      checking that said behavior is initialized under the proper
+;;      circumstances. It makes sense for the second test to call the
+;;      first. Since any failure is nonlocal, and since the return
+;;      value is simply t if a test passes, test reuse is trivial.
+;;
+;;      While on the subject of making things trivial, "abbreviated"
+;;      test definitions have been removed. Previously, one could skip
+;;      the word `deftest' inside suite definitions, yielding the more
+;;      terse form shown to the right:
+;;
+;;          (defsuite suite-name    (defsuite suite-name
+;;            (deftest test-name      (test-name
+;;              (assert-=               (assert-=
+;;                (+ 2 2) 4)))            (+ 2 2) 4)))
+;;
+;;      Although it looks nice, it has the unfortunate effect that one
+;;      has to reevaluate the whole suite whenever one changes a
+;;      single test. The `deftest' form to the left, by contrast, is
+;;      a macro call by itself and can be evaluated as such.
+;;
+;;      This extends to debugging as well. With the abbreviated style,
+;;      one has to instrument the whole suite at once, rather than
+;;      just the single test one is interested in. Edebug is actually
+;;      quite good at stepping through custom macros like `defsuite'
+;;      and `deftest' (provided one tells it how with an appropriate
+;;      `declare' statement in the macro definition). Add too much
+;;      special syntax, however, and it is bound to fail. Hence,
+;;      these macros should be made as simple as possible.
+;;
+;;      The assert { 2.0 }-like inspection of arguments is now
+;;      implemented recursively. Furthermore, all assertions have
+;;      Behavior Driven Development (BDD) aliases. An interesting
+;;      article on BDD is at http://technomancy.us/73.
+;;
 ;; 2010-09-14: Add `silent-tests' and `logged-tests' variables
 ;;
 ;;      By default, tests and suites log their results in the
@@ -1226,5 +1306,7 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 ;;
 ;;      Any suite can be called to run any test. If a test is not
 ;;      associated with a suite, it may default to `empty-suite'.
+
+(provide 'test-framework)
 
 ;;; test-framework.el ends here
