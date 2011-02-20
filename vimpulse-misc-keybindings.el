@@ -571,15 +571,30 @@ Search backwards if a match isn't found."
   "Copy characters from preceding non-blank line.
 The copied text is inserted before point.
 ARG is the number of lines to move backward."
-  (interactive "p")
-  (insert (vimpulse-copy-chars-from-line (- arg) 1)))
+  (interactive
+   (cond
+    ;; if a prefix argument was given, repeat it for subsequent calls
+    ((and (null current-prefix-arg)
+          (eq last-command 'vimpulse-copy-from-above))
+     (setq current-prefix-arg last-prefix-arg)
+     (list (prefix-numeric-value current-prefix-arg)))
+    (t
+     (list (prefix-numeric-value current-prefix-arg)))))
+  (insert (vimpulse-copy-chars-from-line 1 (- arg))))
 
 (defun vimpulse-copy-from-below (arg)
   "Copy characters from following non-blank line.
 The copied text is inserted before point.
 ARG is the number of lines to move forward."
-  (interactive "p")
-  (insert (vimpulse-copy-chars-from-line arg 1)))
+  (interactive
+   (cond
+    ((and (null current-prefix-arg)
+          (eq last-command 'vimpulse-copy-from-below))
+     (setq current-prefix-arg last-prefix-arg)
+     (list (prefix-numeric-value current-prefix-arg)))
+    (t
+     (list (prefix-numeric-value current-prefix-arg)))))
+  (insert (vimpulse-copy-chars-from-line 1 arg)))
 
 ;; adapted from `copy-from-above-command' from misc.el
 (defun vimpulse-copy-chars-from-line (n num &optional col)
@@ -589,9 +604,9 @@ COL defaults to the current column."
   (interactive "p")
   (let ((col (or col (current-column))) prefix)
     (save-excursion
-      (forward-line n)
+      (forward-line num)
       (when (looking-at "[[:space:]]*$")
-        (if (< n 0)
+        (if (< num 0)
             (skip-chars-backward " \t\n")
           (skip-chars-forward " \t\n")))
       (beginning-of-line)
@@ -600,15 +615,15 @@ COL defaults to the current column."
       ;; return the appropriate number of spaces
       (when (< col (current-column))
         (if (eq (preceding-char) ?\t)
-            (let ((len (min num (- (current-column) col))))
+            (let ((len (min n (- (current-column) col))))
               (setq prefix (make-string len ?\s)
-                    num (- num len)))
+                    n (- n len)))
           ;; if in middle of a control char, return the whole char
           (backward-char 1)))
       (concat prefix
               (buffer-substring (point)
                                 (min (line-end-position)
-                                     (+ num (point))))))))
+                                     (+ n (point))))))))
 
 (define-key viper-insert-basic-map "\C-y" 'vimpulse-copy-from-above)
 (define-key viper-insert-basic-map "\C-e" 'vimpulse-copy-from-below)
