@@ -362,8 +362,8 @@ Don't use this function directly; see `vimpulse-map',
     (if modes
         (dolist (mode modes)
           (if (eq mode t)
-              (vimpulse-global-set-key 'vi-state key def t)
-            (vimpulse-define-major-key mode 'vi-state key def t)))
+              (vimpulse-global-set-key state key def t)
+            (vimpulse-define-major-key mode state key def t)))
       (vimpulse-with-state state
         (vimpulse-make-careful-binding basic-map key def)))))
 
