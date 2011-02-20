@@ -565,4 +565,52 @@ Search backwards if a match isn't found."
            try-expand-line-all-buffers)))
     (hippie-expand arg)))
 
+;;; i_CTRL-Y, i_CTRL-E
+
+(defun vimpulse-copy-from-above (arg)
+  "Copy characters from preceding non-blank line.
+The copied text is inserted before point.
+ARG is the number of lines to move backward."
+  (interactive "p")
+  (insert (vimpulse-copy-chars-from-line (- arg) 1)))
+
+(defun vimpulse-copy-from-below (arg)
+  "Copy characters from following non-blank line.
+The copied text is inserted before point.
+ARG is the number of lines to move forward."
+  (interactive "p")
+  (insert (vimpulse-copy-chars-from-line arg 1)))
+
+;; adapted from `copy-from-above-command' from misc.el
+(defun vimpulse-copy-chars-from-line (n num &optional col)
+  "Return N characters from line NUM, starting at column COL.
+NUM is relative to the current line and can be negative.
+COL defaults to the current column."
+  (interactive "p")
+  (let ((col (or col (current-column))) prefix)
+    (save-excursion
+      (forward-line n)
+      (when (looking-at "[[:space:]]*$")
+        (if (< n 0)
+            (skip-chars-backward " \t\n")
+          (skip-chars-forward " \t\n")))
+      (beginning-of-line)
+      (move-to-column col)
+      ;; if the column winds up in middle of a tab,
+      ;; return the appropriate number of spaces
+      (when (< col (current-column))
+        (if (eq (preceding-char) ?\t)
+            (let ((len (min num (- (current-column) col))))
+              (setq prefix (make-string len ?\s)
+                    num (- num len)))
+          ;; if in middle of a control char, return the whole char
+          (backward-char 1)))
+      (concat prefix
+              (buffer-substring (point)
+                                (min (line-end-position)
+                                     (+ num (point))))))))
+
+(define-key viper-insert-basic-map "\C-y" 'vimpulse-copy-from-above)
+(define-key viper-insert-basic-map "\C-e" 'vimpulse-copy-from-below)
+
 (provide 'vimpulse-misc-keybindings)
