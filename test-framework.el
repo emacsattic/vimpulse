@@ -53,7 +53,7 @@
 ;;         (* 3 3) 9
 ;;         (% 4 2) 0))
 ;;
-;; Note that xUnit frameworks often use the reverse order, e.g.,
+;; Note that xUnit frameworks sometimes use the reverse order, e.g.,
 ;; "assertEquals(4, 2 + 2);", where the expected value comes first.
 ;; Here, however, the expectation always comes last, mirroring the
 ;; original code.
@@ -74,25 +74,13 @@
 ;; (Note, again, that the forms must be ordered as shown above for
 ;; the report to make sense.)
 ;;
-;; Related actions may be grouped together with `assert-progn', or
-;; `should' for a more BDD-like name. It only checks the last form:
+;; For a more BDD-like style, one can type `should' instead of
+;; `assert'. Related actions may be grouped together with `expect':
 ;;
 ;;     (deftest test-baz
 ;;       "A list."
 ;;       (let ((list '(a b c)))
-;;         (should
-;;           "Push element to the front."
-;;           (push 'd list)
-;;           (eq (first list) 'd))))
-;;
-;; This is both readable and robust: should the assertion crash
-;; midways, the preceding docstring provides context in the failure
-;; report. To that end, `should' statements may be nested:
-;;
-;;     (deftest test-baz
-;;       "A list."
-;;       (let ((list '(a b c)))
-;;         (should
+;;         (expect
 ;;           "Push elements to the front."
 ;;           (push 'd list)
 ;;           (should (eq (first list) 'd))
@@ -102,8 +90,7 @@
 ;; BDD aliases are defined for all assertions: `should-eq' instead
 ;; of `assert-eq', `should-=' instead of `assert-=', and so on.
 ;; `should' can be used in most cases, though: it provides a recursive
-;; inspection of the failing form. The alias for `assert' is
-;; `should-all', which checks each and every form.
+;; inspection of the failing form.
 ;;
 ;; NOTE: `assert' only accepts multiple arguments inside `deftest'.
 ;; Outside `deftest' it's a different macro (defined by cl.el).
@@ -275,8 +262,8 @@
     "Macros that shadow global definitions inside `deftest'.")
   (defvar assert-name nil
     "Name of the current assertion.")
-  (defvar assert-string nil
-    "Textual description of the current assertion.")
+  (defvar assert-strings nil
+    "Textual descriptions of the current assertions.")
   (defvar test-string nil
     "Textual description of the current test.")
   (defvar suite-name nil
@@ -355,7 +342,7 @@
                      tests ,suite)
                (test-message "Test suite `%s' running ..." ',suite))
              (dolist (test tests)
-               (let (test-string assert-name assert-string error-string)
+               (let (test-string assert-name assert-strings error-string)
                  (if (eq debug 'debug)
                      (let ((debug-on-error t))
                        (with-fixtures ,fixture ,setup ,teardown
@@ -390,10 +377,14 @@
                                    (format "%s (%s)" test-string test)
                                  (format "%s" test))
                                (cond
-                                ((and assert-name assert-string)
-                                 (format "`%s' failed: %s\n\n%s"
+                                ((and assert-name assert-strings)
+                                 (format "`%s' failed: %s\n%s"
                                          assert-name
-                                         assert-string
+                                         (apply
+                                          'concat
+                                          (mapcar (lambda (e)
+                                                    (format "%s\n" e))
+                                                  assert-strings))
                                          error-string))
                                 (assert-name
                                  (format "`%s' failed:\n\n%s"
@@ -524,7 +515,7 @@ before and after. Mocks and stubs are guaranteed to be released."
                  (eq suite (and (boundp 'suite-name) suite-name)))
              (setq test-string ,doc
                    assert-name nil
-                   assert-string nil)
+                   assert-strings nil)
              ,@body t)
             (t
              (funcall suite (or debug ',debug) ',test)))))
@@ -610,10 +601,13 @@ is specified."
               def `(let ((name ',name)
                          (doc (when (stringp (car-safe ,restvar))
                                 (pop ,restvar))))
-                     `(progn (setq assert-name ',name
-                                   assert-string ,doc)
-                             (let (assert-name assert-string)
-                               ,,@body t))))
+                     `(progn (setq assert-name ',name)
+                             (when ,doc
+                               (add-to-list 'assert-strings ,doc t))
+                             (let (assert-name)
+                               ,,@body
+                               (setq assert-strings
+                                     (remove ,doc assert-strings)) t))))
       ;; repeatable argument list: iterate through the arguments
       (setq restvar 'body
             def
@@ -639,10 +633,13 @@ is specified."
                  ,@(mapcar (lambda (var)
                              `(setq ,var (pop ,restvar))) param)
                  (add-to-list 'def (progn ,@body) t))
-               `(progn (setq assert-name ',name
-                             assert-string ,doc)
-                       (let (assert-name assert-string)
-                         ,@def t)))))
+               `(progn (setq assert-name ',name)
+                       (when ,doc
+                         (add-to-list 'assert-strings ,doc t))
+                       (let (assert-name)
+                         ,@def
+                         (setq assert-strings
+                               (remove ,doc assert-strings)) t)))))
     `(progn
        ;; define assertion macro unless :shadow is t,
        ;; in which case just store it for macro-letting
@@ -758,7 +755,7 @@ evaluating all arguments is more information.")
 
 (defassert assert (form)
   "Verify that FORM returns non-nil."
-  :alias (assert-that should-and should-all)
+  :alias (assert-that should)
   :shadow t
   `(let* ((form ',form)
           (eval (make-eval-tree form))
@@ -775,7 +772,7 @@ evaluating all arguments is more information.")
 
 (defassert assert-not (form)
   "Verify that FORM returns non-nil."
-  :alias (assert-nil should-nor should-all-not)
+  :alias (assert-nil should-not)
   `(let* ((form ',form)
           (eval (make-eval-tree form))
           (retval (if (and (listp form) (listp eval))
@@ -791,7 +788,7 @@ evaluating all arguments is more information.")
 
 (defassert assert-progn (&rest body)
   "Verify that the last form in BODY returns non-nil."
-  :alias should
+  :alias expect
   (let ((form (car (last body)))
         (body (butlast body 1)))
     `(let* ((form ',form)
@@ -809,7 +806,7 @@ evaluating all arguments is more information.")
 
 (defassert assert-not-progn (&rest body)
   "Verify that the last form in BODY returns nil."
-  :alias should-not
+  :alias expect-not
   (let ((form (car (last body)))
         (body (butlast body 1)))
     `(let* ((form ',form)
@@ -1171,141 +1168,136 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
    '(("(\\(deftest\\|defsuite\\|defassert\\)\\>[ \f\t\n\r\v]*\\(\\sw+\\)?"
       (1 font-lock-keyword-face)
       (2 font-lock-function-name-face nil t))
-     ("(\\(\\(?:assert\\|should\\)\\(-[^ ]+\\)*\\|stub\\|mock\\)\\>" 1 font-lock-warning-face)
+     ("(\\(\\(?:assert\\|should\\|expect\\)\\(-[^ ]+\\)*\\|stub\\|mock\\)\\>"
+      1 font-lock-warning-face)
      ("(\\(with\\(out\\)?-\\(fixtures\\|stubs\\|mocks\\|mocks-and-stubs\
 \\|stubs-and-mocks\\)\\)\\>"
       1 font-lock-keyword-face))))
 
-;;; Worklog
+;;; Worklog (may be outdated)
 
-;; 2011-02-19: Code cleanup and BDD aliases
+;;;;; 2011-02-19: Code cleanup and BDD aliases
 ;;
-;;      Tests and test suites now return t if they pass and nil if
-;;      they fail. Everything pertaining to the failure report is
-;;      handled by global variables and by signaling an `error'.
-;;      The error is caught by the calling suite, which formats it
-;;      and presents it as a warning.
+;; Tests and test suites now return t if they pass and nil if they
+;; fail. Everything pertaining to the failure report is handled by
+;; global variables and by signaling an `error'. The error is caught
+;; by the calling suite, which formats it and presents it as a
+;; warning.
 ;;
-;;      Thus, whether a test crashes (because of code changes) or just
-;;      fails (because of a wrong assertion), it is handled in the
-;;      same way. The calling suite wraps each test in a protective
-;;      `condition-case' form, so that code execution is never halted
-;;      and each test in the suite is given a go. (To halt execution,
-;;      one has to explicitly ask for it with the :debug keyword.)
+;; Thus, whether a test crashes (because of code changes) or just
+;; fails (because of a wrong assertion), it is handled in the same
+;; way. The calling suite wraps each test in a protective
+;; `condition-case' form, so that code execution is never halted and
+;; all tests are given a go. (To halt execution, one has to explicitly
+;; ask for it with the :debug keyword.)
 ;;
-;;      The upshot of these "nonlocal exits" is nesting of tests.
-;;      For example, one might write a test for verifying that some
-;;      behavior is properly initialized, and another test for
-;;      checking that said behavior is initialized under the proper
-;;      circumstances. It makes sense for the second test to call the
-;;      first. Since any failure is nonlocal, and since the return
-;;      value is simply t if a test passes, test reuse is trivial.
+;; The upshot of these "nonlocal exits" is actually test reuse. For
+;; example, one might write a test for verifying that some behavior is
+;; properly initialized, and another test for checking that said
+;; behavior is initialized under the proper circumstances. It makes
+;; sense for the second test to call the first. Since any failure is
+;; nonlocal, and since the return value is simply t if a test passes,
+;; nesting tests is trivial.
 ;;
-;;      While on the subject of making things trivial, "abbreviated"
-;;      test definitions have been removed. Previously, one could skip
-;;      the word `deftest' inside suite definitions, yielding the more
-;;      terse form shown to the right:
+;; While on the subject of making things trivial, "abbreviated" test
+;; definitions have been removed. Previously, one could skip the word
+;; `deftest' inside suite definitions, yielding the more terse form
+;; shown to the right:
 ;;
-;;          (defsuite suite-name    (defsuite suite-name
-;;            (deftest test-name      (test-name
-;;              (assert-=               (assert-=
-;;                (+ 2 2) 4)))            (+ 2 2) 4)))
+;;     (defsuite suite-name    (defsuite suite-name
+;;       (deftest test-name      (test-name
+;;         (assert-=               (assert-=
+;;           (+ 2 2) 4)))            (+ 2 2) 4)))
 ;;
-;;      Although it looks nice, it has the unfortunate effect that one
-;;      has to reevaluate the whole suite whenever one changes a
-;;      single test. The `deftest' form to the left, by contrast, is
-;;      a macro call by itself and can be evaluated as such.
+;; Although it looks nice, it has the unfortunate result that one has
+;; to reevaluate the whole suite whenever one changes a single test.
+;; The `deftest' form to the left, by contrast, is a macro call by
+;; itself and can be evaluated as such.
 ;;
-;;      This extends to debugging as well. With the abbreviated style,
-;;      one has to instrument the whole suite at once, rather than
-;;      just the single test one is interested in. Edebug is actually
-;;      quite good at stepping through custom macros like `defsuite'
-;;      and `deftest' (provided one tells it how with an appropriate
-;;      `declare' statement in the macro definition). Add too much
-;;      special syntax, however, and it is bound to fail. Hence,
-;;      these macros should be made as simple as possible.
+;; This extends to debugging as well. With the abbreviated style, one
+;; has to instrument the whole suite at once, rather than just the
+;; single test one is interested in. Edebug is actually quite good at
+;; stepping through custom macros like `defsuite' and `deftest'
+;; (provided one tells it how with an appropriate `declare' statement
+;; in the macro definition). Add too much special syntax, however, and
+;; it is bound to fail. Hence, these macros should be made as simple
+;; as possible.
 ;;
-;;      The assert { 2.0 }-like inspection of arguments is now
-;;      implemented recursively. Furthermore, all assertions have
-;;      Behavior Driven Development (BDD) aliases. An interesting
-;;      article on BDD is at http://technomancy.us/73.
+;; The assert { 2.0 }-like inspection of arguments is now implemented
+;; recursively. Furthermore, all assertions have Behavior Driven
+;; Development (BDD) aliases. An interesting article on BDD is at
+;; http://technomancy.us/73.
 ;;
-;; 2010-09-14: Add `silent-tests' and `logged-tests' variables
+;;;;; 2010-09-14: Add `silent-tests' and `logged-tests' variables
 ;;
-;;      By default, tests and suites log their results in the
-;;      *Messages* buffer. If `logged-tests' is nil, results are not
-;;      logged; if `silent-tests' is t, results are not even echoed.
+;; By default, tests and suites log their results in the *Messages*
+;; buffer. If `logged-tests' is nil, results are not logged;
+;; if `silent-tests' is t, results are not even echoed.
 ;;
-;;      Exception: if `silent-tests' is t and a test or suite is
-;;      called interactively, the result is echoed, but not logged.
+;; Exception: if `silent-tests' is t and a test or suite is called
+;; interactively, the result is echoed, but not logged.
 ;;
-;; 2010-09-13: Add DEBUG parameter to tests and suites
+;;;;; 2010-09-13: Add DEBUG parameter to tests and suites
 ;;
-;;      This provides verbose output useful on a per-test basis.
-;;      Normally, tests are run in "batch mode", where the test code
-;;      is wrapped in a protective `condition-case' form. This is
-;;      usually what we want, since it doesn't halt code execution
-;;      when tests are loaded in .emacs. Thus, if something fails, we
-;;      will get a warning, but Emacs will still load to the best of
-;;      its ability.
+;; This provides verbose output useful on a per-test basis. Normally,
+;; tests are run in "batch mode", where the test code is wrapped in a
+;; protective `condition-case' form. This is usually what we want,
+;; since it doesn't halt code execution when tests are loaded in
+;; .emacs. Thus, if something fails, we will get a warning, but Emacs
+;; will still load to the best of its ability.
 ;;
-;;      Otherwise, in "debug mode", the debugger is entered on error
-;;      and execution is halted. This mode is enabled by running a
-;;      test or suite interactively, or by passing t to the DEBUG
-;;      parameter, e.g., (test t). The "debug mode" sets
-;;      `debug-on-error' to t.
+;; Otherwise, in "debug mode", the debugger is entered on error and
+;; execution is halted. This mode is enabled by running a test or
+;; suite interactively, or by passing t to the DEBUG parameter,
+;; e.g., (test t). The "debug mode" sets `debug-on-error' to t.
 ;;
-;;      Incidentally, the DEBUG parameter is also used for selecting
-;;      among the different "clauses" of a test function. In the
-;;      "internal" cases, DEBUG is either `batch' or `debug', and the
-;;      test silently returns t if it passes or returns an error
-;;      message string if it fails (or it enters the debugger). When
-;;      tests are run as part of a suite, they are run in this way.
-;;      The suite collects all error messages and presents them to the
-;;      user.
+;; Incidentally, the DEBUG parameter is also used for selecting among
+;; the different "clauses" of a test function. In the "internal"
+;; cases, DEBUG is either `batch' or `debug', and the test silently
+;; returns t if it passes or returns an error message string if it
+;; fails (or it enters the debugger). When tests are run as part of a
+;; suite, they are run in this way. The suite collects all error
+;; messages and presents them to the user.
 ;;
-;;      In the "user" cases, DEBUG is either nil (the default) or t,
-;;      and the test looks for a suite to present it. The test calls a
-;;      suite which in turn runs the test "internally". In sketch:
+;; In the "user" cases, DEBUG is either nil (the default) or t, and
+;; the test looks for a suite to present it. The test calls a suite
+;; which in turn runs the test "internally". In sketch:
 ;;
-;;      +--------+    +-------------------+    +---------------+
-;;      | (test) | => | (suite ... 'test) | => | (test 'batch) |
-;;      +--------+    +-------------------+    +---------------+
+;;     +--------+    +-------------------+    +---------------+
+;;     | (test) | => | (suite ... 'test) | => | (test 'batch) |
+;;     +--------+    +-------------------+    +---------------+
 ;;
-;;      If DEBUG is nil (the default when called programmatically),
-;;      the test is ultimately called in "batch mode". If DEBUG is t
-;;      (the default when called interactively), the test is
-;;      ultimately called in "debug mode". A :debug keyword argument
-;;      may be specified to let a test be called in "debug mode" by
-;;      default, but this should be used carefully.
+;; If DEBUG is nil (the default when called programmatically), the
+;; test is ultimately called in "batch mode". If DEBUG is t (the
+;; default when called interactively), the test is ultimately called
+;; in "debug mode". A :debug keyword argument may be specified to let
+;; a test be called in "debug mode" by default, but this should be
+;; used carefully.
 ;;
-;; 2010-09-03: Fix long-standing compilation issues
+;;;;; 2010-09-03: Fix long-standing compilation issues
 ;;
-;;      To let `defsuite' be wrapped around `deftest', there were two
-;;      strategies for making the two "communicate": either at compile
-;;      time or at run time. The former was tried first, with partial
-;;      results: tests would work uncompiled and the file would
-;;      compile without warnings -- but the tests wouldn't work
-;;      compiled.
+;; To let `defsuite' be wrapped around `deftest', there were two
+;; strategies for making the two "communicate": either at compile time
+;; or at run time. The former was tried first, with partial results:
+;; tests would work uncompiled and the file would compile without
+;; warnings -- but the tests wouldn't work compiled.
 ;;
-;;      Now, we make the communication happen at run time instead.
-;;      The macro expansion of `defsuite' is a `let' form which the
-;;      expansion of `deftest', running inside the form, can pick up
-;;      on. The tests now compile properly, with (ahem) considerable
-;;      speed gains.
+;; Now, we make the communication happen at run time instead. The
+;; macro expansion of `defsuite' is a `let' form which the expansion
+;; of `deftest', running inside the form, can pick up on. The tests
+;; now compile properly, with (ahem) considerable speed gains.
 ;;
-;;      We also try to disentangle the confusing relationship between
-;;      suites and tests. Since the current suite is always included
-;;      in the failure report, suites, not tests, are charged with the
-;;      task of reporting failures. A test function consists of two
-;;      clauses: either the test will call a suite to run itself (and
-;;      report any failure), or it will execute its test code and
-;;      return the result. If the test succeeds, the return value is
-;;      t; otherwise it is an error message string, which the calling
-;;      suite collects and reports.
+;; We also try to disentangle the confusing relationship between
+;; suites and tests. Since the current suite is always included in the
+;; failure report, suites, not tests, are charged with the task of
+;; reporting failures. A test function consists of two clauses: either
+;; the test will call a suite to run itself (and report any failure),
+;; or it will execute its test code and return the result. If the test
+;; succeeds, the return value is t; otherwise it is an error message
+;; string, which the calling suite collects and reports.
 ;;
-;;      Any suite can be called to run any test. If a test is not
-;;      associated with a suite, it may default to `empty-suite'.
+;; Any suite can be called to run any test. If a test is not
+;; associated with a suite, it may default to `empty-suite'.
 
 (provide 'test-framework)
 
