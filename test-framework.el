@@ -74,8 +74,28 @@
 ;; (Note, again, that the forms must be ordered as shown above for
 ;; the report to make sense.)
 ;;
-;; For a more BDD-like style, one can type `should' instead of
-;; `assert'. Related actions may be grouped together with `expect':
+;; For a more BDD-like style, one can write `should' instead of
+;; `assert':
+;;
+;;     (deftest test-baz
+;;       "A list."
+;;       (let ((list '(a b c)))
+;;         (push 'd list)
+;;         (should (eq (first list) 'd))))
+;;
+;; Related actions may be grouped together with `expect', which only
+;; checks the last form:
+;;
+;;     (deftest test-baz
+;;       "A list."
+;;       (let ((list '(a b c)))
+;;         (expect
+;;           "Push elements to the front."
+;;           (push 'd list)
+;;           (eq (first list) 'd))))
+;;
+;; This is useful for providing context in the failure report, as well
+;; as in the test itself. `should' statements can also be grouped:
 ;;
 ;;     (deftest test-baz
 ;;       "A list."
@@ -87,10 +107,11 @@
 ;;           (push 'e list)
 ;;           (should (eq (first list) 'e)))))
 ;;
-;; BDD aliases are defined for all assertions: `should-eq' instead
-;; of `assert-eq', `should-=' instead of `assert-=', and so on.
-;; `should' can be used in most cases, though: it provides a recursive
-;; inspection of the failing form.
+;; BDD aliases are defined for all assertions: `should-eq' instead of
+;; `assert-eq', `should-=' instead of `assert-=', and so on.
+;; `should' is sufficient in most cases, though: it displays a
+;; recursive inspection of any failing form, and it checks each and
+;; every form it contains.
 ;;
 ;; NOTE: `assert' only accepts multiple arguments inside `deftest'.
 ;; Outside `deftest' it's a different macro (defined by cl.el).
@@ -144,32 +165,35 @@
 
 ;; Sometimes it's useful to set up and tear down an environment for
 ;; each test in a suite. This can be done with the :setup and
-;; :teardown keyword arguments, which accept a list of expressions to
-;; evaluate before and after each test.
+;; :teardown keyword arguments, which accept a form to evaluate before
+;; and after each test. (You can use `progn' to group expressions.)
 ;;
 ;;     (defsuite test-foo-suite
 ;;       "Example suite."
-;;       :setup ((wibble) (wobble))
-;;       :teardown ((wubble) (flob))
+;;       :setup (wibble)
+;;       :teardown (progn (wobble) (flob))
 ;;       (deftest test-foo
 ;;         ...)
 ;;       (deftest test-bar
 ;;         ...))
 ;;
-;; However, this may not be enough: what if the setup and teardown
-;; need to share variables, or the test should be wrapped in a macro
-;; like `save-restriction'? To that end, the more powerful :fixture
-;; keyword argument may be used. It accepts a one-argument function
-;; which is used to call the test:
+;; However, this might not be sufficient: what if the setup and
+;; teardown need to share variables, or the test should be wrapped in
+;; a macro like `save-restriction'? To that end, the more powerful
+;; :fixture keyword argument may be used. It accepts a one-argument
+;; function which is used to call the test:
 ;;
 ;;     (defsuite test-foo-suite
 ;;       "Example suite."
 ;;       :fixture (lambda (body)
-;;                  (let (foo bar)
-;;                    (wibble)
-;;                    (wobble)
-;;                    (save-restriction
-;;                      (funcall body))   ; run test
+;;                  (unwind-protect
+;;                      (save-restriction
+;;                        ;; set up environment
+;;                        (wibble)
+;;                        (wobble)
+;;                        ;; run test
+;;                        (funcall body))
+;;                    ;; tear down environment
 ;;                    (wubble)
 ;;                    (flob)))
 ;;       (deftest test-foo
@@ -178,9 +202,11 @@
 ;;         ...))
 ;;
 ;; As shown above, the function must contain (funcall body) somewhere
-;; in its definition for the test to be run at all.
+;; in its definition for the test to be run at all. It is good style
+;; to use `unwind-protect' to ensure that the fixture always completes
+;; properly, regardless of the test's outcome.
 ;;
-;; There's also the :wrap keyword argument, which specifies an
+;; Finally, there's the :wrap keyword argument, which specifies an
 ;; around-advice for the whole test, e.g., :wrap ((wobble) ad-do-it).
 ;; See the docstring of `defadvice' for more details on advice. While
 ;; the other fixtures are repeated for each test in the suite, :wrap
@@ -204,6 +230,12 @@
 ;; fixtures even when called outside the suite. However, when the test
 ;; is called by a different suite, that suite's fixtures temporarily
 ;; override the fixtures inherited from the original suite.
+;;
+;; Any single test may also specify its own fixtures. In that case,
+;; the suite fixtures are wrapped around the test fixtures. However,
+;; no fixtures are executed at all if the test is called from within
+;; another test: the calling test is assumed to provide the necessary
+;; environment.
 ;;
 ;; When defining a function to use as a fixture, make sure to define
 ;; it before the tests are run (before the test if using `:run t').
@@ -247,7 +279,7 @@
 ;;; Code:
 
 (eval-when-compile
-  (require 'cl)
+  (require 'cl) ; for `macrolet'
   (require 'advice)
   (require 'warnings))
 
@@ -260,16 +292,16 @@
     "If t, log echoed test results in the *Messages* buffer.")
   (defvar deftest-macros nil
     "Macros that shadow global definitions inside `deftest'.")
-  (defvar assert-name nil
-    "Name of the current assertion.")
+  (defvar assert-names nil
+    "Names of the current assertions.")
   (defvar assert-strings nil
     "Textual descriptions of the current assertions.")
+  (defvar test-name nil
+    "Name of the current test.")
   (defvar test-string nil
     "Textual description of the current test.")
   (defvar suite-name nil
     "Name of the current suite."))
-
-;;; Test suite macro: `defsuite'
 
 (defmacro defsuite (suite &rest body)
   "Define a test suite."
@@ -296,19 +328,20 @@
           (add-to-list 'parents (pop body))))
        ((eq keyword :fixture)
         (setq fixture (pop body))
-        (unless (or (symbolp fixture)
-                    (functionp fixture))
-          (setq fixture `(lambda () ,@fixture))))
+        (unless (functionp fixture)
+          (setq fixture
+                `(lambda (body)
+                   ,(if (listp fixture)
+                        fixture
+                      `(,fixture (funcall body)))))))
        ((eq keyword :setup)
         (setq setup (pop body))
-        (unless (or (symbolp setup)
-                    (functionp setup))
-          (setq setup `(lambda () ,@setup))))
+        (unless (functionp setup)
+          (setq setup `(lambda () ,setup))))
        ((eq keyword :teardown)
         (setq teardown (pop body))
-        (unless (or (symbolp teardown)
-                    (functionp teardown))
-          (setq teardown `(lambda () ,@teardown))))
+        (unless (functionp teardown)
+          (setq teardown `(lambda () ,teardown))))
        ((memq keyword '(:advice :wrap))
         (setq wrap (pop body)))
        ((eq keyword :debug)
@@ -321,7 +354,7 @@
          (add-to-suite suite-name ',suite))
        ;; create a `let' binding that test definitions can pick up on
        (let ((suite-name ',suite))
-         (add-to-list 'all-suites ',suite)
+         (add-to-list 'all-suites ',suite t)
          (dolist (suite ',parents)
            (add-to-suite suite ',suite))
          ;; create the suite function and suite variable
@@ -342,26 +375,30 @@
                      tests ,suite)
                (test-message "Test suite `%s' running ..." ',suite))
              (dolist (test tests)
-               (let (test-string assert-name assert-strings error-string)
+               (let (test-name
+                     test-string
+                     assert-names
+                     assert-strings
+                     error-string)
                  (if (eq debug 'debug)
                      (let ((debug-on-error t))
-                       (with-fixtures ,fixture ,setup ,teardown
-                         (funcall test 'batch)))
+                       (with-fixtures ',fixture ',setup ',teardown
+                         (funcall test)))
                    (condition-case err
                        ,(if (eq suite 'empty-suite)
-                            '(funcall test
-                                      (unless (default-suite test)
-                                        'batch))
-                          `(with-fixtures ,fixture ,setup ,teardown
-                             (funcall test 'batch)))
+                            '(if (default-suite test)
+                                 (funcall (default-suite) debug test)
+                               (funcall test))
+                          `(with-fixtures ',fixture ',setup ',teardown
+                             (funcall test)))
                      (error (prog1 nil
                               (setq error-string
                                     (error-message-string err))))))
                  (if (null error-string)
                      (test-message "%sTest `%s' passed!"
-                                   (if own-tests "    " "") test)
+                                   (if own-tests "\t" "") test)
                    (test-message "%sTest `%s' failed!"
-                                 (if own-tests "    " "") test)
+                                 (if own-tests "\t" "") test)
                    (test-warning
                     ',(if (eq suite 'empty-suite) 'test suite)
                     (replace-regexp-in-string
@@ -377,18 +414,19 @@
                                    (format "%s (%s)" test-string test)
                                  (format "%s" test))
                                (cond
-                                ((and assert-name assert-strings)
+                                ((and assert-names assert-strings)
                                  (format "`%s' failed: %s\n%s"
-                                         assert-name
+                                         (car assert-names)
                                          (apply
                                           'concat
                                           (mapcar (lambda (e)
                                                     (format "%s\n" e))
                                                   assert-strings))
                                          error-string))
-                                (assert-name
+                                (assert-names
                                  (format "`%s' failed:\n\n%s"
-                                         assert-name error-string))
+                                         (car assert-names)
+                                         error-string))
                                 (t
                                  (format "%s" error-string))))
                        nil nil 1))
@@ -417,48 +455,6 @@
          (when ,run (,suite))
          ',suite))))
 
-(defsuite empty-suite
-  "Pseudo-suite for suiteless tests.
-Tests can call themselves via this suite if not associated
-with any other suite.")
-
-(defun add-to-suite (suite test)
-  "Add TEST to SUITE."
-  (unless (boundp suite)
-    (eval `(defsuite ,suite)))
-  ;; suites are basically hooks
-  (add-hook suite test))
-
-(defmacro with-fixtures (fixture setup teardown &rest body)
-  "Run BODY with fixtures.
-FIXTURE is a one-argument function with which to run the contents
-of BODY; SETUP and TEARDOWN are zero-argument functions to run
-before and after. Mocks and stubs are guaranteed to be released."
-  (declare (indent defun)
-           (debug t))
-  ;; create an uninterned symbol to avoid overwriting
-  ;; any internal bindings in :fixture
-  (let ((resultvar (make-symbol "result")))
-    `(let ((fixture ',fixture)
-           (setup ',setup)
-           (teardown ',teardown))
-       (with-mocks-and-stubs
-         (unwind-protect
-             (save-excursion
-               (let (,resultvar)
-                 (when setup
-                   (funcall setup))
-                 (if fixture
-                     (funcall fixture
-                              (lambda ()
-                                (setq ,resultvar (progn ,@body))))
-                   (setq ,resultvar (progn ,@body)))
-                 ,resultvar))
-           (when teardown
-             (funcall teardown)))))))
-
-;;; Test macro: `deftest'
-
 (defmacro deftest (test &rest body)
   "Define a test."
   (declare (indent defun)
@@ -467,7 +463,7 @@ before and after. Mocks and stubs are guaranteed to be released."
                            [&optional stringp]
                            [&rest keywordp sexp]
                            def-body)))
-  (let (debug doc dont-add keyword run suites)
+  (let (debug doc dont-add fixture keyword run setup suites teardown wrap)
     ;; collect docstring
     (when (stringp (car body))
       (setq doc (pop body)))
@@ -475,23 +471,44 @@ before and after. Mocks and stubs are guaranteed to be released."
     (while (keywordp (car body))
       (setq keyword (pop body))
       (cond
+       ((memq keyword '(:suite :suites))
+        (if (listp (car body))
+            (setq suites (append suites (pop body)))
+          (add-to-list 'suites (pop body))))
        ((eq keyword :debug)
         (setq debug (pop body)))
        ((eq keyword :run)
         (setq run (pop body))
         (unless run
           (setq dont-add t)))
-       ((memq keyword '(:suite :suites))
-        (if (listp (car body))
-            (setq suites (append suites (pop body)))
-          (add-to-list 'suites (pop body))))
+       ((eq keyword :fixture)
+        (setq fixture (pop body))
+        (unless (functionp fixture)
+          (setq fixture
+                `(lambda (body)
+                   ,(if (listp fixture)
+                        fixture
+                      `(,fixture (funcall body)))))))
+       ((eq keyword :setup)
+        (setq setup (pop body))
+        (unless (functionp setup)
+          (setq setup `(lambda () ,setup))))
+       ((eq keyword :teardown)
+        (setq teardown (pop body))
+        (unless (functionp teardown)
+          (setq teardown `(lambda () ,teardown))))
+       ((memq keyword '(:advice :wrap))
+        (setq wrap (pop body)))
        (t
         (pop body))))
     ;; macro expansion
     `(macrolet ,deftest-macros
-       (add-to-list 'all-tests ',test)
+       (add-to-list 'all-tests ',test t)
        (dolist (suite ',suites)
          (add-to-suite suite ',test))
+       (put ',test 'setup ',setup)
+       (put ',test 'teardown ',teardown)
+       (put ',test 'fixture ',fixture)
        (when (and (boundp 'suite-name) suite-name)
          (put ',test 'suite suite-name)
          (unless ,dont-add
@@ -501,7 +518,10 @@ before and after. Mocks and stubs are guaranteed to be released."
          (interactive "p")
          (let ((suite (or suite (default-suite ',test 'empty-suite)))
                (logged-tests logged-tests)
-               (silent-tests silent-tests))
+               (silent-tests silent-tests)
+               (fixture (test-fixture ',test))
+               (setup (test-setup ',test))
+               (teardown (test-teardown ',test)))
            ;; if `silent-tests' is t and the test is called
            ;; interactively, echo the result unlogged
            (when (and silent-tests
@@ -511,22 +531,83 @@ before and after. Mocks and stubs are guaranteed to be released."
              (setq logged-tests nil
                    silent-tests nil))
            (cond
-            ((or (eq debug 'batch)
-                 (eq suite (and (boundp 'suite-name) suite-name)))
-             (setq test-string ,doc
-                   assert-name nil
-                   assert-strings nil)
-             ,@body t)
+            ((and (boundp 'suite-name) suite-name)
+             (if (and (boundp 'test-name) test-name)
+                 ;; If the test is called from within another test,
+                 ;; do not use fixtures: the calling test is assumed
+                 ;; to provide the environment.
+                 (setq fixture nil
+                       setup nil
+                       teardown nil)
+               (setq test-name ',test
+                     test-string ,doc))
+             (with-fixtures fixture setup teardown
+               ,@body t))
             (t
              (funcall suite (or debug ',debug) ',test)))))
+       ,@(when wrap
+           `((defadvice ,test (around wrap activate)
+               ,@(if (listp wrap)
+                     wrap
+                   `((,wrap ad-do-it))))))
        (when ,run (,test))
        ',test)))
+
+(defmacro with-fixtures (fixture setup teardown &rest body)
+  "Run BODY with fixtures.
+FIXTURE is a one-argument function with which to run the contents
+of BODY; SETUP and TEARDOWN are zero-argument functions to run
+before and after. Mocks and stubs are guaranteed to be released."
+  (declare (indent defun)
+           (debug t))
+  ;; create an uninterned symbol to avoid overwriting
+  ;; any internal bindings in FIXTURE
+  (let ((return (make-symbol "returnvar")))
+    `(with-mocks-and-stubs
+       (unwind-protect
+           (save-excursion
+             (let (,return)
+               (when (functionp ,setup)
+                 (funcall ,setup))
+               (if (functionp ,fixture)
+                   (funcall ,fixture
+                            (lambda ()
+                              ;; FIXTURE might have a different return
+                              ;; value from that of BODY
+                              (setq ,return (progn ,@body))))
+                 (setq ,return (progn ,@body)))
+               ,return))
+         (when (functionp ,teardown)
+           (funcall ,teardown))))))
+
+(defun add-to-suite (suite test)
+  "Add TEST to SUITE."
+  (unless (boundp suite)
+    (eval `(defsuite ,suite)))
+  (add-to-list suite test t))
 
 (defun default-suite (test &optional default)
   "Return the default suite of TEST."
   (or (when (symbolp test)
         (get test 'suite))
       default))
+
+(defsuite empty-suite
+  "Pseudo-suite for suiteless tests.
+Tests call themselves with this suite if not associated
+with any other suite.")
+
+(defun test-fixture (test)
+  "Return the test fixture of TEST."
+  (get test 'fixture))
+
+(defun test-setup (test)
+  "Return the test setup of TEST."
+  (get test 'setup))
+
+(defun test-teardown (test)
+  "Return the test teardown of TEST."
+  (get test 'teardown))
 
 ;; Currently, this produces a warning. Could it produce linkified
 ;; text in a separate buffer instead? (`with-output-to-temp-buffer')
@@ -542,8 +623,6 @@ in the *Messages* buffer."
   (let ((message-log-max logged-tests))
     (unless silent-tests
       (apply 'message string args))))
-
-;;; Assertion macro: `defassert'
 
 ;; The following is rather hairy. What it actually does is to
 ;; implement different ways of calling an assertion macro:
@@ -577,6 +656,7 @@ is specified."
   (declare (indent defun)
            (debug (&define name lambda-list
                            [&optional stringp]
+                           [&rest keywordp sexp]
                            def-body)))
   (let (aliases def docstring keyword param restvar shadow)
     (setq param (copy-sequence args))
@@ -601,13 +681,14 @@ is specified."
               def `(let ((name ',name)
                          (doc (when (stringp (car-safe ,restvar))
                                 (pop ,restvar))))
-                     `(progn (setq assert-name ',name)
+                     `(progn (add-to-list 'assert-names ',name)
                              (when ,doc
                                (add-to-list 'assert-strings ,doc t))
-                             (let (assert-name)
-                               ,,@body
-                               (setq assert-strings
-                                     (remove ,doc assert-strings)) t))))
+                             ,,@body
+                             (setq assert-names
+                                   (remove ',name assert-names)
+                                   assert-strings
+                                   (remove ,doc assert-strings)) t)))
       ;; repeatable argument list: iterate through the arguments
       (setq restvar 'body
             def
@@ -633,13 +714,14 @@ is specified."
                  ,@(mapcar (lambda (var)
                              `(setq ,var (pop ,restvar))) param)
                  (add-to-list 'def (progn ,@body) t))
-               `(progn (setq assert-name ',name)
+               `(progn (add-to-list 'assert-names ',name)
                        (when ,doc
                          (add-to-list 'assert-strings ,doc t))
-                       (let (assert-name)
-                         ,@def
-                         (setq assert-strings
-                               (remove ,doc assert-strings)) t)))))
+                       ,@def
+                       (setq assert-names
+                             (remove ',name assert-names)
+                             assert-strings
+                             (remove ,doc assert-strings)) t))))
     `(progn
        ;; define assertion macro unless :shadow is t,
        ;; in which case just store it for macro-letting
@@ -649,7 +731,8 @@ is specified."
                             '(,name (,@param &rest ,restvar) ,def))
                (put ',name 'lisp-indent-function 'defun))
           `(defmacro ,name (,@param &rest ,restvar)
-             ,docstring
+             ,@(when docstring
+                 `(,docstring)) ; avoid nil before `declare'
              (declare (indent defun))
              ,def))
        ;; define aliases
@@ -750,8 +833,8 @@ Other forms are just replaced by their return value."
   "Special forms whose arguments may be evaluated by `make-eval-tree'.
 This might yield a more throughout evaluation than the regular
 control flow: for example, `and' normally stops at the first nil
-argument, skipping the rest. On the bright side, the upshot of
-evaluating all arguments is more information.")
+argument, skipping the rest. On the bright side, more evaluation
+means more information.")
 
 (defassert assert (form)
   "Verify that FORM returns non-nil."
@@ -822,7 +905,7 @@ evaluating all arguments is more information.")
                    (make-eval-description form eval)
                    nil nil 1)))))))
 
-;; xUnit discrepancy: xUnit favors "Yoda conditions"
+;; xUnit discrepancy: xUnit tends to favor "Yoda conditions"
 ;; (expected actual). We don't (actual expected).
 (defassert assert-equal (actual expected)
   "Verify that ACTUAL is `equal' to EXPECTED."
@@ -845,8 +928,8 @@ evaluating all arguments is more information.")
                 ',actual actual expected)))))
 
 (defassert assert-eq (actual expected)
-  :alias should-eq
   "Verify that ACTUAL is `eq' to EXPECTED."
+  :alias should-eq
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
@@ -855,8 +938,8 @@ evaluating all arguments is more information.")
                 ',actual actual expected)))))
 
 (defassert assert-not-eq (actual expected)
-  :alias should-not-eq
   "Verify that ACTUAL is not `eq' to EXPECTED."
+  :alias should-not-eq
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
@@ -865,8 +948,8 @@ evaluating all arguments is more information.")
                 ',actual actual expected)))))
 
 (defassert assert-eql (actual expected)
-  :alias should-eql
   "Verify that ACTUAL is `eql' to EXPECTED."
+  :alias should-eql
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
@@ -875,8 +958,8 @@ evaluating all arguments is more information.")
                 ',actual actual expected)))))
 
 (defassert assert-not-eql (actual expected)
-  :alias should-not-eql
   "Verify that ACTUAL is not `eql' to EXPECTED."
+  :alias should-not-eql
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
@@ -885,8 +968,8 @@ evaluating all arguments is more information.")
                 ',actual actual expected)))))
 
 (defassert assert-= (actual expected)
-  :alias should-=
   "Verify that ACTUAL is `=' to EXPECTED."
+  :alias should-=
   `(let ((actual ,actual)
          (expected ,expected))
      (without-mocks-and-stubs
@@ -1174,8 +1257,79 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 \\|stubs-and-mocks\\)\\)\\>"
       1 font-lock-keyword-face))))
 
-;;; Worklog (may be outdated)
+;;; Work log (may be outdated)
 
+;;;;; 2011-02-22: Test fixtures and reusability
+;;
+;; Behavior Driven Development (BDD) is all the rage as the
+;; "enlightened" way to do unit tests. An abundance of frameworks
+;; is available on the Web. The similarities are fewer, though:
+;; unlike xUnit-like frameworks, each implementation tends to have
+;; its own way of doing things. For what it's worth, here are some
+;; general takeaways:
+;;
+;;     1. Words matter. The vocabulary we use in our tests influences
+;;        the way those tests are written. Languages shape the way
+;;        we think, or don't.
+;;
+;;     2. Talk is valuable. Sprinkling the tests with human language
+;;        makes it easier to understand both the tests themselves and
+;;        the functionality they're testing.
+;;
+;;     3. Patterns emerge. Most tests have the same general structure:
+;;        IF a set of conditions holds true, THEN some set of
+;;        expectations should be met. Certain frameworks invent
+;;        mini-languages for making such patterns explicit.
+;;
+;; Not much is said about composability, however. Apart from fixtures,
+;; which set up and tear down an environment for each test, there is
+;; little reuse. Each test is atomic and independent from the others.
+;; One can always write helper functions for the tests, but it's not
+;; common practice to build bigger tests out of smaller tests.
+;;
+;; Which is ... peculiar, because tests get large quickly, and
+;; duplication is dangerous when dealing with critical aspects.
+;; Validating the integrity of a data structure or the state of the
+;; system may involve much inspection. Which is all the more reason
+;; to validate each time you change something: you'll want to enforce
+;; your expectations as stringently as possible when dealing with
+;; tricky structures or complex states.
+;;
+;; If we can have reusable fixtures (the "IF" part of the tests),
+;; why not reusable assertions (the "THEN" part)? If the tests are
+;; defined in a composable way, no helper functions are necessary.
+;;
+;; Validation tests are usually very composable. They simply say that,
+;; whatever data object or environment is provided by the fixture,
+;; it must meet a number of criteria. So you can call that test from
+;; pretty much any other test acting on said object. "When adding an
+;; element to the object, it should contain the element, and it
+;; should, of course, still be valid." Simple and obvious.
+;;
+;; Most tests aren't that composable, however, because they contain
+;; an "IF" part before the "THEN" part. So we need a way to separate
+;; the two. We can do that with test fixtures.
+;;
+;; A test fixture is like a suite fixture, but it only applies to a
+;; single test. Furthermore, the fixture is only used when the test is
+;; called by itself, and not when it's called inside another test.
+;; Hence, by placing the "IF" part in a test fixture, the "THEN" part
+;; can be reused. The test assumes that the calling test provides the
+;; requisite environment, and so goes straight to the "THEN" part.
+;;
+;;     (defsuite test-foobar-suite
+;;       (deftest test-foo
+;;         :setup (wibble) ; called by the suite
+;;         (should ...))
+;;       (deftest test-bar
+;;         :setup (wobble)
+;;         (should ...)
+;;         (test-foo)))    ; doesn't call (wibble)
+;;
+;; Thus, test fixtures make a comeback. I didn't see much use for them
+;; previously, but here is my case for them. Hopefully they'll reduce
+;; complexity rather than increase it.
+;;
 ;;;;; 2011-02-19: Code cleanup and BDD aliases
 ;;
 ;; Tests and test suites now return t if they pass and nil if they
@@ -1186,10 +1340,10 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 ;;
 ;; Thus, whether a test crashes (because of code changes) or just
 ;; fails (because of a wrong assertion), it is handled in the same
-;; way. The calling suite wraps each test in a protective
+;; way. The calling suite wraps each test in a fail-safe
 ;; `condition-case' form, so that code execution is never halted and
 ;; all tests are given a go. (To halt execution, one has to explicitly
-;; ask for it with the :debug keyword.)
+;; request it with the :debug keyword.)
 ;;
 ;; The upshot of these "nonlocal exits" is actually test reuse. For
 ;; example, one might write a test for verifying that some behavior is
@@ -1204,24 +1358,25 @@ Don't use this directly; see `with-mocks-and-stubs' instead."
 ;; `deftest' inside suite definitions, yielding the more terse form
 ;; shown to the right:
 ;;
-;;     (defsuite suite-name    (defsuite suite-name
-;;       (deftest test-name      (test-name
-;;         (assert-=               (assert-=
-;;           (+ 2 2) 4)))            (+ 2 2) 4)))
+;;     (defsuite suite-name        (defsuite suite-name
+;;       (deftest test-name          (test-name
+;;         (assert-=                  (assert-=
+;;           (+ 2 2) 4)))              (+ 2 2) 4)))
 ;;
-;; Although it looks nice, it has the unfortunate result that one has
-;; to reevaluate the whole suite whenever one changes a single test.
-;; The `deftest' form to the left, by contrast, is a macro call by
+;; Although it looked kind of nice (well, actually, it screwed up
+;; indentation), it had the unfortunate result that one had to
+;; reevaluate the whole suite whenever one changed a single test. The
+;; inner `deftest' form to the left, by contrast, is a macro call by
 ;; itself and can be evaluated as such.
 ;;
-;; This extends to debugging as well. With the abbreviated style, one
-;; has to instrument the whole suite at once, rather than just the
-;; single test one is interested in. Edebug is actually quite good at
-;; stepping through custom macros like `defsuite' and `deftest'
-;; (provided one tells it how with an appropriate `declare' statement
-;; in the macro definition). Add too much special syntax, however, and
-;; it is bound to fail. Hence, these macros should be made as simple
-;; as possible.
+;; This extends to debugging as well: with the abbreviated style, the
+;; whole suite had to be instrumented at once. Edebug is actually
+;; quite good at stepping through custom macros like `defsuite' and
+;; `deftest' (provided one tells it how with an appropriate `declare'
+;; statement in the macro definition). Add too much special syntax,
+;; however, and it is bound to fail. Hence, these macros should be
+;; made as simple as possible. In that regard, test-specific fixtures
+;; (fixtures inside the suite fixtures) have also been removed.
 ;;
 ;; The assert { 2.0 }-like inspection of arguments is now implemented
 ;; recursively. Furthermore, all assertions have Behavior Driven
