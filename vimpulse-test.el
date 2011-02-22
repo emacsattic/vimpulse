@@ -33,7 +33,7 @@ buffer.\n"))
   "Test suite for vimpulse-utils.el.
 This line is not included in the report."
   :run t
-  :setup ((require 'vimpulse))
+  :setup (require 'vimpulse)
   (deftest test-augment-keymap
     "Test `vimpulse-augment-keymap'."
     (let (augment-alist map)
@@ -48,18 +48,18 @@ This line is not included in the report."
               ([?d] . flob)))
       (vimpulse-augment-keymap map augment-alist)
       (assert-eq
-       "Augment keymap carefully."
-       (lookup-key map "a") 'foo
-       (lookup-key map "b") 'bar
-       (lookup-key map "c") 'baz
-       (lookup-key map "d") 'flob)
+        "Augment keymap carefully."
+        (lookup-key map "a") 'foo
+        (lookup-key map "b") 'bar
+        (lookup-key map "c") 'baz
+        (lookup-key map "d") 'flob)
       (vimpulse-augment-keymap map augment-alist t)
       (assert-eq
-       "Augment keymap forcefully."
-       (lookup-key map "a") 'wibble
-       (lookup-key map "b") 'wobble
-       (lookup-key map "c") 'wubble
-       (lookup-key map "d") 'flob)))
+        "Augment keymap forcefully."
+        (lookup-key map "a") 'wibble
+        (lookup-key map "b") 'wobble
+        (lookup-key map "c") 'wubble
+        (lookup-key map "d") 'flob)))
   (deftest test-truncate
     "Test `vimpulse-truncate'."
     (assert-equal
@@ -99,7 +99,7 @@ This line is not included in the report."
 ;; `M-x test-interactive-suite' manually.
 (defsuite test-interactive-suite
   "Interactive test suite for Vimpulse."
-  :setup ((require 'vimpulse))
+  :setup (require 'vimpulse)
   :fixture vimpulse-test-buffer
   (deftest test-visual-delete-word
     "Visually delete a word."
