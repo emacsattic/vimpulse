@@ -897,12 +897,15 @@ insert or remove any spaces."
 (vimpulse-define-operator vimpulse-fill (beg end)
   "Fill text."
   :move-point nil
-  (setq end (save-excursion
-              (goto-char end)
-              (skip-chars-backward " ")
-              (point)))
+  (setq end
+        (save-excursion
+          (goto-char end)
+          (skip-chars-backward " ")
+          (max beg (point))))
   (save-excursion
-    (fill-region beg end)))
+    (condition-case nil
+        (fill-region beg end)
+      (error nil))))
 
 (vimpulse-define-operator vimpulse-downcase (beg end)
   "Convert text to lower case."
