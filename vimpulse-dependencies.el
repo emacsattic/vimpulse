@@ -70,6 +70,11 @@ On by default."
   :group 'vimpulse
   :type  'boolean)
 
+(defcustom vimpulse-want-Viper-checkout nil
+  "Whether Viper handles versioning, off by default."
+  :group 'vimpulse
+  :type  'boolean)
+
 (defcustom vimpulse-enhanced-paren-matching t
   "Enhanced matching of parentheses, on by default."
   :group 'vimpulse

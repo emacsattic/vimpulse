@@ -1118,6 +1118,14 @@ docstring. The variable becomes buffer-local whenever set.")
 (defalias 'viper-end-of-word 'vimpulse-end-of-word)
 (defalias 'viper-end-of-Word 'vimpulse-end-of-Word)
 
+;; dirty fix that gets rid of the checkout message Viper shows when
+;; using :w on a file in SVN (among others)
+(defadvice viper-maybe-checkout (around vimpulse activate)
+  "Disable if `vimpulse-want-Viper-checkout' is nil."
+  (if vimpulse-want-Viper-checkout
+      ad-do-it
+    (setq ad-return-value t)))
+
 ;; `ex-cmd-read-exit', bound by Viper to SPC, is buggy: e.g.,
 ;; ":s/foo/set bar" exits the minibuffer before "bar" is typed
 (defun vimpulse-ex-cmd-read-exit ()
