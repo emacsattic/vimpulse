@@ -29,7 +29,7 @@ If COPY is non-nil, return a copy of OVERLAY;
 otherwise act on OVERLAY directly.
 
 See `vimpulse-contract-overlay' for the inverse operation."
-  (vimpulse-transform-overlay :expand overlay copy))
+  (vimpulse-transform-overlay 'expand overlay copy))
 
 (defun vimpulse-contract-overlay (overlay &optional copy)
   "Contract OVERLAY.
@@ -41,14 +41,14 @@ Note that not all transformations are one-to-one and can be
 reversed. If no contraction procedure is defined, this function
 simply restores the original positions instead."
   (let ((type (vimpulse-type overlay)))
-    (if (vimpulse-type-prop :contract type)
-        (vimpulse-transform-overlay :contract overlay copy)
+    (if (vimpulse-type-property type :contract)
+        (vimpulse-transform-overlay 'contract overlay copy)
       (vimpulse-restore-overlay overlay copy))))
 
 (defun vimpulse-overlay-size (overlay)
   "Return the size of OVERLAY.
 The size may be a number or a list of numbers, depending on
-OVERLAY's :type property.
+OVERLAY's `type' property.
 
 See `vimpulse-describe-overlay' for the textual equivalent."
   (vimpulse-apply-overlay 'vimpulse-size overlay))
@@ -62,8 +62,8 @@ This is the textual equivalent of `vimpulse-overlay-size'."
   (size &optional pos buffer &rest properties)
   "Make an overlay of SIZE about point in the current buffer.
 SIZE may be a number or a list of numbers, depending on the
-:type property. POS and BUFFER may specify a different position."
-  (let* ((overlay (vimpulse-make-overlay))
+`type' property. POS and BUFFER may specify a different position."
+  (let* ((overlay (vimpulse-make-overlay (point) (point)))
          (select (apply 'vimpulse-select type size pos buffer properties)))
     (when select
       (apply 'vimpulse-set-overlay select))
@@ -74,7 +74,7 @@ SIZE may be a number or a list of numbers, depending on the
 If COPY is non-nil, return a copy of OVERLAY;
 otherwise act on OVERLAY directly."
   (let* ((type (vimpulse-type overlay))
-         (func (vimpulse-type-prop transform type))
+         (func (vimpulse-type-property type transform))
          (transform (vimpulse-apply-overlay func overlay)))
     (when copy
       (setq overlay (vimpulse-copy-overlay overlay)))
@@ -89,14 +89,14 @@ If OVERLAY is changed, it can be restored to its old self
 with `vimpulse-restore-overlay'."
   (when copy
     (setq overlay (vimpulse-copy-overlay overlay)))
-  (vimpulse-overlay-put :orig nil) ; reset :orig when restoring
-  (vimpulse-overlay-put :orig (vimpulse-overlay-to-list overlay t))
+  (vimpulse-overlay-put 'orig nil) ; reset when restoring
+  (vimpulse-overlay-put 'orig (vimpulse-overlay-to-list overlay t))
   overlay)
 
 (defun vimpulse-restore-overlay (overlay &optional copy)
   "Restore original positions of OVERLAY.
 See also `vimpulse-save-overlay'."
-  (let ((orig (vimpulse-overlay-get overlay :orig)))
+  (let ((orig (vimpulse-overlay-get overlay 'orig)))
     (when copy
       (setq overlay (vimpulse-copy-overlay overlay)))
     (when orig
@@ -126,40 +126,43 @@ If MARKERS is non-nil, return BEG and END as markers."
             end (set-marker (make-marker) end buffer)))
     (append (list beg end buffer) properties)))
 
-(defun vimpulse-expand (beg end &optional buffer &rest properties)
-  "Expand BEG and END in BUFFER with PROPERTIES.
+(defun vimpulse-expand (beg end type &optional buffer &rest properties)
+  "Expand BEG and END as TYPE in BUFFER with PROPERTIES.
 Returns a list (BEG END ...), where the tail is a property list."
-  (apply 'vimpulse-transform :expand beg end buffer properties))
+  (apply 'vimpulse-transform beg end type 'expand buffer properties))
 
-(defun vimpulse-contract (beg end &optional buffer &rest properties)
-  "Contract BEG and END in BUFFER with PROPERTIES.
+(defun vimpulse-contract (beg end type &optional buffer &rest properties)
+  "Contract BEG and END as TYPE in BUFFER with PROPERTIES.
 Returns a list (BEG END ...), where the tail is a property list."
-  (apply 'vimpulse-transform :contract beg end buffer properties))
+  (apply 'vimpulse-transform beg end type 'contract buffer properties))
 
-(defun vimpulse-size (beg end &optional buffer &rest properties)
+(defun vimpulse-size (beg end type &optional buffer &rest properties)
   "Return size from BEG to END in BUFFER with PROPERTIES.
 The size may be a number or a list of numbers, depending on
-the :type property."
-  (let* ((type (vimpulse-type properties))
-         (size (vimpulse-type-prop :size type)))
+the `type' property."
+  (let* ((type (or type (vimpulse-type properties)))
+         (properties (plist-put properties 'type type))
+         (size (vimpulse-type-property type :size)))
     (when size
       (apply size beg end buffer properties))))
 
-(defun vimpulse-describe (beg end &optional buffer &rest properties)
+(defun vimpulse-describe (beg end type &optional buffer &rest properties)
   "Return description of BEG and END in BUFFER with PROPERTIES.
 If no description is available, return the empty string."
-  (let* ((type (vimpulse-type properties))
-         (describe (vimpulse-type-prop :describe type)))
+  (let* ((type (or type (vimpulse-type properties)))
+         (properties (plist-put properties 'type type))
+         (describe (vimpulse-type-property type :describe)))
     (if describe
         (apply describe beg end buffer properties)
       "")))
 
-(defun vimpulse-select (size &optional pos buffer &rest properties)
-  "Return selection of SIZE about POS in BUFFER with PROPERTIES.
+(defun vimpulse-select (type size &optional pos buffer &rest properties)
+  "Return TYPE selection of SIZE about POS in BUFFER with PROPERTIES.
 SIZE may be a number or a list of numbers, depending on
-the :type property."
-  (let* ((type (vimpulse-type properties))
-         (select (vimpulse-type-prop :select type))
+the `type' property."
+  (let* ((type (or type (vimpulse-type properties)))
+         (properties (plist-put properties 'type type))
+         (select (vimpulse-type-property type :select))
          (pos (or pos (point))))
     (if select
         (apply select
@@ -169,13 +172,14 @@ the :type property."
       (append (list pos pos) properties))))
 
 (defun vimpulse-transform
-  (transform beg end &optional buffer &rest properties)
+  (beg end type transform &optional buffer &rest properties)
   "Apply TRANSFORM on BEG and END in BUFFER with PROPERTIES.
 Returns a list (BEG END ...), where the tail is a property list.
 If TRANSFORM is undefined, return positions unchanged."
-  (let* ((type (vimpulse-type properties))
+  (let* ((type (or type (vimpulse-type properties)))
+         (properties (plist-put properties 'type type))
          (buffer (or buffer (current-buffer)))
-         (transform (vimpulse-type-prop transform type)))
+         (transform (vimpulse-type-property type transform)))
     (if transform
         (apply transform beg end buffer properties)
       (append (list beg end buffer) properties))))
@@ -184,36 +188,25 @@ If TRANSFORM is undefined, return positions unchanged."
   "Return the type of OBJECT, or DEFAULT if none."
   (or (cond
        ((vimpulse-overlay-p)
-        (vimpulse-overlay-get overlay :type))
+        (vimpulse-overlay-get overlay 'type))
        ((listp object)
         ;; `vimpulse-expand' et al. return a list
         ;; with the properties in the tail
-        (while (and object (not (keywordp (car object))))
+        (while (or (number-or-marker-p (car object))
+                   (bufferp (car object)))
           (setq object (cdr object)))
-        (plist-get object :type))
+        (plist-get object 'type))
        ((symbolp object)
         (get object 'type)))
       default))
 
-(defun vimpulse-type-prop (prop &optional type)
+(defun vimpulse-type-property (type prop)
   "Return property PROP for TYPE.
-For example, (vimpulse-type-prop :expand 'line)
-returns the expansion function for the `line' type.
+For example, (vimpulse-type-property 'line :expand)
+returns the expansion function for the `line' type."
+  (vimpulse-get-property vimpulse-types-alist state prop))
 
-If TYPE is nil, return an association list of types
-which have that property."
-  (let (alist val)
-    (unless (keywordp prop)
-      (setq prop (intern (format ":%s" prop))))
-    (if type
-        (plist-get (cdr (assq type vimpulse-type-alist)) prop)
-      (dolist (entry vimpulse-type-alist alist)
-        (setq type (car entry)
-              val (plist-get (cdr entry) prop))
-        (when val
-          (add-to-list 'alist (cons type val)))))))
-
-(defvar vimpulse-type-alist nil
+(defvar vimpulse-types-alist nil
   "Specifications made by `vimpulse-define-type'.
 Entries have the form (TYPE . PLIST), where PLIST is a property
 list specifying functions for handling the type: expanding it,
@@ -290,7 +283,7 @@ in BUFFER with PROPERTIES.\n%s\n\n%s" type string doc)
                 (switch-to-buffer buffer)
                 (setq beg (prog1 (min beg end)
                             (setq end (max beg end))))
-                (unless (plist-get properties :expanded)
+                (unless (plist-get properties 'expanded)
                   (setq result (vimpulse-expand
                                 beg end ',type buffer properties)
                         beg (pop result)
@@ -320,21 +313,20 @@ in BUFFER with PROPERTIES.\n%s\n\n%s" type string doc)
               (save-excursion
                 (switch-to-buffer buffer)
                 (goto-char pos)
-                (setq properties (plist-put properties :type ',type)
+                (setq properties (plist-put properties 'type ',type)
                       result
                       ,(if (> (length args) 1)
                            `(apply ',func ,@dimensions properties)
                          `(funcall ',func ,@dimensions))
                       beg (pop result)
-                      end (pop result)
-                      beg (prog1 (min beg end)
-                            (setq end (max beg end))))
+                      end (pop result))
+                (vimpulse-sort beg end)
                 (when (bufferp (car result))
                   (setq buffer (pop result)))
                 (while result
                   (setq properties (plist-put properties
                                               (pop result) (pop result))))
-                (if (plist-get properties :expanded)
+                (if (plist-get properties 'expanded)
                     (vimpulse-expand beg end buffer properties)
                   (append (list beg end buffer) properties))))))
         (t
@@ -345,20 +337,19 @@ in BUFFER with PROPERTIES.\n%s\n\n%s" sym type string doc)
                   result)
               (save-excursion
                 (switch-to-buffer buffer)
-                (setq beg (prog1 (min beg end)
-                            (setq end (max beg end)))
-                      properties
-                      (plist-put properties :type ',type
-                                 ,@(when (memq keyword '(:expand :contract))
-                                     `((:expanded ,(eq keyword :expand)))))
-                      result
-                      ,(if (> (length args) 2)
-                           `(apply ',func beg end properties)
-                         `(funcall ',func beg end))
-                      beg (pop result)
-                      end (pop result)
-                      beg (prog1 (min beg end)
-                            (setq end (max beg end))))
+                (when (and beg end)
+                  (vimpulse-sort beg end)
+                  (setq properties
+                        (plist-put properties 'type ',type
+                                   ,@(when (memq keyword '(:expand :contract))
+                                       `(('expanded ,(eq keyword :expand)))))
+                        result
+                        ,(if (> (length args) 2)
+                             `(apply ',func beg end properties)
+                           `(funcall ',func beg end))
+                        beg (pop result)
+                        end (pop result))
+                  (vimpulse-sort beg end))
                 (when (bufferp (car result))
                   (setq buffer (pop result)))
                 (while result
@@ -367,9 +358,7 @@ in BUFFER with PROPERTIES.\n%s\n\n%s" sym type string doc)
                 (append (list beg end buffer) properties))))))))
     `(progn
        ;; index type functions
-       (setq vimpulse-type-alist
-             (assq-delete-all ',type vimpulse-type-alist))
-       (add-to-list 'vimpulse-type-alist (cons ',type ',plist))
+       (vimpulse-put-property vimpulse-types-alist ',type ,@plist)
        ;; define them
        ,@defun-forms
        ',type)))
@@ -452,7 +441,7 @@ the last column is included."
                    (end-col (progn
                               (goto-char end)
                               (current-column)))
-                   (corner (plist-get properties :corner)))
+                   (corner (plist-get properties 'corner)))
               (cond
                ((= beg-col end-col)
                 (goto-char end)
@@ -460,22 +449,22 @@ the last column is included."
                  ((eolp)
                   (goto-char beg)
                   (if (eolp)
-                      (list beg end 'block)
-                    (list (1+ beg) end 'block)))
+                      (list beg end)
+                    (list (1+ beg) end)))
                  ((memq corner ('lower-right 'upper-right 'right))
-                  (list (1+ beg) end 'block))
+                  (list (1+ beg) end))
                  (t
-                  (list beg (1+ end) 'block))))
+                  (list beg (1+ end)))))
                ((< beg-col end-col)
                 (goto-char end)
                 (if (eolp)
-                    (list beg end 'block)
-                  (list beg (1+ end) 'block)))
+                    (list beg end)
+                  (list beg (1+ end))))
                (t
                 (goto-char beg)
                 (if (eolp)
-                    (list beg end 'block)
-                  (list (1+ beg) end 'block))))))
+                    (list beg end)
+                  (list (1+ beg) end))))))
   :contract (lambda (beg end)
               (let* ((beg-col (progn
                                 (goto-char beg)
@@ -531,7 +520,7 @@ the last column is included."
                               (current-column)))
                    (left  (min beg-col end-col))
                    (right (max beg-col end-col))
-                   (corner (or (plist-get :corner properties))
+                   (corner (or (plist-get 'corner properties))
                            'upper-left))
               (goto-char beg)
               (if (memq corner '(upper-right lower-left))
@@ -543,7 +532,8 @@ the last column is included."
                   (move-to-column left)
                 (move-to-column right))
               (setq end (point))
-              (setq properties (plist-put properties :corner corner))
+              (setq properties (plist-put properties
+                                          'corner corner))
               (append (list beg end) properties))))
 
 ;; this belongs in vimpulse-visual-mode.el

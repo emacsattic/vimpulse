@@ -48,7 +48,7 @@
 ;; what he thinks about this. For what it's worth, the following code
 ;; addresses "TODO item #1" in viper.el.
 
-(require 'vimpulse-visual-mode)
+(require 'vimpulse-visual)
 (eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
 
 (vimpulse-define-state operator
@@ -276,7 +276,7 @@ function directly; see `vimpulse-define-operator' instead."
         (if (and vimpulse-visual-mode
                  (fboundp 'vimpulse-visual-mode))
             (vimpulse-visual-mode -1)
-          (vimpulse-deactivate-region))))
+          (vimpulse-active-region -1))))
      ;; Not in Visual mode: use CUSTOM-MOTION if specified,
      ;; or read motion and return motion range.
      (t
@@ -417,7 +417,7 @@ range. If REFRESH is t, this function changes point,
               (if (and vimpulse-visual-mode
                        (fboundp 'vimpulse-visual-mode))
                   (vimpulse-visual-mode -1)
-                (vimpulse-deactivate-region)))
+                (vimpulse-active-region -1)))
              ;; otherwise, range is defined by `viper-com-point'
              ;; and point (Viper type motion)
              (t

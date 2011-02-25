@@ -15,7 +15,7 @@
 ;; `vimpulse-define-text-object'.
 
 (eval-when-compile (require 'vimpulse-utils)) ; vimpulse-unquote
-(require 'vimpulse-visual-mode)         ; v-v-{activate,expand-region,select}
+(require 'vimpulse-visual)         ; v-v-{activate,expand-region,select}
 
 (declare-function vimpulse-calculate-motion-range "vimpulse-operator" (count motion &optional type refresh))
 

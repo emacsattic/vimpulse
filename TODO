@@ -8,9 +8,10 @@
 ;; Extensibility requires transparency. Much of Vimpulse's code is at
 ;; present convoluted and difficult to understand. This is partly due
 ;; to Vimpulse's inconsistent dependence upon Viper. Disentangling
-;; Vimpulse from Viper would go a long way to improve matters. If
-;; nothing else, a bug in Vimpulse is infinitely preferable to one
-;; outside it -- the former can, after all, be fixed.
+;; Vimpulse from Viper would go a long way to improve matters.
+;;
+;; If nothing else, a bug in Vimpulse is infinitely preferable to
+;; one outside it -- the former can, after all, be fixed.
 ;;
 ;; Another priority is for Vimpulse to integrate well with standard
 ;; Emacs functionality. This is not always possible, and various

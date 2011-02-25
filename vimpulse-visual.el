@@ -24,6 +24,348 @@
 ;; write your own utilities using the rect.el library. Alternatively,
 ;; use the `vimpulse-apply-on-block' function.
 
+(defvar vimpulse-visual-vars
+  '(cua-mode
+    mark-active
+    transient-mark-mode
+    zmacs-regions)
+  "System variables that are reset for each Visual session.")
+
+(defvar vimpulse-visual-overlay nil
+  "Overlay for Visual selection.
+This stores the boundaries of the selection. It is also used
+for highlighting, unless the type is `block', in which case
+see `vimpulse-visual-block-overlays'.")
+
+(defun vimpulse-visual-select (beg end &optional type dir)
+  "Create a Visual selection from BEG to END.
+This positions mark and point such that the resulting selection,
+when expanded as TYPE, goes from BEG to END in direction DIR.
+To position mark and point directly, use
+`vimpulse-visual-set-selection.'"
+  (let* ((type  (or type (vimpulse-visual-type)))
+         (dir   (or dir (vimpulse-visual-direction)))
+         (pos   (vimpulse-contract beg end type))
+         (mark  (pop pos))
+         (point (pop pos)))
+    (when (< dir 0)
+      (vimpulse-swap mark point))
+    (vimpulse-visual-refresh type mark point)))
+
+(defun vimpulse-visual-set-selection (&optional type mark point)
+  "Set Visual type, mark and point."
+  (let* ((point (or point (point)))
+         (mark  (or mark (mark t) point))
+         (otype (vimpulse-visual-type))
+         (type  (or type oldtype 'inclusive)))
+    (unless vimpulse-visual-overlay
+      (setq vimpulse-visual-overlay
+            (vimpulse-make-overlay (point) (point))))
+    (unless (vimpulse-visual-state-p)
+      (vimpulse-visual-mode 1))
+    (unless (eq type oldtype)
+      (vimpulse-overlay-put vimpulse-visual-overlay 'type type)
+      (if (eq type 'block)
+          (vimpulse-transient-mark -1)
+        (vimpulse-active-region 1)))
+    (vimpulse-set-mark mark)
+    (goto-char point)
+    (vimpulse-visual-refresh)))
+
+(defun vimpulse-visual-refresh ()
+  "Refresh `vimpulse-visual-overlay'."
+  (let* ((point (point))
+         (mark (or (mark t) point))
+         (dir (if (< point mark) -1 1)))
+    (vimpulse-set-overlay vimpulse-visual-overlay mark point
+                          nil 'dir dir)
+    (vimpulse-expand-overlay vimpulse-visual-overlay)
+    (vimpulse-visual-highlight)))
+
+(defun vimpulse-visual-highlight (&optional arg)
+  "Highlight Visual selection, depending on region and Visual mode.
+With negative ARG, disable highlighting."
+  (let ((beg (vimpulse-visual-beginning))
+        (end (vimpulse-visual-end)))
+    (cond
+     ((and (numberp arg) (< arg 1))
+      (vimpulse-overlay-put vimpulse-visual-overlay 'face nil)
+      (mapc 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
+      (setq vimpulse-visual-block-overlays nil))
+     ((eq (vimpulse-visual-type) 'block)
+      (vimpulse-overlay-put vimpulse-visual-overlay 'face nil)
+      (condition-case nil
+          (vimpulse-visual-highlight-block
+           beg end vimpulse-visual-block-overlays)
+        (error nil)))
+     (t
+      (mapc 'vimpulse-delete-overlay vimpulse-visual-block-overlays)
+      (setq vimpulse-visual-block-overlays nil)
+      (vimpulse-overlay-put vimpulse-visual-overlay
+                            'face (vimpulse-region-face)
+                            'priority 99)))))
+
+
+;; adapted from `rm-highlight-rectangle' in rect-mark.el
+(defun vimpulse-visual-highlight-block (beg end &optional overlays)
+  "Highlight rectangular region from BEG to END.
+Do this by putting an overlay on each line within the rectangle.
+Each overlay extends across all the columns of the rectangle.
+Try to reuse overlays where possible since this is more efficient
+and results in less flicker."
+  (let* ((opoint (point))                ; remember point
+         (omark  (mark t))               ; remember mark
+         (overlays (or overlays 'vimpulse-visual-block-overlays))
+         (old (symbol-value overlays))
+         beg-col end-col new nlines overlay window-beg window-end)
+    ;; calculate the rectangular region represented by BEG and END,
+    ;; but put BEG in the north-west corner and END in the south-east
+    ;; corner if not already there
+    (save-excursion
+      (setq beg-col (save-excursion (goto-char beg)
+                                    (current-column))
+            end-col (save-excursion (goto-char end)
+                                    (current-column)))
+      (when (>= beg-col end-col)
+        (if (= beg-col end-col)
+            (setq end-col (1+ end-col))
+          (vimpulse-sort beg-col end-col))
+        (setq beg (save-excursion (goto-char beg)
+                                  (vimpulse-move-to-column beg-col)
+                                  (point))
+              end (save-excursion (goto-char end)
+                                  (vimpulse-move-to-column end-col 1)
+                                  (point))))
+      ;; force a redisplay so we can do reliable window
+      ;; BEG/END calculations
+      (sit-for 0)
+      (setq window-beg (max (window-start) beg)
+            window-end (min (window-end) (1+ end))
+            nlines (count-lines window-beg
+                                (min window-end (point-max))))
+      ;; iterate over those lines of the rectangle which are
+      ;; visible in the currently selected window
+      (goto-char window-beg)
+      (dotimes (i nlines)
+        (let (row-beg row-end bstring astring)
+          ;; beginning of row
+          (vimpulse-move-to-column beg-col)
+          (when (< (current-column) beg-col)
+            ;; prepend overlay with virtual spaces if we are unable to
+            ;; move directly to the first column
+            (setq bstring
+                  (propertize
+                   (make-string
+                    (- beg-col (current-column)) ?\ )
+                   'face
+                   (or (get-text-property (1- (point)) 'face)
+                       'default))))
+          (setq row-beg (point))
+          ;; end of row
+          (vimpulse-move-to-column end-col)
+          (when (< (current-column) end-col)
+            ;; append overlay with virtual spaces if we are unable to
+            ;; move directly to the last column
+            (setq astring
+                  (propertize
+                   (make-string
+                    (if (= (point) row-beg)
+                        (- end-col beg-col)
+                      (- end-col (current-column)))
+                    ?\ ) 'face (vimpulse-region-face)))
+            ;; place cursor on one of the virtual spaces
+            ;; (only works in GNU Emacs)
+            (if (= opoint row-beg)
+                (put-text-property
+                 0 (min (length astring) 1)
+                 'cursor t astring)
+              (put-text-property
+               (max 0 (1- (length astring))) (length astring)
+               'cursor t astring)))
+          (setq row-end (min (point) (line-end-position)))
+          ;; XEmacs bug: zero-length extents display
+          ;; end-glyph before start-glyph
+          (and (featurep 'xemacs)
+               bstring astring
+               (= row-beg row-end)
+               (vimpulse-swap bstring astring))
+          ;; trim old leading overlays
+          (while (and old
+                      (setq overlay (car old))
+                      (< (viper-overlay-start overlay) row-beg)
+                      (/= (viper-overlay-end overlay) row-end))
+            (vimpulse-delete-overlay overlay)
+            (setq old (cdr old)))
+          ;; reuse an overlay if possible, otherwise create one
+          (cond
+           ((and old (setq overlay (car old))
+                 (or (= (viper-overlay-start overlay) row-beg)
+                     (= (viper-overlay-end overlay) row-end)))
+            (viper-move-overlay overlay row-beg row-end)
+            (vimpulse-overlay-before-string overlay bstring)
+            (vimpulse-overlay-after-string overlay astring)
+            (setq new (cons overlay new)
+                  old (cdr old)))
+           (t
+            (setq overlay (vimpulse-make-overlay row-beg row-end))
+            (vimpulse-overlay-before-string overlay bstring)
+            (vimpulse-overlay-after-string overlay astring)
+            (viper-overlay-put overlay 'face (vimpulse-region-face))
+            (viper-overlay-put overlay 'priority 99)
+            (setq new (cons overlay new)))))
+        (forward-line 1))
+      ;; trim old trailing overlays
+      (mapc 'vimpulse-delete-overlay old)
+      (set overlays (nreverse new)))))
+
+(defun vimpulse-visual-beginning ()
+  (if vimpulse-visual-overlay
+      (vimpulse-overlay-start vimpulse-visual-overlay)
+    (region-beginning)))
+
+(defun vimpulse-visual-end ()
+  (if vimpulse-visual-overlay
+      (vimpulse-overlay-end vimpulse-visual-overlay)
+    (region-end)))
+
+(defun vimpulse-visual-mark ()
+  (if (< (vimpulse-visual-direction) 0)
+      (vimpulse-visual-end)
+    (vimpulse-visual-beginning)))
+
+(defun vimpulse-visual-point ()
+  (if (< (vimpulse-visual-direction) 0)
+      (vimpulse-visual-beginning)
+    (vimpulse-visual-end)))
+
+(defun vimpulse-visual-type (&optional default)
+  (vimpulse-type vimpulse-visual-overlay default))
+
+(defun vimpulse-visual-direction ()
+  "Return -1 if point precedes mark and 1 otherwise."
+  (or (when (vimpulse-visual-state-p)
+        (if (< (point) (or (mark t) (point))) -1 1))
+      (when vimpulse-visual-overlay
+        (vimpulse-overlay-get overlay 'dir))
+      1))
+
+(defun vimpulse-visual-normalize-region (&optional no-trailing-newline)
+  "Expand the region to the Visual selection.
+If NO-TRAILING-NEWLINE is t and the selection ends with a newline,
+exclude that newline from the region."
+  (let ((beg (vimpulse-visual-beginning))
+        (end (vimpulse-visual-end)))
+    (when no-trailing-newline
+      (save-excursion
+        (goto-char end)
+        (when (and (bolp) (not (bobp)))
+          (setq end (max beg (1- (point)))))))
+    (vimpulse-set-region beg end)))
+
+(defun vimpulse-visual-remember-vars ()
+  "Remember the values of the variables in `vimpulse-visual-vars'."
+  (let (val local result)
+    (dolist (var vimpulse-visual-vars)
+      (when (listp var)
+        (setq var (car var)))
+      (when (boundp var)
+        (setq val (symbol-value var))
+        (when (assq var (buffer-local-variables))
+          (setq local t))
+        (add-to-list 'result (list var val local))))
+    (setq vimpulse-visual-vars result)))
+
+(defun vimpulse-visual-restore-vars ()
+  "Restore the values of the variables in `vimpulse-visual-vars'."
+  (let (var val local)
+    (dolist (entry vimpulse-visual-vars)
+      (when (listp entry)
+        (setq var (nth 0 entry)
+              val (nth 1 entry)
+              local (nth 2 entry))
+        (kill-local-variable var)
+        (when local
+          (make-variable-buffer-local var))
+        (when (functionp var)
+          (funcall var (if var 1 -1)))
+        (setq var val)))))
+
+(defun vimpulse-visual-restore ()
+  "Restore previous selection."
+  (interactive)
+  (let* (type mark point)
+    (when vimpulse-visual-overlay
+      (vimpulse-contract-overlay vimpulse-visual-overlay)
+      (setq type  (vimpulse-visual-type)
+            mark  (vimpulse-visual-mark)
+            point (vimpulse-visual-point)))
+    (vimpulse-visual-refresh type mark point)))
+
+;; run before each command in Visual mode
+(defun vimpulse-visual-pre-command ()
+  (when (vimpulse-visual-state-p)
+    ;; refresh Visual restore markers and marks
+    (vimpulse-set-visual-dimensions)
+    (cond
+     ;; movement command: don't expand region
+     ((vimpulse-movement-cmd-p this-command)
+      ;;
+      )
+     (t
+      (vimpulse-visual-block-add-whitespace)
+      (vimpulse-visual-normalize-region
+       ;; if in Line mode, don't include trailing newline
+       ;; unless the command has real need of it
+       (and (eq (vimpulse-visual-type) 'line)
+            (not (vimpulse-needs-newline-p this-command))))))))
+
+;; run after each command in Visual mode
+(defun vimpulse-visual-post-command ()
+  (when (vimpulse-visual-state-p)
+    (if (or quit-flag
+            (eq this-command 'keyboard-quit)
+            (not (vimpulse-movement-cmd-p this-command))
+            (and (not (region-active-p))
+                 (not (eq (vimpulse-visual-type) 'block))))
+        ;; (vimpulse-visual-state -1)
+        (vimpulse-visual-mode -1)
+      (vimpulse-visual-refresh))))
+
+;; TODO: automate with `vimpulse-define-state'
+(defun vimpulse-visual-state-p ()
+  vimpulse-visual-mode)
+
+;; How should state toggling be defined?
+(defun vimpulse-visual-state (&optional arg)
+  (cond
+   ((eq arg 'toggle)
+    (cond
+     ((vimpulse-visual-state-p)
+
+      )
+     (t
+      ;; (vimpulse-visual-block-cleanup-whitespace) in exit code
+      )))
+   ((and (numberp arg) (< arg 1))
+    (vimpulse-change-state 'vi-state))
+   (t
+    (vimpulse-change-state 'visual-state))))
+
+(defun vimpulse-change-state (state)
+  (unless (eq state vimpulse-state)
+    (let* ((exit-hook (vimpulse-state-get vimpulse-state :exit-hook))
+           (exit-func (vimpulse-state-get vimpulse-state :func))
+           (entry-hook (vimpulse-state-get state :entry-hook))
+           (entry-func (vimpulse-state-get state :func))
+           (vimpulse-state state))
+      (run-hooks exit-hook)
+      (funcall exit-func 'toggle)
+      (funcall entry-func 'toggle)
+      (run-hooks entry-hook))
+    (setq vimpulse-state state)))
+
+;;; Old code begins here
+
 (eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
 (eval-when-compile (require 'vimpulse-utils)) ; vimpulse-remap
 
@@ -153,7 +495,7 @@ to make Block selection at least one column wide.")
     (setq vimpulse-visual-region-expanded nil)
     ;; deactivate mark
     (when vimpulse-visual-vars-alist
-      (vimpulse-deactivate-mark t))
+      (vimpulse-active-region -1))
     (vimpulse-transient-restore)
     (kill-local-variable 'vimpulse-visual-vars-alist)
     (kill-local-variable 'vimpulse-visual-global-vars)
@@ -230,8 +572,7 @@ May also be used to change the Visual mode."
     ;; activate mark at point
     (cond
      ((eq mode 'block)
-      (set-mark (point))
-      (vimpulse-deactivate-mark t)     ; `set-mark' activates the mark
+      (vimpulse-set-mark (point))
       (vimpulse-transient-mark -1))
      (t
       (vimpulse-transient-mark 1)
@@ -241,7 +582,8 @@ May also be used to change the Visual mode."
         (vimpulse-visual-contract-region
          (not viper-ESC-moves-cursor-back)))
        (t
-        (vimpulse-activate-mark (point))))
+        (vimpulse-set-mark (point))
+        (vimpulse-active-region 1)))
       (vimpulse-visual-highlight))))
   ;; set the Visual mode
   (setq mode (or mode 'char))
@@ -250,13 +592,9 @@ May also be used to change the Visual mode."
   (viper-change-state 'visual-state)
   (viper-restore-cursor-type)           ; use vi cursor
   ;; reactivate mark
-  (cond
-   ((eq mode 'block)
-    (vimpulse-deactivate-mark t)
-    (vimpulse-transient-mark -1))
-   (t
-    (vimpulse-transient-mark 1)
-    (vimpulse-activate-mark))))
+  (if (eq mode 'block)
+      (vimpulse-transient-mark -1)
+    (vimpulse-active-region 1)))
 
 (defun vimpulse-visual-toggle (mode)
   "Enable Visual MODE if this is not the current mode.
@@ -321,6 +659,7 @@ current value."
 
 ;;; Visualization
 
+;; TODO: remove when motions are rewritten
 (defun vimpulse-deactivate-mark (&optional now)
   "Don't deactivate mark in Visual mode."
   (cond
@@ -328,43 +667,7 @@ current value."
          (not (eq vimpulse-visual-mode 'block)))
     nil)
    (t
-    (vimpulse-deactivate-region now))))
-
-(defun vimpulse-transient-mark (&optional arg)
-  "Enable Transient Mark mode (and Cua mode) if not already enabled.
-Enable forcefully with positive ARG. Disable with negative ARG.
-Saves the previous state of Transient Mark mode in
-`vimpulse-visual-vars-alist', so it can be restored with
-`vimpulse-transient-restore'."
-  (setq deactivate-mark nil)
-  (and (boundp 'mark-active)
-       (setq mark-active (region-active-p)))
-  (let (deactivate-mark)
-    (cond
-     ;; disable Transient Mark/Cua
-     ((and (integerp arg) (< arg 1))
-      (and (fboundp 'cua-mode)
-           cua-mode
-           (cua-mode -1))
-      (and (fboundp 'transient-mark-mode)
-           transient-mark-mode
-           (transient-mark-mode -1))
-      (and (boundp 'zmacs-regions)
-           (setq zmacs-regions nil)))
-     ;; enable Transient Mark/Cua
-     (t
-      (vimpulse-transient-remember)
-      (cond
-       ((and (fboundp 'cua-mode)
-             (vimpulse-visual-old-value 'cua-mode)
-             (or (not cua-mode) (numberp arg)))
-        (cua-mode 1))
-       ((and (fboundp 'transient-mark-mode)
-             (or (not transient-mark-mode) (numberp arg)))
-        (transient-mark-mode 1))
-       ((and (boundp 'zmacs-regions)
-             (or (not zmacs-regions) (numberp arg)))
-        (setq zmacs-regions t)))))))
+    (vimpulse-active-region -1))))
 
 (defun vimpulse-transient-remember ()
   "Remember Transient Mark mode state in `vimpulse-visual-vars-alist'."
@@ -451,8 +754,7 @@ Under the hood, this function changes Emacs' `point' and `mark'.
 The boundaries of the Visual selection are deduced from these and
 the current Visual mode via `vimpulse-visual-beginning' and
 `vimpulse-visual-end'."
-  (setq beg (prog1 (min beg end)
-              (setq end (max beg end))))
+  (vimpulse-sort beg end)
   (cond
    (vimpulse-visual-mode
     ;; in Visual mode, protect the value of `mark-active'
@@ -535,7 +837,7 @@ See also `vimpulse-visual-reselect'."
      ;; if no previous selection, try a quick C-x C-x
      ((or (not vimpulse-visual-point)
           (not vimpulse-visual-mark))
-      (vimpulse-activate-mark nil)
+      (vimpulse-active-region 1)
       (vimpulse-visual-mode 1))
      (t
       (unless vimpulse-visual-mode
@@ -648,120 +950,6 @@ With negative ARG, removes highlighting."
                            'face (vimpulse-region-face))
         (viper-overlay-put vimpulse-visual-overlay
                            'priority 99))))))
-
-(defun vimpulse-visual-highlight-block (beg end)
-  "Highlight rectangular region from BEG to END.
-We do this by putting an overlay on each line within the
-rectangle. Each overlay extends across all the columns of the
-rectangle. We try to reuse overlays where possible because this
-is more efficient and results in less flicker.
-
-Adapted from: `rm-highlight-rectangle' in rect-mark.el."
-  (let ((opoint (point))                ; remember point
-        (omark  (mark t))               ; remember mark
-        (old vimpulse-visual-block-overlays)
-        beg-col end-col new nlines overlay window-beg window-end)
-    ;; Calculate the rectangular region represented by BEG and END,
-    ;; but put BEG in the north-west corner and END in the south-east
-    ;; corner if not already there.
-    (save-excursion
-      (setq beg-col (save-excursion (goto-char beg)
-                                    (current-column))
-            end-col (save-excursion (goto-char end)
-                                    (current-column)))
-      (when (>= beg-col end-col)
-        (if (= beg-col end-col)
-            (setq end-col (1+ end-col))
-          (setq beg-col (prog1 end-col
-                          (setq end-col beg-col))))
-        (setq beg (save-excursion (goto-char beg)
-                                  (vimpulse-move-to-column beg-col)
-                                  (point))
-              end (save-excursion (goto-char end)
-                                  (vimpulse-move-to-column end-col 1)
-                                  (point))))
-      ;; force a redisplay so we can do reliable
-      ;; windows BEG/END calculations
-      (sit-for 0)
-      (setq window-beg (max (window-start) beg)
-            window-end (min (window-end) (1+ end))
-            nlines (count-lines window-beg
-                                (min window-end (point-max))))
-      ;; iterate over those lines of the rectangle which are
-      ;; visible in the currently selected window
-      (goto-char window-beg)
-      (dotimes (i nlines)
-        (let (row-beg row-end bstring astring)
-          ;; beginning of row
-          (vimpulse-move-to-column beg-col)
-          (when (< (current-column) beg-col)
-            ;; prepend overlay with virtual spaces if we are unable to
-            ;; move directly to the first column
-            (setq bstring
-                  (propertize
-                   (make-string
-                    (- beg-col (current-column)) ?\ )
-                   'face
-                   (or (get-text-property (1- (point)) 'face)
-                       'default))))
-          (setq row-beg (point))
-          ;; end of row
-          (vimpulse-move-to-column end-col)
-          (when (< (current-column) end-col)
-            ;; append overlay with virtual spaces if we are unable to
-            ;; move directly to the last column
-            (setq astring
-                  (propertize
-                   (make-string
-                    (if (= (point) row-beg)
-                        (- end-col beg-col)
-                      (- end-col (current-column)))
-                    ?\ ) 'face (vimpulse-region-face)))
-            ;; place cursor on one of the virtual spaces
-            ;; (only works in GNU Emacs)
-            (if (= opoint row-beg)
-                (put-text-property
-                 0 (min (length astring) 1)
-                 'cursor t astring)
-              (put-text-property
-               (max 0 (1- (length astring))) (length astring)
-               'cursor t astring)))
-          (setq row-end (min (point) (line-end-position)))
-          ;; XEmacs bug: zero-length extents display
-          ;; end-glyph before start-glyph
-          (and (featurep 'xemacs)
-               bstring astring
-               (= row-beg row-end)
-               (setq bstring (prog1 astring
-                               (setq astring bstring))))
-          ;; trim old leading overlays
-          (while (and old
-                      (setq overlay (car old))
-                      (< (viper-overlay-start overlay) row-beg)
-                      (/= (viper-overlay-end overlay) row-end))
-            (vimpulse-delete-overlay overlay)
-            (setq old (cdr old)))
-          ;; reuse an overlay if possible, otherwise create one
-          (cond
-           ((and old (setq overlay (car old))
-                 (or (= (viper-overlay-start overlay) row-beg)
-                     (= (viper-overlay-end overlay) row-end)))
-            (viper-move-overlay overlay row-beg row-end)
-            (vimpulse-overlay-before-string overlay bstring)
-            (vimpulse-overlay-after-string overlay astring)
-            (setq new (cons overlay new)
-                  old (cdr old)))
-           (t
-            (setq overlay (vimpulse-make-overlay row-beg row-end))
-            (vimpulse-overlay-before-string overlay bstring)
-            (vimpulse-overlay-after-string overlay astring)
-            (viper-overlay-put overlay 'face (vimpulse-region-face))
-            (viper-overlay-put overlay 'priority 99)
-            (setq new (cons overlay new)))))
-        (forward-line 1))
-      ;; trim old trailing overlays
-      (mapc 'vimpulse-delete-overlay old)
-      (setq vimpulse-visual-block-overlays (nreverse new)))))
 
 (defun vimpulse-visual-pre-command ()
   "Run before each command in Visual mode."
@@ -905,6 +1093,7 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
     ad-do-it))
 
 ;; block selection disables Transient Mark mode
+;; TODO: this can be done in `post-command-hook' instead
 (defadvice deactivate-mark (after vimpulse-visual activate)
   "Deactivate Visual Block mode."
   (when (eq vimpulse-visual-mode 'block)
@@ -1006,8 +1195,7 @@ each line. Extra arguments to FUNC may be passed via ARGS."
       (setq beg (or beg (vimpulse-visual-beginning))
             end (or end (vimpulse-visual-end)))
       ;; ensure BEG < END
-      (setq beg (prog1 (min beg end)
-                  (setq end (max beg end))))
+      (vimpulse-sort beg end)
       ;; calculate columns
       (goto-char end)
       (setq end-col (current-column))
@@ -1015,8 +1203,7 @@ each line. Extra arguments to FUNC may be passed via ARGS."
       (setq beg-col (current-column))
       ;; ensure BEG-COL < END-COL
       (when (> beg-col end-col)
-        (setq beg-col (prog1 end-col
-                        (setq end-col beg-col)))
+        (vimpulse-sort beg-col end-col)
         (setq beg (save-excursion
                     (goto-char beg)
                     (move-to-column beg-col)
@@ -1070,7 +1257,7 @@ To go the other way, use `vimpulse-visual-block-corner'."
   (save-excursion
     (setq beg (or beg (vimpulse-visual-beginning 'block))
           end (or end (vimpulse-visual-end 'block)))
-    (when (> beg end) (setq beg (prog1 end (setq end beg))))
+    (vimpulse-sort beg end)
     (let ((beg-col (progn (goto-char beg)
                           (current-column)))
           (end-col (progn (goto-char end)
@@ -1079,10 +1266,8 @@ To go the other way, use `vimpulse-visual-block-corner'."
           (upper-left 0) (upper-right 1)
           (lower-left 3) (lower-right 2))
       (when (> beg-col end-col)
-        (setq beg-col (prog1 end-col
-                        (setq end-col beg-col)))
-        (setq left (prog1 right
-                     (setq right left))))
+        (vimpulse-sort beg-col end-col)
+        (vimpulse-swap left right))
       (if (memq corner '(upper left lower right))
           (eval corner)
         (setq corner (mod (eval corner) 4))
@@ -1210,7 +1395,7 @@ so that a one-column rectangle can be made. The position of the
 space is stored in `vimpulse-visual-whitespace-overlay' so it can be
 removed afterwards with `vimpulse-visual-block-cleanup-whitespace'."
   (save-excursion
-    (when (and (eq vimpulse-visual-mode 'block)
+    (when (and (eq (vimpulse-visual-type) 'block)
                (/= (vimpulse-visual-beginning)
                    (vimpulse-visual-end))
                (save-excursion
@@ -1239,4 +1424,4 @@ removed afterwards with `vimpulse-visual-block-cleanup-whitespace'."
     (vimpulse-delete-overlay vimpulse-visual-whitespace-overlay)
     (setq vimpulse-visual-whitespace-overlay nil)))
 
-(provide 'vimpulse-visual-mode)
+(provide 'vimpulse-visual)

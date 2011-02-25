@@ -1,7 +1,7 @@
 ;;;; Keybindings
 
 (require 'vimpulse-dependencies)
-(require 'vimpulse-visual-mode)         ; vimpulse-apply-on-block, vimpulse-visual-mode
+(require 'vimpulse-visual)         ; vimpulse-apply-on-block, vimpulse-visual-mode
 
 (declare-function vimpulse-range "vimpulse-operator" (&optional no-repeat dont-move-point whole-lines keep-visual custom-motion))
 (declare-function vimpulse-set-replace-cursor-type "vimpulse-viper-function-redefinitions" nil)
