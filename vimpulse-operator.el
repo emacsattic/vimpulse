@@ -897,6 +897,7 @@ insert or remove any spaces."
 (vimpulse-define-operator vimpulse-fill (beg end)
   "Fill text."
   :move-point nil
+  :whole-lines t
   (setq end
         (save-excursion
           (goto-char end)
