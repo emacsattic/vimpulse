@@ -57,6 +57,16 @@
   (remove-hook 'viper-replace-state-hook
                'viper-restore-cursor-type))
 
+(defadvice viper-ESC (around vimpulse activate)
+  "Exit minibuffer"
+  (if (minibufferp)
+      (abort-recursive-edit)
+    ad-do-it))
+
+(defadvice viper-set-minibuffer-overlay (around vimpulse activate)
+  "Don't color minibuffer"
+  nil)
+
 ;;; Marks
 
 ;; the following makes lowercase marks buffer-local
