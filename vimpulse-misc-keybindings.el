@@ -88,6 +88,7 @@
     (define-key map "c" 'delete-window)
     (define-key map "s" 'split-window-vertically)
     (define-key map "v" 'split-window-horizontally)
+    (define-key map "=" 'balance-windows)
     (when (fboundp 'windmove-left)
       (define-key map "h" 'windmove-left)
       (define-key map "j" 'windmove-down)
