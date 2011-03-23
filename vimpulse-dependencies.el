@@ -1,13 +1,5 @@
 ;;; Code:
 
-;;; Compatibility
-(defmacro vimpulse-called-interactively-p ()
-  (if (condition-case nil
-          (progn (called-interactively-p 'any) t)
-        (error nil))
-      '(called-interactively-p 'any)
-    '(called-interactively-p)))
-
 ;;; Version
 (defconst vimpulse-version "0.5+git"
   "The current version of Vimpulse")
