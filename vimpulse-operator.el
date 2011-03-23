@@ -48,6 +48,7 @@
 ;; what he thinks about this. For what it's worth, the following code
 ;; addresses "TODO item #1" in viper.el.
 
+(require 'vimpulse-utils)
 (require 'vimpulse-visual-mode)
 (eval-when-compile (require 'vimpulse-viper-function-redefinitions)) ; vimpulse-define-state
 
