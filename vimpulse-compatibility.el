@@ -1,5 +1,6 @@
 ;;;; This code integrates Viper with the outside world
 
+(require 'vimpulse-utils)
 (require 'vimpulse-viper-function-redefinitions)
 
 ;;; undo-tree.el
@@ -269,17 +270,6 @@ Disable anyway if FORCE is t."
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'Buffer-menu-mode 'vi-state map))))
-
-;; Dired
-(eval-after-load 'dired
-  '(when vimpulse-want-vi-keys-in-dired
-     (setq viper-emacs-state-mode-list
-           (delq 'dired-mode viper-emacs-state-mode-list))
-     (add-to-list 'viper-vi-state-mode-list 'dired-mode)
-     (let ((map dired-mode-map))
-       (vimpulse-add-core-movement-cmds map)
-       (vimpulse-inhibit-destructive-cmds map)
-       (viper-modify-major-mode 'dired-mode 'vi-state map))))
 
 ;; Info
 (eval-after-load 'info
