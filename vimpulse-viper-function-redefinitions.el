@@ -200,6 +200,15 @@ Mark is buffer-local unless GLOBAL."
    (t
     (error viper-InvalidTextmarker char))))
 
+(defadvice viper-brac-function (around vimpulse activate)
+  (let ((register-alist
+         (mapcar (lambda (e)
+                   (cons (viper-int-to-char (1+ (- (car-safe e) ?a)))
+                         (cdr (cdr-safe e))))
+                 (append vimpulse-local-marks-alist
+                         vimpulse-global-marks-alist))))
+    ad-do-it))
+
 ;;; Code for adding extra states
 
 ;; state index variables: for keeping track of which modes
