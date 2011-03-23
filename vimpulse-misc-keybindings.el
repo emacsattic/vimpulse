@@ -49,9 +49,6 @@
 (define-key viper-vi-basic-map "zz" 'viper-line-to-middle)
 (define-key viper-vi-basic-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-basic-map "\C-t" 'pop-tag-mark)
-(define-key viper-vi-basic-map "]" nil) ; delete `viper-ket-function' binding
-(define-key viper-vi-basic-map "]P" 'vimpulse-Put-and-indent)
-(define-key viper-vi-basic-map "]p" 'vimpulse-put-and-indent)
 (define-key viper-vi-basic-map "=" 'vimpulse-indent)
 (define-key viper-vi-basic-map "+" 'vimpulse-previous-line-skip-white)
 (define-key viper-vi-basic-map "_" 'vimpulse-next-line-skip-white)
@@ -64,6 +61,9 @@
 (define-key viper-vi-basic-map "/" 'vimpulse-search-forward)
 (define-key viper-vi-basic-map "?" 'vimpulse-search-backward)
 (define-key viper-vi-kbd-map "/" nil)
+
+(vimpulse-map "]P" 'vimpulse-Put-and-indent)
+(vimpulse-map "]p" 'vimpulse-put-and-indent)
 
 ;; Visual bindings
 (define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-char)
