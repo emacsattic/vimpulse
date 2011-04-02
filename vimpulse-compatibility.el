@@ -18,7 +18,7 @@
 
   (add-to-list 'viper-vi-state-mode-list 'undo-tree-visualizer-mode)
 
-  (let ((map undo-tree-visualizer-map))
+  (let ((map (copy-keymap undo-tree-visualizer-map)))
     (vimpulse-add-core-movement-cmds map)
     (vimpulse-inhibit-destructive-cmds map)
     (vimpulse-inhibit-other-movement-cmds map)
@@ -255,7 +255,7 @@ Disable anyway if FORCE is t."
 (eval-after-load 'apropos
   '(when vimpulse-want-vi-keys-in-apropos
      (add-to-list 'viper-vi-state-mode-list 'apropos-mode)
-     (let ((map apropos-mode-map))
+     (let ((map (copy-keymap apropos-mode-map)))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'apropos-mode 'vi-state map))))
@@ -266,7 +266,7 @@ Disable anyway if FORCE is t."
      (setq viper-emacs-state-mode-list
            (delq 'Buffer-menu-mode viper-emacs-state-mode-list))
      (add-to-list 'viper-vi-state-mode-list 'Buffer-menu-mode)
-     (let ((map Buffer-menu-mode-map))
+     (let ((map (copy-keymap Buffer-menu-mode-map)))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
        (viper-modify-major-mode 'Buffer-menu-mode 'vi-state map))))
@@ -277,7 +277,7 @@ Disable anyway if FORCE is t."
      (setq viper-emacs-state-mode-list
            (delq 'Info-mode viper-emacs-state-mode-list))
      (add-to-list 'viper-vi-state-mode-list 'Info-mode)
-     (let ((map Info-mode-map))
+     (let ((map (copy-keymap Info-mode-map)))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
        (define-key map "\C-t" 'Info-history-back) ; l
@@ -294,7 +294,7 @@ Disable anyway if FORCE is t."
      (setq viper-emacs-state-mode-list
            (delq 'help-mode viper-emacs-state-mode-list))
      (add-to-list 'viper-vi-state-mode-list 'help-mode)
-     (let ((map help-mode-map))
+     (let ((map (copy-keymap help-mode-map)))
        (vimpulse-add-core-movement-cmds map)
        (vimpulse-inhibit-destructive-cmds map)
        (define-key map "q" 'View-quit)
