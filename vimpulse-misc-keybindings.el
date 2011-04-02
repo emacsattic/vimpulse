@@ -2,7 +2,7 @@
 
 (require 'vimpulse-dependencies)
 (require 'vimpulse-modal)
-(require 'vimpulse-visual-mode)         ; vimpulse-apply-on-block, vimpulse-visual-mode
+(require 'vimpulse-visual-mode) ; vimpulse-apply-on-block, vimpulse-visual-mode
 
 (declare-function vimpulse-range "vimpulse-operator" (&optional no-repeat dont-move-point whole-lines keep-visual custom-motion))
 (declare-function vimpulse-set-replace-cursor-type "vimpulse-viper-function-redefinitions" nil)
@@ -50,8 +50,7 @@
 (define-key viper-vi-basic-map "\C-]" 'vimpulse-jump-to-tag-at-point)
 (define-key viper-vi-basic-map "\C-t" 'pop-tag-mark)
 (define-key viper-vi-basic-map "=" 'vimpulse-indent)
-(define-key viper-vi-basic-map "+" 'vimpulse-previous-line-skip-white)
-(define-key viper-vi-basic-map "_" 'vimpulse-next-line-skip-white)
+(define-key viper-vi-basic-map "_" 'viper-next-line-at-bol)
 (define-key viper-vi-basic-map "#" 'vimpulse-search-backward-for-symbol-at-point)
 (define-key viper-vi-basic-map "*" 'vimpulse-search-forward-for-symbol-at-point)
 (define-key viper-vi-basic-map "<" 'vimpulse-shift-left)
@@ -244,32 +243,6 @@ Equivalent to Vim's C-w prefix.")
   (when (markerp vimpulse-exit-point)
     (goto-char vimpulse-exit-point))
   (viper-insert arg))
-
-;;; +, _
-
-(defun vimpulse-previous-line-skip-white (&optional arg)
-  "Go ARG lines backward and to the first non-blank character."
-  (interactive "P")
-  (let ((val (viper-p-val arg))
-        (com (viper-getcom arg)))
-    (when com
-      (viper-move-marker-locally 'viper-com-point (point)))
-    (forward-line (- val))
-    (back-to-indentation)
-    (when com
-      (viper-execute-com 'vimpulse-previous-line-nonblank val com))))
-
-(defun vimpulse-next-line-skip-white (&optional arg)
-  "Go ARG lines forward and to the first non-blank character."
-  (interactive "P")
-  (let ((val (viper-p-val arg))
-        (com (viper-getcom arg)))
-    (when com
-      (viper-move-marker-locally 'viper-com-point (point)))
-    (forward-line val)
-    (back-to-indentation)
-    (when com
-      (viper-execute-com 'vimpulse-next-line-nonblank val com))))
 
 ;;; *, #
 
