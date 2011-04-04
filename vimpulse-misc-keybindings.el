@@ -24,6 +24,7 @@
 (define-key viper-vi-basic-map "gf" 'find-file-at-point)
 (define-key viper-vi-basic-map "gg" 'vimpulse-goto-first-line)
 (define-key viper-vi-basic-map "gh" 'backward-char)
+(define-key viper-vi-basic-map "ga" 'what-cursor-position)
 (define-key viper-vi-basic-map "gi" 'vimpulse-resume-insert)
 (define-key viper-vi-basic-map "gj" 'next-line)
 (define-key viper-vi-basic-map "gk" 'previous-line)
