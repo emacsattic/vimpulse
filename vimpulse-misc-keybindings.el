@@ -116,6 +116,8 @@ Equivalent to Vim's C-w prefix.")
 (define-key viper-insert-basic-map [delete] 'delete-char) ; <delete> key
 ;; make ^[ work
 (define-key viper-insert-basic-map (kbd "ESC") 'viper-exit-insert-state)
+;; paste
+(define-key viper-insert-basic-map "\C-r" 'vimpulse-paste-in-insert)
 
 ;;; "
 
@@ -609,5 +611,15 @@ COL defaults to the current column."
 
 (define-key viper-insert-basic-map "\C-y" 'vimpulse-copy-from-above)
 (define-key viper-insert-basic-map "\C-e" 'vimpulse-copy-from-below)
+
+;; paste in Insert state by pressing "C-r <register>"
+(defun vimpulse-paste-in-insert (register)
+  "Paste in Insert state from REGISTER."
+  (interactive (list (read-char)))
+  (if (viper-valid-register register)
+      (setq viper-use-register register)
+    (setq viper-use-register nil))
+  (viper-Put-back nil)
+  (forward-char))
 
 (provide 'vimpulse-misc-keybindings)
