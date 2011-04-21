@@ -26,6 +26,11 @@
 (and (fboundp 'global-undo-tree-mode)
      (global-undo-tree-mode 1))
 
+;; load goto-chg.el if available
+(condition-case nil
+    (require 'goto-chg)
+  (error nil))
+
 ;;; Customization group for Vimpulse
 
 (defgroup vimpulse nil

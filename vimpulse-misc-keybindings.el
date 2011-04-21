@@ -65,6 +65,12 @@
 (vimpulse-map "]P" 'vimpulse-Put-and-indent)
 (vimpulse-map "]p" 'vimpulse-put-and-indent)
 
+;; go to last change
+(when (fboundp 'goto-last-change)
+  (define-key viper-vi-basic-map "g;" 'goto-last-change))
+(when (fboundp 'goto-last-change-reverse)
+  (define-key viper-vi-basic-map "g," 'goto-last-change-reverse))
+
 ;; Visual bindings
 (define-key viper-vi-basic-map "v" 'vimpulse-visual-toggle-char)
 (define-key viper-vi-basic-map "V" 'vimpulse-visual-toggle-line)
