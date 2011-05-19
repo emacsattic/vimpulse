@@ -300,13 +300,13 @@ Used by `vimpulse-operator-repeat'.")
     move-beginning-of-line move-end-of-line next-line previous-line
     scroll-down scroll-up undo universal-argument up-list
     vimpulse-end-of-previous-word vimpulse-goto-definition
-    vimpulse-goto-first-line vimpulse-goto-line
-    vimpulse-visual-block-rotate vimpulse-visual-exchange-corners
-    vimpulse-visual-forward-char vimpulse-visual-goto-eol
-    vimpulse-visual-reselect vimpulse-visual-restore
-    vimpulse-visual-toggle-block vimpulse-visual-toggle-char
-    vimpulse-visual-toggle-line viper-backward-Word
-    viper-backward-char viper-backward-paragraph
+    vimpulse-goto-first-line vimpulse-goto-line vimpulse-goto-mark
+    vimpulse-goto-mark-and-skip-white vimpulse-visual-block-rotate
+    vimpulse-visual-exchange-corners vimpulse-visual-forward-char
+    vimpulse-visual-goto-eol vimpulse-visual-reselect
+    vimpulse-visual-restore vimpulse-visual-toggle-block
+    vimpulse-visual-toggle-char vimpulse-visual-toggle-line
+    viper-backward-Word viper-backward-char viper-backward-paragraph
     viper-backward-sentence viper-backward-word
     viper-beginning-of-line viper-digit-argument viper-end-of-Word
     viper-end-of-word viper-exec-mapped-kbd-macro
@@ -314,13 +314,13 @@ Used by `vimpulse-operator-repeat'.")
     viper-forward-Word viper-forward-char viper-forward-paragraph
     viper-forward-sentence viper-forward-word viper-goto-char-backward
     viper-goto-char-forward viper-goto-eol viper-goto-line
-    viper-insert viper-intercept-ESC-key viper-line-to-bottom
-    viper-line-to-middle viper-line-to-top viper-next-line
-    viper-paren-match viper-previous-line viper-repeat-find
-    viper-repeat-find-opposite viper-scroll-screen
-    viper-scroll-screen-back viper-search-Next viper-search-backward
-    viper-search-forward viper-search-next viper-window-bottom
-    viper-window-middle viper-window-top)
+    viper-goto-mark viper-goto-mark-and-skip-white viper-insert
+    viper-intercept-ESC-key viper-line-to-bottom viper-line-to-middle
+    viper-line-to-top viper-next-line viper-paren-match
+    viper-previous-line viper-repeat-find viper-repeat-find-opposite
+    viper-scroll-screen viper-scroll-screen-back viper-search-Next
+    viper-search-backward viper-search-forward viper-search-next
+    viper-window-bottom viper-window-middle viper-window-top)
   "List of commands that move point.
 If listed here, the region is not expanded to the
 Visual selection before the command is executed.")
