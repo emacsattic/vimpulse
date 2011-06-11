@@ -270,10 +270,11 @@ Returns the empty string if nothing is found."
     (let ((str (thing-at-point thing)))
       ;; if there's nothing under point, go forwards
       ;; (or backwards) to find it
-      (while (and (not str) (or (and backward (not (bobp)))
-                                (and (not backward) (not (eobp)))))
+      (while (and (null str)
+                  (or (and backward (not (bobp)))
+                      (and (not backward) (not (eobp)))))
         (if backward (backward-char) (forward-char))
-        (setq str (thing-at-point 'symbol)))
+        (setq str (thing-at-point thing)))
       (setq str (or str ""))
       ;; no text properties, thank you very much
       (set-text-properties 0 (length str) nil str)
