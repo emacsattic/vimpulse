@@ -60,6 +60,9 @@ test:
 test-big:
 	cd $(BIGDIR) && $(EMACS) -Q $(LOADFLAGS) -l ../vimpulse-test.el -f test-interactive-suite
 
+emacs: clean
+	$(EMACS) -Q -L . --eval "(require 'vimpulse)" &
+
 .PHONY: clean
 clean:
 	rm -f *.elc
