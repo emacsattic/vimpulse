@@ -188,6 +188,7 @@ selection on each line."
   (cond
    ((eq new-state 'visual-state)
     (unless (memq vimpulse-visual-mode '(char line block))
+      (viper-set-input-method nil)
       (vimpulse-visual-mode 1)))
    (t
     (vimpulse-visual-mode -1))))
