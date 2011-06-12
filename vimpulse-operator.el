@@ -997,86 +997,73 @@ insert or remove any spaces."
    (t
     ad-do-it)))
 
-;; this separates the operator-pending part of a Viper motion from the
-;; rest, defining a new command called vimpulse-operator-MOTION
-(defmacro vimpulse-operator-map-define
-  (viper-motion &optional type &rest body)
-  "Define a new command for the Operator-Pending part of VIPER-MOTION.
-The new command is named VIMPULSE-OPERATOR-MOTION and has motion
-type TYPE. A custom function body may be specified via BODY."
-  (declare (indent 2))
-  `(let* ((viper-motion ',viper-motion)
-          (type ,type)
-          (body ',body)
-          (motion-name (symbol-name viper-motion))
-          (docstring (documentation viper-motion t)))
-     (setq type (or type (vimpulse-motion-type viper-motion)))
-     (unless (memq type '(inclusive line block))
-       (setq type 'exclusive))
-     (setq motion-name (replace-regexp-in-string
-                        "^viper-\\\|^vimpulse-" "" motion-name))
-     (setq motion-name
-           (concat "vimpulse-operator-" motion-name))
-     (setq motion-name (intern motion-name))
-     (add-to-list 'vimpulse-movement-cmds motion-name)
-     (vimpulse-operator-remap viper-motion motion-name)
-     (eval `(defun ,motion-name (arg)
-              ,(format "Operator-pending %s part of `%s'.\n\n%s"
-                       type viper-motion (or docstring ""))
-              ,@(if body body
-                  `((interactive "P")
-                    (let (com com-alist)
-                      (setq com-alist
-                            '((vimpulse-change . ?c)
-                              (vimpulse-delete . ?d)
-                              (vimpulse-yank . ?y)))
-                      (setq com
-                            (or (cdr (assq vimpulse-this-operator
-                                           com-alist))
-                                ?r))
-                      (,viper-motion (if (region-active-p)
-                                         arg
-                                       (cons arg com)))
-                      ,(unless (eq type 'exclusive)
-                         '(viper-backward-char-carefully)))))))
-     (put motion-name 'motion-type type)
-     `(quote ,motion-name)))
+;; wrapper for the operator-pending part of a Viper motion
+(defmacro vimpulse-operator-advise (motion &optional type &rest body)
+  "Wrap-around advice for the Operator-Pending part of MOTION.
+A custom procedure may be specified via BODY.
+The motions gets the motion type TYPE."
+  (declare (debug (&define name
+                           [&optional symbolp]
+                           [&optional stringp]
+                           def-body))
+           (indent 2))
+  `(progn
+     (add-to-list 'vimpulse-movement-cmds ',motion)
+     (put ',motion 'motion-type ',type)
+     (defadvice ,motion (around vimpulse-operator activate)
+       ,(when (stringp (car-safe body)) (pop body))
+       (if (eq viper-current-state 'operator-state)
+           (if ,(not (null body))
+               (progn ,@body)
+             (unless (region-active-p)
+               (ad-set-arg
+                0 (cons (ad-get-arg 0)
+                        (or (cdr (assq vimpulse-this-operator
+                                       '((vimpulse-change . ?c)
+                                         (vimpulse-delete . ?d)
+                                         (vimpulse-yank   . ?y))))
+                            ?r))))
+             ad-do-it
+             (unless ,(eq type 'exclusive)
+               (viper-backward-char-carefully)))
+         ad-do-it))))
 
-;; d%: when point is before the parenthetical expression,
-;; include it in the resulting range
-(vimpulse-operator-map-define viper-paren-match 'inclusive
-  (interactive "P")
+(vimpulse-operator-advise viper-paren-match inclusive
+  "When point is before the parenthetical expression,
+include it in the motion range."
   (let ((orig (point)))
-    (viper-paren-match arg)
+    ad-do-it
     (viper-move-marker-locally 'viper-com-point orig)
     (when (integerp arg)
       (setq vimpulse-this-motion-type 'line))))
 
-;; Viper quirk: cw only deletes a single character when at whitespace,
-;; dw deletes all of it. Use the latter behavior in both cases.
-(vimpulse-operator-map-define viper-forward-word 'exclusive
-  (interactive "P")
-  (let ((com-alist '((vimpulse-change . ?c)
-                     (vimpulse-delete . ?d)
-                     (vimpulse-yank . ?y))) com)
-    (if (looking-at "[[:space:]]")
-        (setq com ?d)
-      (setq com (or (cdr (assq vimpulse-this-operator com-alist)) ?r)))
-    (viper-forward-word (if (region-active-p)
-                            arg
-                          (cons arg com)))))
+(vimpulse-operator-advise viper-forward-word exclusive
+  "Viper quirk: \"cw\" only deletes a single character when at whitespace,
+\"dw\" deletes all of it. Use the latter behavior in both cases."
+  (unless (region-active-p)
+    (ad-set-arg
+     0 (cons (ad-get-arg 0)
+             (if (looking-at "[[:space:]]")
+                 ?d
+               (or (cdr (assq vimpulse-this-operator
+                              '((vimpulse-change . ?c)
+                                (vimpulse-delete . ?d)
+                                (vimpulse-yank   . ?y)))) ?r)))))
+  ad-do-it)
 
-(vimpulse-operator-map-define viper-forward-Word 'exclusive
-  (interactive "P")
-  (let ((com-alist '((vimpulse-change . ?c)
-                     (vimpulse-delete . ?d)
-                     (vimpulse-yank . ?y))) com)
-    (if (looking-at "[[:space:]]")
-        (setq com ?d)
-      (setq com (or (cdr (assq vimpulse-this-operator com-alist)) ?r)))
-    (viper-forward-Word (if (region-active-p)
-                            arg
-                          (cons arg com)))))
+(vimpulse-operator-advise viper-forward-Word exclusive
+  "Viper quirk: \"cW\" only deletes a single character when at whitespace,
+\"dW\" deletes all of it. Use the latter behavior in both cases."
+  (unless (region-active-p)
+    (ad-set-arg
+     0 (cons (ad-get-arg 0)
+             (if (looking-at "[[:space:]]")
+                 ?d
+               (or (cdr (assq vimpulse-this-operator
+                              '((vimpulse-change . ?c)
+                                (vimpulse-delete . ?d)
+                                (vimpulse-yank   . ?y)))) ?r)))))
+  ad-do-it)
 
 ;;; remap non-motion commands to `viper-nil'
 (vimpulse-operator-remap 'undo 'viper-nil)
@@ -1097,15 +1084,13 @@ type TYPE. A custom function body may be specified via BODY."
 (vimpulse-operator-remap 'viper-substitute 'viper-nil)
 
 ;; these motions need wrapper functions to repeat correctly
-(vimpulse-operator-map-define viper-end-of-Word 'inclusive)
-(vimpulse-operator-map-define viper-end-of-word 'inclusive)
-(vimpulse-operator-map-define viper-find-char-backward 'exclusive)
-(vimpulse-operator-map-define viper-find-char-forward 'inclusive)
-(vimpulse-operator-map-define viper-forward-char 'inclusive)
-(vimpulse-operator-map-define viper-goto-char-backward 'exclusive)
-(vimpulse-operator-map-define viper-goto-char-forward 'inclusive)
-(vimpulse-operator-map-define viper-search-backward 'exclusive)
-(vimpulse-operator-map-define viper-search-forward 'exclusive)
+(vimpulse-operator-advise viper-end-of-Word inclusive)
+(vimpulse-operator-advise viper-end-of-word inclusive)
+(vimpulse-operator-advise viper-find-char-backward exclusive)
+(vimpulse-operator-advise viper-find-char-forward inclusive)
+(vimpulse-operator-advise viper-forward-char inclusive)
+(vimpulse-operator-advise viper-goto-char-backward exclusive)
+(vimpulse-operator-advise viper-goto-char-forward inclusive)
 
 ;; set up motion types for remaining Viper motions
 (put 'vimpulse-goto-first-line 'motion-type 'line)
