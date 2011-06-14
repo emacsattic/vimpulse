@@ -16,29 +16,23 @@
       (when (eq (selected-window) w)
         (delete-window))))
 
+  (define-key undo-tree-visualizer-map [remap viper-backward-char] 'undo-tree-visualize-switch-branch-left)
+  (define-key undo-tree-visualizer-map [remap viper-forward-char] 'undo-tree-visualize-switch-branch-right)
+  (define-key undo-tree-visualizer-map [remap viper-next-line] 'undo-tree-visualize-redo)
+  (define-key undo-tree-visualizer-map [remap viper-previous-line] 'undo-tree-visualize-undo)
+  (define-key undo-tree-visualizer-map [remap undo-tree-visualizer-scroll-left] 'viper-scroll-up)
+  (define-key undo-tree-visualizer-map [remap undo-tree-visualizer-scroll-left] 'viper-scroll-up-one)
+  (define-key undo-tree-visualizer-map [remap undo-tree-visualizer-scroll-right] 'viper-scroll-down)
+  (define-key undo-tree-visualizer-map [remap undo-tree-visualizer-scroll-right] 'viper-scroll-down-one)
+  (define-key undo-tree-visualizer-map [remap viper-intercept-ESC-key] 'vimpulse-undo-quit)
+  (define-key undo-tree-visualizer-map [remap viper-nil] 'vimpulse-undo-quit)
+  (define-key undo-tree-visualizer-map [remap undo-tree-visualizer-quit] 'vimpulse-undo-quit)
+  (define-key undo-tree-visualizer-map [remap viper-next-line-at-bol] 'vimpulse-undo-quit)
+
   (add-to-list 'viper-vi-state-mode-list 'undo-tree-visualizer-mode)
 
-  (let ((map (copy-keymap undo-tree-visualizer-map)))
-    (vimpulse-add-core-movement-cmds map)
-    (vimpulse-inhibit-destructive-cmds map)
-    (vimpulse-inhibit-other-movement-cmds map)
-
-    (define-key map [remap viper-backward-char] 'undo-tree-visualize-switch-branch-left)
-    (define-key map [remap viper-forward-char] 'undo-tree-visualize-switch-branch-right)
-    (define-key map [remap viper-next-line] 'undo-tree-visualize-redo)
-    (define-key map [remap viper-previous-line] 'undo-tree-visualize-undo)
-    (define-key map [remap undo-tree-visualizer-scroll-left] 'viper-scroll-up)
-    (define-key map [remap undo-tree-visualizer-scroll-left] 'viper-scroll-up-one)
-    (define-key map [remap undo-tree-visualizer-scroll-right] 'viper-scroll-down)
-    (define-key map [remap undo-tree-visualizer-scroll-right] 'viper-scroll-down-one)
-    (define-key map [remap viper-intercept-ESC-key] 'vimpulse-undo-quit)
-    (define-key map [remap undo-tree-visualizer-quit] 'vimpulse-undo-quit)
-    (define-key map [remap viper-next-line-at-bol] 'vimpulse-undo-quit)
-
-    (viper-modify-major-mode 'undo-tree-visualizer-mode 'vi-state map)
-
-    (add-to-list 'ex-token-alist '("undolist" (undo-tree-visualize)))
-    (add-to-list 'ex-token-alist '("ulist" (undo-tree-visualize)))))
+  (add-to-list 'ex-token-alist '("undolist" (undo-tree-visualize)))
+  (add-to-list 'ex-token-alist '("ulist" (undo-tree-visualize))))
 
 ;;; Isearch
 
