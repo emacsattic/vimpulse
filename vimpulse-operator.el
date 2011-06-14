@@ -1012,13 +1012,13 @@ The motions gets the motion type TYPE."
      (put ',motion 'motion-type ',type)
      (defadvice ,motion (around vimpulse-operator activate)
        ,(when (stringp (car-safe body)) (pop body))
-       (if (eq viper-current-state 'operator-state)
+       (if (and (eq viper-current-state 'operator-state)
+                (null (viper-getcom (ad-get-arg 0))))
            (if ,(not (null body))
                (progn ,@body)
              (unless (region-active-p)
                (ad-set-arg
-                0 (cons (ad-get-arg 0)
-                        (or (cdr (assq vimpulse-this-operator
+                0 (cons (or (cdr (assq vimpulse-this-operator
                                        '((vimpulse-change . ?c)
                                          (vimpulse-delete . ?d)
                                          (vimpulse-yank   . ?y))))
