@@ -8,6 +8,10 @@
 (when (and (boundp 'undo-tree-visualizer-map)
            (fboundp 'undo-tree-visualizer-quit))
 
+  (defadvice undo-tree-visualize (after vimpulse activate)
+    "Enable Viper."
+    (viper-mode))
+
   (defun vimpulse-undo-quit ()
     "Quit the undo-tree visualizer and delete window."
     (interactive)
@@ -31,12 +35,8 @@
 
   (add-to-list 'viper-vi-state-mode-list 'undo-tree-visualizer-mode)
 
-  (add-to-list 'ex-token-alist
-               '("undolist"
-                 (progn (undo-tree-visualize) (viper-mode))))
-  (add-to-list 'ex-token-alist
-               '("ulist"
-                 (progn (undo-tree-visualize) (viper-mode)))))
+  (add-to-list 'ex-token-alist '("undolist" (undo-tree-visualize)))
+  (add-to-list 'ex-token-alist '("ulist" (undo-tree-visualize))))
 
 ;;; Isearch
 
