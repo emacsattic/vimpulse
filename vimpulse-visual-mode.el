@@ -911,43 +911,24 @@ Adapted from: `rm-highlight-rectangle' in rect-mark.el."
   (when (eq vimpulse-visual-mode 'block)
     (vimpulse-visual-mode -1)))
 
-(defmacro vimpulse-visual-mouse-advice (cmd)
-  "Advise mouse command CMD to enable Visual mode."
-  `(defadvice ,cmd (around vimpulse-visual activate)
-     "Enable Visual mode in vi (command) state."
-     (let ((w (posn-window (event-start (ad-get-arg 0)))))
-       (cond
-        ;; if Visual mode is enabled in the window clicked in,
-        ;; adjust region afterwards
-        ((with-selected-window w
-           vimpulse-visual-mode)
-         (vimpulse-visual-highlight -1)
-         ad-do-it
-         (when (eq (selected-window) w)
-           (vimpulse-visual-contract-region t)
-           (vimpulse-visual-highlight)))
-        ;; otherwise, if in vi (command) state, enable Visual mode
-        ((with-selected-window w
-           (eq viper-current-state 'vi-state))
-         ad-do-it
-         (when (eq (selected-window) w)
-           (cond
-            (vimpulse-visual-mode
-             (vimpulse-visual-contract-region t))
-            ((region-active-p)
-             (vimpulse-visual-mode 1)
-             (setq vimpulse-visual-region-expanded nil)
-             (vimpulse-visual-contract-region t)))))
-        (t
-         ad-do-it)))))
-
-(vimpulse-visual-mouse-advice mouse-drag-region)
-(vimpulse-visual-mouse-advice mouse-save-then-kill)
+(defadvice mouse-drag-region (before vimpulse-visual activate)
+  "Refresh Visual selection."
+  (vimpulse-visual-highlight -1))
 
 (defadvice mouse-show-mark (before vimpulse-visual activate)
-  "Refresh highlighting of Visual selection."
-  (when vimpulse-visual-mode
-    (vimpulse-visual-highlight)))
+  "Refresh Visual selection."
+  (cond
+   ((and (save-excursion
+           (goto-char (region-beginning))
+           (bolp))
+         (save-excursion
+           (goto-char (region-end))
+           (bolp)))
+    (vimpulse-visual-toggle 'line)
+    (vimpulse-visual-contract-region)
+    (vimpulse-visual-highlight))
+   (t
+    (vimpulse-visual-toggle 'normal))))
 
 (defun vimpulse-movement-cmd-p (command)
   "Whether COMMAND is a \"movement\" command.
