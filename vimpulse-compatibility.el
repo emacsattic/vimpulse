@@ -31,8 +31,12 @@
 
   (add-to-list 'viper-vi-state-mode-list 'undo-tree-visualizer-mode)
 
-  (add-to-list 'ex-token-alist '("undolist" (undo-tree-visualize)))
-  (add-to-list 'ex-token-alist '("ulist" (undo-tree-visualize))))
+  (add-to-list 'ex-token-alist
+               '("undolist"
+                 (progn (undo-tree-visualize) (viper-mode))))
+  (add-to-list 'ex-token-alist
+               '("ulist"
+                 (progn (undo-tree-visualize) (viper-mode)))))
 
 ;;; Isearch
 
