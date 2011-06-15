@@ -1018,7 +1018,8 @@ The motions gets the motion type TYPE."
                (progn ,@body)
              (unless (region-active-p)
                (ad-set-arg
-                0 (cons (or (cdr (assq vimpulse-this-operator
+                0 (cons (viper-P-val (ad-get-arg 0))
+                        (or (cdr (assq vimpulse-this-operator
                                        '((vimpulse-change . ?c)
                                          (vimpulse-delete . ?d)
                                          (vimpulse-yank   . ?y))))
