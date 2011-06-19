@@ -279,52 +279,53 @@ See `vimpulse-object-range' for more details."
 The type of parentheses may be specified with OPEN and CLOSE,
 which must be characters. INCLUDE-PARENTHESES specifies
 whether to include the parentheses in the range."
-  (let ((beg (point)) (end (point))
+  (let ((open-regexp  (if open (regexp-quote (string open)) ""))
+        (close-regexp (if close (regexp-quote (string close)) ""))
+        (count (if (eq count 0) 1 (abs count)))
+        (beg (point)) (end (point))
         line-beg line-end)
-    (setq count (if (eq count 0) 1 (abs count)))
     (save-excursion
-      (setq open  (if (characterp open)
-                      (regexp-quote (string open)) "")
-            close (if (characterp close)
-                      (regexp-quote (string close)) ""))
-      (when (and (not (string= open ""))
-                 (looking-at open))
-        (forward-char))
-      ;; find opening and closing paren with Emacs' S-exp facilities
-      (while (progn
-               (vimpulse-backward-up-list 1)
-               (not (when (looking-at open)
-                      (when (save-excursion
-                              (forward-sexp)
-                              (when (looking-back close)
-                                (setq end (point))))
-                        (if (>= count 0)
-                            (setq beg (point))
-                          (setq count (1- count)) nil))))))
-      (if include-parentheses
-          (list beg end)
-        (setq beg (prog1 (min (1+ beg) end)
-                    (setq end (max (1- end) beg))))
-        (if (<= (count-lines beg end) 1)
+      (with-syntax-table (copy-syntax-table (syntax-table))
+        (when (and open close)
+          (modify-syntax-entry open (format "(%c" close))
+          (modify-syntax-entry close (format ")%c" open)))
+        (when (and open (looking-at open-regexp))
+          (forward-char))
+        ;; find opening and closing paren with Emacs' S-exp facilities
+        (while (progn
+                 (vimpulse-backward-up-list 1)
+                 (not (when (looking-at open-regexp)
+                        (when (save-excursion
+                                (forward-sexp)
+                                (when (looking-back close-regexp)
+                                  (setq end (point))))
+                          (if (>= count 0)
+                              (setq beg (point))
+                            (setq count (1- count)) nil))))))
+        (if include-parentheses
             (list beg end)
-          ;; multi-line inner range: select whole lines
-          (goto-char beg)
-          (when (looking-at "[ \f\t\n\r\v]*$")
-            (forward-line)
-            ;; Include indentation?
-            (if (and viper-auto-indent
-                     (not (eq vimpulse-this-operator
-                              'vimpulse-delete)))
-                (back-to-indentation)
-              (beginning-of-line))
-            (setq beg (point)))
-          (goto-char end)
-          (when (and (looking-back "^[ \f\t\n\r\v]*")
-                     (not (eq vimpulse-this-operator
-                              'vimpulse-delete)))
-            (setq end (line-end-position 0))
-            (goto-char end))
-          (list (min beg end) (max beg end)))))))
+          (setq beg (prog1 (min (1+ beg) end)
+                      (setq end (max (1- end) beg))))
+          (if (<= (count-lines beg end) 1)
+              (list beg end)
+            ;; multi-line inner range: select whole lines
+            (goto-char beg)
+            (when (looking-at "[ \f\t\n\r\v]*$")
+              (forward-line)
+              ;; Include indentation?
+              (if (and viper-auto-indent
+                       (not (eq vimpulse-this-operator
+                                'vimpulse-delete)))
+                  (back-to-indentation)
+                (beginning-of-line))
+              (setq beg (point)))
+            (goto-char end)
+            (when (and (looking-back "^[ \f\t\n\r\v]*")
+                       (not (eq vimpulse-this-operator
+                                'vimpulse-delete)))
+              (setq end (line-end-position 0))
+              (goto-char end))
+            (list (min beg end) (max beg end))))))))
 
 ;; quoted expressions
 (defun vimpulse-quote-range (count &optional quote include-quotes)
@@ -493,42 +494,42 @@ specifies whether to include the quote marks in the range."
 (vimpulse-define-text-object vimpulse-a-paren (arg)
   "Select a parenthesis."
   :keys '("ab" "a(" "a)")
-  (vimpulse-paren-range arg ?\( nil t))
+  (vimpulse-paren-range arg ?\( ?\) t))
 
 (vimpulse-define-text-object vimpulse-inner-paren (arg)
   "Select inner parenthesis."
   :keys '("ib" "i(" "i)")
-  (vimpulse-paren-range arg ?\())
+  (vimpulse-paren-range arg ?\( ?\)))
 
 (vimpulse-define-text-object vimpulse-a-bracket (arg)
   "Select a square bracket."
   :keys '("a[" "a]")
-  (vimpulse-paren-range arg ?\[ nil t))
+  (vimpulse-paren-range arg ?\[ ?\] t))
 
 (vimpulse-define-text-object vimpulse-inner-bracket (arg)
   "Select inner square bracket."
   :keys '("i[" "i]")
-  (vimpulse-paren-range arg ?\[))
+  (vimpulse-paren-range arg ?\[ ?\]))
 
 (vimpulse-define-text-object vimpulse-a-curly (arg)
   "Select a curly bracket (\"brace\")."
   :keys '("aB" "a{" "a}")
-  (vimpulse-paren-range arg ?{ nil t))
+  (vimpulse-paren-range arg ?{ ?} t))
 
 (vimpulse-define-text-object vimpulse-inner-curly (arg)
   "Select inner curly bracket (\"brace\")."
   :keys '("iB" "i{" "i}")
-  (vimpulse-paren-range arg ?{))
+  (vimpulse-paren-range arg ?{ ?}))
 
 (vimpulse-define-text-object vimpulse-an-angle (arg)
   "Select an angle bracket."
   :keys '("a<" "a>")
-  (vimpulse-paren-range arg ?< nil t))
+  (vimpulse-paren-range arg ?< ?> t))
 
 (vimpulse-define-text-object vimpulse-inner-angle (arg)
   "Select inner angle bracket."
   :keys '("i<" "i>")
-  (vimpulse-paren-range arg ?<))
+  (vimpulse-paren-range arg ?< ?>))
 
 (vimpulse-define-text-object vimpulse-a-single-quote (arg)
   "Select a single-quoted expression."
