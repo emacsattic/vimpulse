@@ -237,6 +237,7 @@ Disable anyway if FORCE is t."
          (isearch-highlight-all-cleanup))
     (and (fboundp 'lazy-highlight-cleanup)
          (lazy-highlight-cleanup t))
+    (isearch-clean-overlays)
     (when vimpulse-flash-timer
       (cancel-timer vimpulse-flash-timer)))
   (remove-hook 'pre-command-hook 'vimpulse-flash-hook))

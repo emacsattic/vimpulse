@@ -1022,6 +1022,9 @@ docstring. The variable becomes buffer-local whenever set.")
                         (re-search-backward string))
                     (search-forward string nil nil val)
                     (search-backward string))
+		  ;; handle opening and closing of invisible area
+		  (funcall isearch-filter-predicate
+			   (match-beginning 0) (match-end 0))
                   (if (not (equal (point) start-point))
                       (push-mark start-point t)))
               (search-failed
@@ -1052,6 +1055,9 @@ docstring. The variable becomes buffer-local whenever set.")
                 (if viper-re-search
                     (re-search-backward string nil nil val)
                   (search-backward string nil nil val))
+                ;; handle opening and closing of invisible area
+		(funcall isearch-filter-predicate
+			 (match-beginning 0) (match-end 0))
                 (if (not (equal (point) start-point))
                     (push-mark start-point t)))
             (search-failed
