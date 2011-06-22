@@ -209,10 +209,27 @@ which lists available keys:
           (and (fboundp 'isearch-lazy-highlight-update)
                (isearch-lazy-highlight-update))))
       (add-hook 'pre-command-hook 'vimpulse-flash-hook)
+      (add-hook 'pre-command-hook 'vimpulse-clean-isearch-overlays)
       (setq vimpulse-flash-timer
             (if (fboundp 'run-at-time)
                 (add-timeout vimpulse-flash-delay disable nil)
               (run-at-time vimpulse-flash-delay nil disable))))))
+
+(defun vimpulse-clean-isearch-overlays ()
+  "Cleans isearch overlays if `this-command' is not search."
+  (remove-hook 'pre-command-hook 'vimpulse-clean-isearch-overlays)
+  (when (not (memq this-command
+		   '(viper-exec-mapped-kbd-macro
+		     viper-search
+		     viper-search-backward
+		     viper-search-forward
+		     viper-search-next
+		     viper-search-Next
+		     vimpulse-search-backward
+		     vimpulse-search-forward
+		     vimpulse-search-backward-for-symbol-at-point
+		     vimpulse-search-forward-for-symbol-at-point)))
+    (isearch-clean-overlays)))
 
 (defun vimpulse-flash-hook (&optional force)
   "Disable hightlighting if `this-command' is not search.
@@ -237,7 +254,6 @@ Disable anyway if FORCE is t."
          (isearch-highlight-all-cleanup))
     (and (fboundp 'lazy-highlight-cleanup)
          (lazy-highlight-cleanup t))
-    (isearch-clean-overlays)
     (when vimpulse-flash-timer
       (cancel-timer vimpulse-flash-timer)))
   (remove-hook 'pre-command-hook 'vimpulse-flash-hook))
