@@ -295,7 +295,18 @@ Used by `vimpulse-operator-repeat'.")
     cua-cancel digit-argument down-list end-of-buffer end-of-defun
     end-of-line end-of-visual-line exchange-point-and-mark
     forward-char forward-list forward-paragraph forward-sentence
-    forward-sexp forward-word keyboard-quit mouse-drag-region
+    forward-sexp forward-word isearch-abort isearch-cancel
+    isearch-complete isearch-del-char isearch-delete-char
+    isearch-edit-string isearch-exit isearch-highlight-regexp
+    isearch-occur isearch-other-control-char isearch-other-meta-char
+    isearch-printing-char isearch-query-replace
+    isearch-query-replace-regexp isearch-quote-char
+    isearch-repeat-backward isearch-repeat-forward
+    isearch-ring-advance isearch-ring-retreat isearch-toggle-case-fold
+    isearch-toggle-input-method isearch-toggle-regexp
+    isearch-toggle-specified-input-method isearch-toggle-word
+    isearch-yank-char isearch-yank-kill isearch-yank-line
+    isearch-yank-word-or-char keyboard-quit mouse-drag-region
     mouse-save-then-kill mouse-set-point mouse-set-region
     move-beginning-of-line move-end-of-line next-line previous-line
     scroll-down scroll-up undo universal-argument up-list
