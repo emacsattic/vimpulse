@@ -53,7 +53,7 @@
 
 (defun vimpulse-paren-match (&optional pos)
   "Return the position of possible matching paren at point (or POS).
-If not a paren, return `not-a-paren'. If not found, return nil."
+If not a paren, return -1. If not found, return nil."
   (setq pos (or pos (point)))
   (condition-case nil
       (cond
@@ -62,7 +62,7 @@ If not a paren, return `not-a-paren'. If not found, return nil."
        ((vimpulse-paren-close-p pos)
         (scan-sexps (1+ pos) -1))
        (t
-        'not-a-paren))
+        -1))
     (error nil)))
 
 (defun vimpulse-paren-match-p (pos1 pos2)
@@ -95,9 +95,9 @@ or mismatched paren."
   (setq pos (or pos (point)))
   (let ((match (vimpulse-paren-match pos)))
     (cond
-     ((not match)
+     ((null match)
       (vimpulse-paren-highlight 'show-paren-mismatch pos))
-     ((eq match 'not-a-paren)
+     ((< match 0)
       (vimpulse-delete-overlay vimpulse-paren-overlay-open)
       (vimpulse-delete-overlay vimpulse-paren-overlay-close))
      ((/= pos (vimpulse-paren-match match))

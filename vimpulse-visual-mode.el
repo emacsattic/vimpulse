@@ -383,7 +383,7 @@ Saves the previous state of Transient Mark mode in
 
 (defun vimpulse-transient-restore ()
   "Restore Transient Mark mode to what is was before Visual mode.
- Also restores Cua mode."
+Also restores Cua mode."
   (when vimpulse-visual-vars-alist
     (when (boundp 'transient-mark-mode)
       (if (vimpulse-visual-old-value 'transient-mark-mode)
