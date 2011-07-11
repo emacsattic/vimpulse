@@ -1066,6 +1066,14 @@ include it in the motion range."
                                 (vimpulse-yank   . ?y)))) ?r)))))
   ad-do-it)
 
+(vimpulse-operator-advise viper-goto-eol inclusive
+  "When point is before the parenthetical expression,
+include it in the motion range."
+  ad-do-it
+  (when (eolp)
+    ;; this prevents "c$" or "d$" from deleting blank lines
+    (setq vimpulse-this-motion-type 'exclusive)))
+
 ;;; remap non-motion commands to `viper-nil'
 (vimpulse-operator-remap 'undo 'viper-nil)
 (vimpulse-operator-remap 'undo-tree-redo 'viper-nil)
@@ -1105,7 +1113,6 @@ include it in the motion range."
 (put 'viper-beginning-of-line 'motion-type 'exclusive)
 (put 'viper-forward-paragraph 'motion-type 'exclusive)
 (put 'viper-forward-sentence 'motion-type 'exclusive)
-(put 'viper-goto-eol 'motion-type 'inclusive)
 (put 'viper-goto-line 'motion-type 'line)
 (put 'viper-goto-mark 'motion-type 'exclusive)
 (put 'viper-goto-mark-and-skip-white 'motion-type 'line)
