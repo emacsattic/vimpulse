@@ -1,3 +1,5 @@
+;; License: GPL-2+
+
 (require 'vimpulse-dependencies)
 (require 'vimpulse-viper-function-redefinitions)
 (require 'vimpulse-utils)
